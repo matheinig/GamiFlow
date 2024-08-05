@@ -94,7 +94,7 @@ def addWeightedNormals(context, obj):
     
 def triangulate(context, obj):
     tri = obj.modifiers.new(type="TRIANGULATE", name="GFLOW Triangulation")
-    tri.keep_custom_normals = True
+    # tri.keep_custom_normals = True  No longer possible as of 4.2
 
 def removeLowModifiers(context, obj):
     for m in list(obj.modifiers):
