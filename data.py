@@ -15,6 +15,11 @@ def onVisualUdimChange(self, context):
         if u.name == value:
             self.textureSet = i
             return
+def onCollectionChanged(self, context):
+    # Make sure we have at least one UDIM
+    if len(context.scene.gflow.udims) == 0:
+        context.scene.gflow.udims.add()
+        context.scene.gflow.udims[0].name = "UDIM_0"
     
 gUV_UNWRAP_METHODS = [
         ("ANGLE_BASED", "Angle Based", "", 1),
@@ -61,7 +66,7 @@ class GFlowDisplay(bpy.types.PropertyGroup):
     
 class GFlowScene(bpy.types.PropertyGroup):
     # Sets
-    workingCollection : bpy.props.PointerProperty(type=bpy.types.Collection, name="Working set")
+    workingCollection : bpy.props.PointerProperty(type=bpy.types.Collection, name="Working set", update=onCollectionChanged)
     painterLowCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
     painterHighCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
     exportCollection : bpy.props.PointerProperty(type=bpy.types.Collection)

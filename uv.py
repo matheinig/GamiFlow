@@ -583,8 +583,8 @@ classes = [
 def register():
     for c in classes: 
         bpy.utils.register_class(c)
-    bpy.app.handlers.load_post.append(onLoad)
-    
+    bpy.app.handlers.load_post.append(onLoad) # Make sure we have an udim whenever we load a new scene
+
     print("UVpacker found: "+str(checkForUVPacker()))
     
     pass
