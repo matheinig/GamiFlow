@@ -1,6 +1,7 @@
 import bpy
 from . import sets
 from . import helpers
+from . import settings
 
 # Find or create the Export Set
 def getCollection(context, createIfNeeded=False):
@@ -59,8 +60,7 @@ def generateExport(context):
     sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, False)
     
-    # TODO: should probably be a user setting
-    exportSuffix = "_e"
+    exportSuffix = settings.getSettings().exportsuffix
     
     # Go through all the objects of the working set and generate the export set
     generated = []

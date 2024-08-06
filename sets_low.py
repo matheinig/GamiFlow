@@ -1,5 +1,6 @@
 import bpy
 from . import sets
+from . import settings
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterLowCollection
@@ -35,13 +36,15 @@ def generatePainterLow(context):
 
     bpy.ops.object.select_all(action='DESELECT')  
 
+    lpsuffix = settings.getSettings().lpsuffix
+
     # Go through all the objects of the working set
     for o in context.scene.gflow.workingCollection.all_objects:
         if o.type != 'MESH': continue
         if o.gflow.objType != 'STANDARD': continue
         
         # Make a copy the object
-        newobj = sets.duplicateObject(o, "_low", lowCollection)
+        newobj = sets.duplicateObject(o, lpsuffix, lowCollection)
         # Parenting magic
         if o.parent != None:
             newobj.parent = None

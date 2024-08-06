@@ -1,5 +1,6 @@
 import bpy
 from . import sets
+from . import settings
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterHighCollection
@@ -23,13 +24,16 @@ def generatePainterHigh(context):
     sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.exportCollection, False)
 
+    stgs = settings.getSettings()
+    decalsuffix = stgs.decalsuffix
+
     # Go through all the objects of the working set
     for o in context.scene.gflow.workingCollection.all_objects:
         if o.type != 'MESH': continue
         if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER'): continue
         
         # Make a copy the object
-        suffix = "_high"
+        suffix = stgs.hpsuffix
         if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"
         
         newobj = None
@@ -52,7 +56,7 @@ def generatePainterHigh(context):
             newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
             hpsuffix = suffix
             if hp.obj.gflow.objType == 'DECAL': 
-                hpsuffix = hpsuffix + "_ignorebf"
+                hpsuffix = hpsuffix + decalsuffix
             newhp.name = sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
             sets.triangulate(context, newhp)
 

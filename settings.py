@@ -5,9 +5,20 @@ from . import data
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
     
+    hpsuffix : bpy.props.StringProperty(name = "High poly", default = "_high")
+    lpsuffix : bpy.props.StringProperty(name = "Low poly", default = "_low")
+    decalsuffix : bpy.props.StringProperty(name = "Decal", default = "_ignorebf")
+    exportsuffix : bpy.props.StringProperty(name = "Export", default = "_e")
+    
     def draw(self, context):
         layout = self.layout
-        layout.label(text="This is a preferences view for our add-on")
+        
+        layout.label(text="Naming convention")
+        layout.prop(self, "lpsuffix")
+        layout.prop(self, "hpsuffix")
+        layout.prop(self, "decalsuffix")
+        layout.prop(self, "exportsuffix")
+        
         #layout.prop(self, "my_property")
   
 
