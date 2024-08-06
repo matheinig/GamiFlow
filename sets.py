@@ -88,12 +88,12 @@ def setObjectSmoothing(context, obj, keep_sharp_edges=True):
 
 
 def addWeightedNormals(context, obj):
-    w = obj.modifiers.new(type="WEIGHTED_NORMAL", name="GFLOW Normal")
+    w = obj.modifiers.new(type="WEIGHTED_NORMAL", name="Weighted Normal (GFlow)")
     w.keep_sharp = True
     w.use_face_influence = True
     
 def triangulate(context, obj):
-    tri = obj.modifiers.new(type="TRIANGULATE", name="GFLOW Triangulation")
+    tri = obj.modifiers.new(type="TRIANGULATE", name="Triangulate (GFlow)")
     # tri.keep_custom_normals = True  No longer possible as of 4.2
 
 def removeLowModifiers(context, obj):
