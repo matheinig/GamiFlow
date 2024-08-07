@@ -3,10 +3,17 @@ import bmesh
 import mathutils
 import math
 import addon_utils
+import importlib  
+import platform, os, subprocess, queue, threading
 from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
 from . import geotags
 from . import helpers
 from . import sets
+from . import settings
+
+def isUvPackerAvailable():
+    (default, current) = addon_utils.check("UV-Packer")
+    return current
 
 def hardenSeams(context, obj):
     return
@@ -214,6 +221,7 @@ def pack(context, objects, packMethod = 'FAST'):
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.select_all(action='SELECT')
     
+    
     # Deal with the scale
     ## First average everything
     bpy.ops.uv.average_islands_scale()
@@ -222,7 +230,7 @@ def pack(context, objects, packMethod = 'FAST'):
         rescaleIslandsIfNeeded(o)
 
     # Pack into [0,1]
-    bpy.ops.uv.pack_islands(margin=margin, margin_method='FRACTION', shape_method=shapeMethod, rotate_method=rotateMethod)
+    generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=True, rotate_method=rotateMethod)
     
     # Go through individual objects and orient the islands
     anythingRotated = False
@@ -232,16 +240,42 @@ def pack(context, objects, packMethod = 'FAST'):
         anythingRotated = orientUv(context, o) or anythingRotated
 
     if anythingRotated:
-        print("Packer: align specific islands and repack")
         bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.uv.select_all(action='SELECT')
-        bpy.ops.uv.pack_islands(margin=margin, shape_method=shapeMethod, margin_method='FRACTION', rotate=False)
+        generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=False, rotate_method=rotateMethod)
 
     # TODO: snap UVs to pixel or blocks
     
     # Exit
     bpy.ops.object.mode_set(mode='OBJECT')
     pass
+def generic_pack_island(context, margin, shape_method, rotate, rotate_method):
+    if settings.getSettings().uvPacker == "BLENDER":
+        bpy.ops.uv.pack_islands(margin=margin, margin_method='FRACTION', shape_method=shape_method, rotate=rotate, rotate_method=rotate_method)
+    else:
+        uvpacker_pack_island(context=context, margin=margin, rotate=rotate, rotate_method=rotate_method)
+    return
+def uvpacker_pack_island(context, margin, rotate, rotate_method):
+    props = context.scene.UVPackerProps
+    props.uvp_selection_only = True
+    props.uvp_rescale = False
+    props.uvp_width = 4096
+    props.uvp_height = 4096
+    props.uvp_padding = margin * props.uvp_width
+    if rotate:
+        if rotate_method == 'AXIS_ALIGNED': 
+            props.uvp_rotate = "1"
+            props.uvp_fullRotate = False
+        if rotate_method == 'ANY': 
+            props.uvp_fullRotate = True
+    else:
+        props.uvp_rotate = "0"
+        props.uvp_fullRotate = False
+    
+    pack_uvpacker(context)
+    return
+    
+    
 
 def rescaleIslandsIfNeeded(obj):
     with helpers.editModeBmesh(obj) as bm:
@@ -533,32 +567,69 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
     
         bpy.context.window.workspace = bpy.data.workspaces["UV Editing"]
         
-        
-        
+
         return {"FINISHED"}         
 
-def checkForUVPacker():
-    found = addon_utils.check("UV-Packer.py")
-    enabled = True
-    uvpackerEnabled = found and enabled
-    return uvpackerEnabled
+# UV-Packer backend
+uvPacker = None
+def getUvPacker():
+    global uvPacker
+    if uvPacker is None:
+        # UV-Packer unfortunately has a dash in its name making it awkward to import
+        uvPacker = importlib.import_module("UV-Packer")
+    return uvPacker
 
-### Special UV-Packer magic because it has a modal operator
-## https://blenderartists.org/t/wait-for-operator-to-finish/1260042/17
-# some callback function - here we put what shall be run after the modal is finished
-def packer_callback(ret):
-    print('Callback triggered: {} !!'.format(ret))
-def modal_wrap(modal_func, callback):
-    def wrap(self, context, event):
-        ret, = retset = modal_func(self, context, event)
-        if ret in {'CANCELLED', 'FINISHED'}: 
-            print(f"{self.bl_idname} returned {ret}")
-            packer_callback(ret)
-        return retset
-    return wrap
+def pack_uvpacker(context):
+    # UV-Packer is difficult to call externally because all we have is a modal operator.
+    # So instead we have to manually call the exe
 
-def pack_uvpacker():
-    # TODO
+    uvPacker = getUvPacker()
+    
+    unique_objects = uvPacker.misc.get_unique_objects(context.selected_objects)
+    meshes = uvPacker.misc.get_meshes(unique_objects)
+    if len(meshes) == 0: return
+
+    packer_props = context.scene.UVPackerProps
+
+    if packer_props.uvp_create_channel:
+        uvPacker.misc.set_map_name(packer_props.uvp_channel_name)
+        uvPacker.misc.add_uv_channel_to_objects(unique_objects)
+
+    options = {
+      "PackMode": uvPacker.misc.resolve_engine(packer_props.uvp_engine),
+      "Width": packer_props.uvp_width,
+      "Height": packer_props.uvp_height,
+      "Padding": packer_props.uvp_padding,
+      "Rescale": packer_props.uvp_rescale,
+      "PreRotate": packer_props.uvp_prerotate,
+      "Rotation": int(packer_props.uvp_rotate),
+      "FullRotation": packer_props.uvp_fullRotate,
+      "Combine": packer_props.uvp_combine,
+      "TilesX": packer_props.uvp_tilesX,
+      "TilesY": packer_props.uvp_tilesY,
+      "Selection": packer_props.uvp_selection_only
+    }
+
+    packerDir = "/Applications/UV-Packer-Blender.app/Contents/MacOS/"
+    packerExe = "UV-Packer-Blender"
+    if (platform.system() == 'Windows'):
+      packerDir = os.path.dirname(os.path.realpath(uvPacker.__file__))
+      packerExe = packerExe + ".exe"
+
+    process = None
+    thread = None
+    try:
+      process = subprocess.Popen([packerDir + "/" + packerExe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=False)
+    except:
+      print('UV-Packer executable not found in "' + packerDir + '". Please check the Documentation for installation information.')
+      return
+
+    msg_queue = queue.SimpleQueue()
+    thread = threading.Thread(target=uvPacker.misc.data_exchange_thread, args=(process, options, meshes, msg_queue))
+    thread.daemon = True
+    thread.start()    
+    thread.join()
+
     return
 
 
@@ -585,7 +656,7 @@ def register():
         bpy.utils.register_class(c)
     bpy.app.handlers.load_post.append(onLoad) # Make sure we have an udim whenever we load a new scene
 
-    print("UVpacker found: "+str(checkForUVPacker()))
+    print("UVpacker found: "+str(isUvPackerAvailable()))
     
     pass
 def unregister():

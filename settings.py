@@ -1,6 +1,6 @@
 import bpy
 from . import data 
-
+from . import uv
 
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
@@ -10,6 +10,17 @@ class AddonPreferences(bpy.types.AddonPreferences):
     decalsuffix : bpy.props.StringProperty(name = "Decal", default = "_ignorebf")
     exportsuffix : bpy.props.StringProperty(name = "Export", default = "_e")
     
+    uvPacker : bpy.props.EnumProperty(
+        name="UV Packer",
+        description="Chose which UV packer to use",
+        items=
+        [
+        ("BLENDER", "Blender", "Native packer, can be quite slow"),
+        ("UVPACKER", "UV-Packer", "Free plugin (must be installed separately). Very fast, very good quality."),
+        ],
+        default="BLENDER"
+        )
+    
     def draw(self, context):
         layout = self.layout
         
@@ -18,6 +29,14 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "hpsuffix")
         layout.prop(self, "decalsuffix")
         layout.prop(self, "exportsuffix")
+        
+        layout.prop(self, "uvPacker")
+
+        if self.uvPacker == "UVPACKER" and not uv.isUvPackerAvailable():
+            row = layout.row()
+            row.alert = True
+            row.label(text="UV-Packer plugin not found")
+            row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
         
         #layout.prop(self, "my_property")
   
