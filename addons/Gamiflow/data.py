@@ -25,6 +25,22 @@ gUV_UNWRAP_METHODS = [
         ("ANGLE_BASED", "Angle Based", "", 1),
         ("CONFORMAL", "Conformal", "", 2),
     ]
+gUV_RESOLUTION = [        
+        ("512",  "512",  "", 512),
+        ("1024", "1024", "", 1024),
+        ("2048", "2048", "", 2048),
+        ("4096", "4096", "", 4096),
+        ("8192", "8192", "", 8192),
+    ]
+gUV_MARGIN = [        
+        ("2",  "2",  "", 2),
+        ("4",  "4",  "", 4),
+        ("8",  "8",  "", 8),
+        ("16", "16", "", 16),
+        ("32", "32", "", 32),
+        ("64", "64", "", 64)
+    ]    
+    
 class GFlowObject(bpy.types.PropertyGroup):
     # UV mapping
     unwrap: bpy.props.BoolProperty(name="Auto Unwrap", default=True)
@@ -58,6 +74,7 @@ class GFlowObject(bpy.types.PropertyGroup):
 gUV_PACK_METHODS = [("FAST", "Fast", "", 0), ("REASONABLE", "Reasonable", "", 1), ("ACCURATE", "Accurate", "", 2)]
 class GFlowUdim(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty(name="UDIM", default="Main")
+    # TODO: custom resolution and margin
     
 class GFlowDisplay(bpy.types.PropertyGroup):
     uvGridification: bpy.props.BoolProperty(name="Gridification", default=True)
@@ -71,7 +88,9 @@ class GFlowScene(bpy.types.PropertyGroup):
     painterHighCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
     exportCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
     # UVs
-    uvMargin : bpy.props.FloatProperty(name="Margin", subtype='FACTOR', default=16/2048,  precision=4, step=0.1, min=0.0, soft_max=0.1, description="Margin between UV islands")
+    uvResolution : bpy.props.EnumProperty(name="Resolution", default='2048', items=gUV_RESOLUTION, description="Default resolution in pixels")
+    uvMargin : bpy.props.EnumProperty(name="Margin", default='8', items=gUV_MARGIN, description="Margin between UV islands (in pixels)")
+    uvSnap : bpy.props.BoolProperty(name="Snap", default=True, description="If enabled, UVs will be snapped to pixels")
     uvPackSettings :  bpy.props.EnumProperty(name="Packer", default='FAST', items=gUV_PACK_METHODS)
     uvScaleFactor: bpy.props.FloatProperty(name="Scale", subtype='FACTOR', default=1.0,  precision=2, step=0.1, min=0.0, soft_max=2.0, description="Island scale factor")
     # Udims

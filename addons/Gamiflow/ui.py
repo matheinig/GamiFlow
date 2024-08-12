@@ -38,10 +38,13 @@ class GFLOW_PT_WorkingSet(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         layout.prop(context.scene.gflow, "workingCollection")
         
         layout.separator()
-
+        
+        row = layout.row()
+        row.prop(context.scene.gflow, "uvResolution")
+        row.prop(context.scene.gflow, "uvMargin")
         row = layout.row()
         row.prop(context.scene.gflow, "uvPackSettings")
-        row.prop(context.scene.gflow, "uvMargin")
+        row.prop(context.scene.gflow, "uvSnap")
         layout.operator("gflow.auto_unwrap")
         layout.operator("gflow.show_uv")
         

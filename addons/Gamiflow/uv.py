@@ -204,8 +204,9 @@ def pack(context, objects, packMethod = 'FAST'):
     elif packMethod == 'REASONABLE':
         shapeMethod = 'CONCAVE'
         rotateMethod = 'AXIS_ALIGNED'
-    
-    margin = context.scene.gflow.uvMargin
+
+    resolution = int(context.scene.gflow.uvResolution)
+    margin = int(context.scene.gflow.uvMargin) / resolution
 
     # Select all the relevant meshes
     relevant = []
@@ -244,7 +245,10 @@ def pack(context, objects, packMethod = 'FAST'):
         bpy.ops.uv.select_all(action='SELECT')
         generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=False, rotate_method=rotateMethod)
 
-    # TODO: snap UVs to pixel or blocks
+    # Snap UVs to pixels
+    if context.scene.gflow.uvSnap:
+        for o in relevant:
+            snapUv(o, resolution)
     
     # Exit
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -259,8 +263,8 @@ def uvpacker_pack_island(context, margin, rotate, rotate_method):
     props = context.scene.UVPackerProps
     props.uvp_selection_only = True
     props.uvp_rescale = False
-    props.uvp_width = 4096
-    props.uvp_height = 4096
+    props.uvp_width = int(context.scene.gflow.uvResolution)
+    props.uvp_height = props.uvp_width
     props.uvp_padding = margin * props.uvp_width
     if rotate:
         if rotate_method == 'AXIS_ALIGNED': 
@@ -275,7 +279,18 @@ def uvpacker_pack_island(context, margin, rotate, rotate_method):
     pack_uvpacker(context)
     return
     
-    
+def snapUv(obj, resolution):
+    with helpers.editModeBmesh(obj) as bm:
+        uv_layer = bm.loops.layers.uv.active
+        for face in bm.faces:
+            for loop in face.loops:
+                uv = loop[uv_layer].uv
+                pixel = uv * resolution
+                pixel[0] = round(pixel[0])
+                pixel[1] = round(pixel[1])
+                uv = pixel / resolution
+                loop[uv_layer].uv = uv
+    return     
 
 def rescaleIslandsIfNeeded(obj):
     with helpers.editModeBmesh(obj) as bm:
