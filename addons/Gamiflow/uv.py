@@ -210,6 +210,7 @@ def pack(context, objects, packMethod = 'FAST'):
 
     # Select all the relevant meshes
     relevant = []
+    bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
         if o.type != 'MESH': continue
         if o.gflow.objType  != 'STANDARD': continue
@@ -222,24 +223,26 @@ def pack(context, objects, packMethod = 'FAST'):
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.select_all(action='SELECT')
     
-    
     # Deal with the scale
     ## First average everything
     bpy.ops.uv.average_islands_scale()
     ## Then rescale individual islands based on user values
     for o in relevant:
         rescaleIslandsIfNeeded(o)
+    bpy.ops.object.mode_set(mode='OBJECT')
 
-    # Pack into [0,1]
-    generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=True, rotate_method=rotateMethod)
     
-    # Go through individual objects and orient the islands
+    # Actual packing
+    bpy.ops.object.mode_set(mode='EDIT')
+    ## Pack into [0,1]
+    generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=True, rotate_method=rotateMethod)
+    ## Go through individual objects and orient the islands
     anythingRotated = False
     for o in relevant:
         o.select_set(True)
         context.view_layer.objects.active = o
         anythingRotated = orientUv(context, o) or anythingRotated
-
+    ## Repack but without allowing rotation if anything has been manually rotated
     if anythingRotated:
         bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.uv.select_all(action='SELECT')
