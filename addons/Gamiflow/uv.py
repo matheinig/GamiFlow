@@ -4,7 +4,7 @@ import mathutils
 import math
 import addon_utils
 import importlib  
-import platform, os, subprocess, queue, threading
+import platform, os, subprocess, queue
 from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
 from . import geotags
 from . import helpers
@@ -192,7 +192,7 @@ def unwrap(context, objects):
         bpy.ops.object.mode_set(mode='OBJECT')
         
         o.select_set(False)
-
+    bpy.ops.object.select_all(action='DESELECT')
 
 
 def pack(context, objects, packMethod = 'FAST'):
@@ -261,11 +261,11 @@ def generic_pack_island(context, margin, shape_method, rotate, rotate_method):
     return
 def uvpacker_pack_island(context, margin, rotate, rotate_method):
     props = context.scene.UVPackerProps
-    props.uvp_selection_only = True
+    props.uvp_selection_only = False
     props.uvp_rescale = False
     props.uvp_width = int(context.scene.gflow.uvResolution)
     props.uvp_height = props.uvp_width
-    props.uvp_padding = margin * props.uvp_width
+    props.uvp_padding = int(margin * props.uvp_width)
     if rotate:
         if rotate_method == 'AXIS_ALIGNED': 
             props.uvp_rotate = "1"
@@ -548,7 +548,6 @@ def udimItemGenerator(self,context):
     return items
 def findUdimId(context, name):
     for i, u in enumerate(context.scene.gflow.udims):
-        print(u)
         if u.name==name: return i
     return None
     
@@ -619,32 +618,30 @@ def pack_uvpacker(context):
       "PreRotate": packer_props.uvp_prerotate,
       "Rotation": int(packer_props.uvp_rotate),
       "FullRotation": packer_props.uvp_fullRotate,
-      "Combine": packer_props.uvp_combine,
-      "TilesX": packer_props.uvp_tilesX,
-      "TilesY": packer_props.uvp_tilesY,
-      "Selection": packer_props.uvp_selection_only
+      "Combine": True,
+      "TilesX": 1,
+      "TilesY": 1,
+      "Selection": False
     }
 
     packerDir = "/Applications/UV-Packer-Blender.app/Contents/MacOS/"
     packerExe = "UV-Packer-Blender"
     if (platform.system() == 'Windows'):
-      packerDir = os.path.dirname(os.path.realpath(uvPacker.__file__))
-      packerExe = packerExe + ".exe"
+        packerDir = os.path.dirname(os.path.realpath(uvPacker.__file__))
+        packerExe = packerExe + ".exe"
 
     process = None
-    thread = None
     try:
-      process = subprocess.Popen([packerDir + "/" + packerExe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=False)
+        process = subprocess.Popen([packerDir + "/" + packerExe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=False)
     except:
-      print('UV-Packer executable not found in "' + packerDir + '". Please check the Documentation for installation information.')
-      return
+        print('UV-Packer executable not found in "' + packerDir + '". Please check the Documentation for installation information.')
+        return
 
     msg_queue = queue.SimpleQueue()
-    thread = threading.Thread(target=uvPacker.misc.data_exchange_thread, args=(process, options, meshes, msg_queue))
-    thread.daemon = True
-    thread.start()    
-    thread.join()
-
+    uvPacker.misc.data_exchange_thread(process, options, meshes, msg_queue)
+    print("UV Packer response:")
+    while not msg_queue.empty():
+        print( msg_queue.get() )
     return
 
 
