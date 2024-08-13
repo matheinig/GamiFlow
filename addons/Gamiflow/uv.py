@@ -154,6 +154,13 @@ def straightenUv(context, obj):
     return
 
 def autoUnwrap(context):
+    # Make sure the working set is enabled and hide the rest for clarity
+    sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, True)
+    sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, False)
+    sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, False)
+    sets.setCollectionVisibility(context, context.scene.gflow.exportCollection, False)
+    
+    # Go through all udims and unwrap them
     for texset in range(0, len(context.scene.gflow.udims)): 
         # Gather all objects
         obj = [o for o in context.scene.gflow.workingCollection.all_objects if o.type == 'MESH' and o.gflow.textureSet == texset]
