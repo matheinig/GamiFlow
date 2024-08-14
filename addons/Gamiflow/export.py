@@ -4,15 +4,17 @@ import os
 from . import sets_low
 from . import sets_high
 from . import sets
+from . import helpers
 
 def exportCollection(context, collection, filename):
-    # Enable the collection
-
+    exportObjects(context, collection.all_objects, filename)
+    return
+    
+def exportObjects(context, objects, filename):
     # select all relevant objects
     bpy.ops.object.select_all(action='DESELECT')
-    for o in collection.all_objects:
-        o.select_set(True)
-        context.view_layer.objects.active = o
+    for o in objects:
+        helpers.setSelected(context, o)
        
     # old unity: bake space transform, up=Y, forward=-Z
        
@@ -75,11 +77,6 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
     )
     @classmethod
     def poll(cls, context):
-        if True:
-            # TODO
-            cls.poll_message_set("TODO: not implemented yet 😘")
-            return False            
-    
         if not context.scene.gflow.exportCollection: 
             cls.poll_message_set("Need to generate the Export set first")
             return False
@@ -88,11 +85,20 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
     def execute(self, context):
         name = sets.getSetName(context)
         folder = os.path.dirname(self.filepath)
-        baseName = os.path.join(folder,name)
-
-        sets.setCollectionVisibility(context, context.scene.gflow.exportCollection, True)
         
-        # TODO
+
+        collection = context.scene.gflow.exportCollection
+        sets.setCollectionVisibility(context, collection, True)
+        
+        # Simple export
+        if context.scene.gflow.exportMethod == 'SINGLE':
+            baseName = os.path.join(folder,name)
+            exportCollection(context, context.scene.gflow.exportCollection, baseName)
+        # Kit export: each root object gets exported separately
+        if context.scene.gflow.exportMethod == 'KIT':
+            for o in context.scene.gflow.exportCollection.objects:
+                filename = os.path.join(folder, o.name)
+                exportObjects(context, o.children_recursive, filename)
 
         return {'FINISHED'}
   
