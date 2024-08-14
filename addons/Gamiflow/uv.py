@@ -170,6 +170,22 @@ def autoUnwrap(context):
         # Pack everything together
         pack(context, obj, context.scene.gflow.uvPackSettings)
 
+def lightmapUnwrap(context, objects):
+    # Sanitise the list
+    obj = [o for o in objects if o.type == 'MESH']
+
+    # Make sure all objects have a new UV layer and that it's active
+    for o in obj:
+        if 'UVLightMap' not in o.data.uv_layers:
+            uv = o.data.uv_layers.new(name='UVLightMap')
+        o.data.uv_layers['UVLightMap'].active = True
+
+    # Everything gets packed into the same lightmap UV regardless of the UDIM
+    ## Not sure if that's for the best
+    ## Also do we even care about all the custom scale and orientation?
+    unwrap(context, obj)
+    pack(context, obj, context.scene.gflow.uvPackSettings)
+
 def unwrap(context, objects):
     bpy.ops.object.select_all(action='DESELECT')
 

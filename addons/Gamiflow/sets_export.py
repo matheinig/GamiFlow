@@ -2,6 +2,7 @@ import bpy
 from . import sets
 from . import helpers
 from . import settings
+from . import uv
 
 # Find or create the Export Set
 def getCollection(context, createIfNeeded=False):
@@ -117,6 +118,10 @@ def generateExport(context):
         if o.gflow.exportAnchor:
             o.matrix_world = o.gflow.exportAnchor.matrix_world.copy()
 
+    # Lightmap UVs generation
+    if context.scene.gflow.lightmapUvs:
+        uv.lightmapUnwrap(context, generated)
+        
     # Merge all possible objects
     todo = sets.findRoots(collection)
     while len(todo)>0:
@@ -140,9 +145,6 @@ def generateExport(context):
             # TODO: match new pivot to the original root
             # TODO: there could be other objects with constraints pointing to the original root
     #endwhile (merge todolist)    
-
-    
-
 
 class GFLOW_OT_MakeExport(bpy.types.Operator):
     bl_idname      = "gflow.make_export"

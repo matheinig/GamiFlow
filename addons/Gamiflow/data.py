@@ -104,7 +104,7 @@ class GFlowScene(bpy.types.PropertyGroup):
         ("BLENDER_LIB", "Blender library", "Blender's asset library", 2),
     ])    
     exportAnimations: bpy.props.BoolProperty(name="Animation", default=True) 
-    lightmapUvs: bpy.props.BoolProperty(name="Lightmap", default=False) 
+    lightmapUvs: bpy.props.BoolProperty(name="Lightmap", default=False, description="Generate lightmap UVs for the export meshes") 
     exportMethod: bpy.props.EnumProperty(name="Method", default='SINGLE', items=[
         ("SINGLE", "Single file", "One file is exported", 0),
         ("KIT", "Kit", "One file is exported for each root in the export set", 1),
