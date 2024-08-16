@@ -51,6 +51,14 @@ def generatePainterHigh(context):
             # remove all hard edges
             if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
         
+        # Deal with anchors
+        if o.gflow.bakeAnchor:
+            # Leave a ghost behind if need be
+            ghost = sets.duplicateObject(newobj, "_ghost", highCollection)
+            # Teleport
+            newobj.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
+            # TODO: should probably transform the children too
+        
         # Add all manually-linked highpolys
         for hp in o.gflow.highpolys:
             newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
@@ -59,6 +67,7 @@ def generatePainterHigh(context):
                 hpsuffix = hpsuffix + decalsuffix
             newhp.name = sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
             sets.triangulate(context, newhp)
+            # TODO: should also deal with anchors
 
 
     pass

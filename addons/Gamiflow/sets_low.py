@@ -67,10 +67,11 @@ def generatePainterLow(context):
         #sets.addWeightedNormals(context, newobj)
         sets.triangulate(context, newobj)
     
-        # Generate lightmap UVs
-        if context.scene.gflow.lightmapUvs:
-            # TODO
-            pass
+        # Deal with anchors
+        if o.gflow.bakeAnchor:
+            # Teleport
+            newobj.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
+            # TODO: should probably transform the children too
 
     pass
 
