@@ -3,6 +3,10 @@ import bmesh
 import contextlib
 
 
+def findObjectByName(objList, name):
+    for o in objList:
+        if o.name == name: return o
+    return None
 
 def setSelected(context, obj):
     obj.select_set(True)

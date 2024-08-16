@@ -1,6 +1,7 @@
 import bpy
 from . import sets
 from . import settings
+from . import helpers
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterHighCollection
@@ -28,6 +29,8 @@ def generatePainterHigh(context):
     decalsuffix = stgs.decalsuffix
 
     # Go through all the objects of the working set
+    generated = []
+    newObjectToOriginalParent = {}     
     for o in context.scene.gflow.workingCollection.all_objects:
         if o.type != 'MESH': continue
         if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER'): continue
@@ -39,10 +42,12 @@ def generatePainterHigh(context):
         newobj = None
         if o.gflow.includeSelf:
             newobj = sets.duplicateObject(o, suffix, highCollection)
+            generated.append(newobj)
             # Parenting magic
             if o.parent != None:
                 newobj.parent = None
                 newobj.matrix_world = o.matrix_world.copy()
+                newObjectToOriginalParent[newobj] = o.parent
         
             # handle special modifiers like subdiv
     
@@ -50,14 +55,6 @@ def generatePainterHigh(context):
     
             # remove all hard edges
             if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
-        
-        # Deal with anchors
-        if o.gflow.bakeAnchor:
-            # Leave a ghost behind if need be
-            ghost = sets.duplicateObject(newobj, "_ghost", highCollection)
-            # Teleport
-            newobj.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
-            # TODO: should probably transform the children too
         
         # Add all manually-linked highpolys
         for hp in o.gflow.highpolys:
@@ -67,10 +64,32 @@ def generatePainterHigh(context):
                 hpsuffix = hpsuffix + decalsuffix
             newhp.name = sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
             sets.triangulate(context, newhp)
-            # TODO: should also deal with anchors
+            # parent them to the object (in case they get transformed with anchors)
+            matrix = newhp.matrix_world.copy()
+            newhp.parent = newobj
+            newhp.matrix_world = matrix
 
+    # Now that we have all the objects we can try rebuilding the intended hierarchy
+    for newobj, origParent in newObjectToOriginalParent.items():
+        # Find new parent
+        newParentName = sets.getNewName(origParent, suffix)
+        newParent = helpers.findObjectByName(generated, newParentName)
+        # Set new parent
+        if newParent: 
+            matrix = newobj.matrix_world.copy()
+            newobj.parent = newParent
+            newobj.matrix_world = matrix    
 
-    pass
+    # Deal with anchors
+    for o in generated:
+        if o.gflow.bakeAnchor:
+            # Leave a ghost behind if need be
+            ## TODO: maybe the children should also be ghosted
+            ghost = sets.duplicateObject(o, "_ghost", highCollection)
+            # Teleport
+            o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
+
+    return
 
 
 class GFLOW_OT_MakeHigh(bpy.types.Operator):

@@ -1,6 +1,7 @@
 import bpy
 from . import sets
 from . import settings
+from . import helpers
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterLowCollection
@@ -39,16 +40,21 @@ def generatePainterLow(context):
     lpsuffix = settings.getSettings().lpsuffix
 
     # Go through all the objects of the working set
+    generated = []
+    newObjectToOriginalParent = {} 
     for o in context.scene.gflow.workingCollection.all_objects:
         if o.type != 'MESH': continue
         if o.gflow.objType != 'STANDARD': continue
         
         # Make a copy the object
         newobj = sets.duplicateObject(o, lpsuffix, lowCollection)
+        generated.append(newobj)
+        
         # Parenting magic
         if o.parent != None:
             newobj.parent = None
             newobj.matrix_world = o.matrix_world.copy()
+            newObjectToOriginalParent[newobj] = o.parent
         
         bpy.ops.object.select_all(action='DESELECT')  
         sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
@@ -67,13 +73,23 @@ def generatePainterLow(context):
         #sets.addWeightedNormals(context, newobj)
         sets.triangulate(context, newobj)
     
-        # Deal with anchors
+    # Now that we have all the objects we can try rebuilding the intended hierarchy
+    for newobj, origParent in newObjectToOriginalParent.items():
+        # Find new parent
+        newParentName = sets.getNewName(origParent, lpsuffix)
+        newParent = helpers.findObjectByName(generated, newParentName)
+        # Set new parent
+        if newParent: 
+            matrix = newobj.matrix_world.copy()
+            newobj.parent = newParent
+            newobj.matrix_world = matrix    
+    
+    # Deal with anchors
+    for o in generated:
         if o.gflow.bakeAnchor:
-            # Teleport
-            newobj.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
-            # TODO: should probably transform the children too
+            o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
 
-    pass
+    return
 
 
 class GFLOW_OT_MakeLow(bpy.types.Operator):

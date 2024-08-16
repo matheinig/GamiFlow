@@ -28,10 +28,6 @@ def processModifiers(context, obj):
         if m.type == 'ARMATURE': continue # Armature modifiers should not be collapsed
         bpy.ops.object.modifier_apply(modifier=m.name)
 
-def findObjectByName(objList, name):
-    for o in objList:
-        if o.name == name: return o
-    return None
 
 # Hierarchy optimiser
 def areMergeCompatible(p, c):
@@ -106,7 +102,7 @@ def generateExport(context):
     for newobj, origParent in newObjectToOriginalParent.items():
         # Find new parent
         newParentName = sets.getNewName(origParent, exportSuffix)
-        newParent = findObjectByName(generated, newParentName)
+        newParent = helpers.findObjectByName(generated, newParentName)
         # Set new parent
         if newParent: 
             matrix = newobj.matrix_world.copy()
