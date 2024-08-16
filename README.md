@@ -9,11 +9,13 @@ I have seen many game artists waste so much time trying to keep their low/high p
 # Features
  - One-click low/high poly generation for baking
    - Tag edges you want dissolved
-   - Tag modifiers that should onyl be used for the high-poly
+   - Tag modifiers that should only be used for the high-poly
    - Let GamiFlow generate the baking meshes
    - Substance Painter naming convention respected for guaranteed perfect bakes
  - One-click export mesh generation
    - Object hierarchies are collapsed and meshes merged when possible
+   - Automatic lightmap UVs
+   - Can also export as individual objects
  - Unwrap once, update in one click
    - Assign UDIM to object
    - Choose unwrapping method 
