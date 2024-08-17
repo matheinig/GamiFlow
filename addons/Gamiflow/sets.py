@@ -4,6 +4,54 @@ import math
 from . import helpers
 from . import geotags
 
+previous_objects = None
+
+def invalidateCurrentObjectsCache():
+    previous_objects = None
+    return
+
+def registerCurrentObjects():
+    global previous_objects
+    if bpy.context.scene.gflow.workingCollection is None: return
+    previous_objects = set(bpy.context.scene.gflow.workingCollection.all_objects)
+    
+@bpy.app.handlers.persistent
+def onLoad(dummy):
+    registerCurrentObjects()
+
+# This is very awkward because I can't find a reliable way to detect new objects
+## The update_pre handler seems to be called *after* the creation has already happened so can't really do a pre/post comparison
+@bpy.app.handlers.persistent  
+def checkForNewObjects(scene, depsgraph):
+    global previous_objects
+
+    if scene.gflow.workingCollection is None: return
+    
+    # Special case (and also bug) that should only happen when having just reloaded the plugin
+    if previous_objects is None:
+        # We have no way to know what the previous objects were so we have to accept that we're going to miss this update
+        previous_objects = set(scene.gflow.workingCollection.all_objects)
+        return
+    
+    for u in depsgraph.updates:
+        data = u.id
+        # Only collection updates are useful if we want to find new objects in the working set
+        if type(data) is bpy.types.Collection:
+            if data.name != scene.gflow.workingCollection.name: continue
+            current_objects = set(scene.gflow.workingCollection.all_objects)
+            if len(current_objects) != len(previous_objects): # TODO: maybe this isn't safe, maybe it's possible for one tick to add and delete an object
+                new_objects = current_objects - previous_objects
+                previous_objects = current_objects
+                # Handle the new objects
+                if new_objects:
+                    for o in new_objects: onNewObject(o, scene)      
+    return
+
+            
+def onNewObject(o, scene):
+    o.gflow.textureSetEnum = scene.gflow.udims[scene.gflow.ui_selectedUdim].name
+    return
+
 def _findLayerCollRec(layerCol, targetCol):
     for c in layerCol.children:
         if c.collection == targetCol: return c
@@ -274,8 +322,13 @@ classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel,
 def register():
     for c in classes: 
         bpy.utils.register_class(c)
-    pass
+    bpy.app.handlers.depsgraph_update_post.append(checkForNewObjects)
+    bpy.app.handlers.load_post.append(onLoad)
+    invalidateCurrentObjectsCache()
+    return
 def unregister():
+    bpy.app.handlers.depsgraph_update_post.remove(checkForNewObjects)
+    bpy.app.handlers.load_post.remove(onLoad)
     for c in reversed(classes): 
         bpy.utils.unregister_class(c)
-    pass
+    return
