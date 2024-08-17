@@ -292,6 +292,7 @@ def uvpacker_pack_island(context, margin, rotate, rotate_method):
     props.uvp_width = int(context.scene.gflow.uvResolution)
     props.uvp_height = props.uvp_width
     props.uvp_padding = int(margin * props.uvp_width)
+    props.uvp_prerotate = rotate
     if rotate:
         if rotate_method == 'AXIS_ALIGNED': 
             props.uvp_rotate = "1"
