@@ -64,6 +64,11 @@ def orientUv(context, obj):
                     for f in island:
                         for l in f.loops:
                             l[uv_layer].uv = rotationMatrix(l[uv_layer].uv)
+            #endfor islands
+
+            # Delete the ortientation layer if it was empty
+            if not anythingRotated: geotags.removeUvOrientationLayer(bm)
+            
     # Upload the mesh changes
     if anythingRotated: bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False) 
                 
@@ -79,6 +84,8 @@ def straightenUv(context, obj):
             bpy.ops.mesh.select_mode(type='FACE')
             bpy.ops.mesh.select_all(action='DESELECT')     
             
+            somethingFound = False
+            
             islands = bmesh_linked_uv_islands(bm, uv_layer)
             for island in islands:
                 # Explore the mesh and select the reference face
@@ -88,6 +95,7 @@ def straightenUv(context, obj):
                 for f in island:
                     if f[gridifyLayer] == geotags.GEO_FACE_GRIDIFY_INCLUDE: 
                         gridFaces.append(f)
+                        somethingFound = True
                         # Use the first quad as our starting point
                         if mainFace is None and len(f.edges) == 4:
                             mainFace = f
@@ -150,7 +158,10 @@ def straightenUv(context, obj):
                     bpy.ops.uv.pin(clear=True)
 
                 bpy.ops.mesh.select_all(action='DESELECT')
-
+            #endfor layers
+            
+            # Remove unused gridify layer if need be
+            if not somethingFound: geotags.removeGridifyLayer(bm)
     return
 
 def autoUnwrap(context):

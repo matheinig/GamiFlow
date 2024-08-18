@@ -31,11 +31,15 @@ def getGridifyLayer(bm, forceCreation=False):
     except:
         if forceCreation: layer = bm.faces.layers.int.new(GEO_FACE_GRIDIFY_NAME)
     return layer
+def removeGridifyLayer(bm):
+    bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_GRIDIFY_NAME])
     
 def getUvOrientationLayer(bm, forceCreation=False):
     layer = bm.edges.layers.int.get(GEO_EDGE_UV_ROTATION_NAME)
     if forceCreation and not layer: layer = bm.edges.layers.int.new(GEO_EDGE_UV_ROTATION_NAME)
     return layer
+def removeUvOrientationLayer(bm):
+    bm.edges.layers.int.remove(bm.edges.layers.int.get(GEO_EDGE_UV_ROTATION_NAME))
     
 def getUvScaleLayer(bm, forceCreation=False):
     layer = bm.faces.layers.float.get(GEO_FACE_UV_SCALE_NAME)
