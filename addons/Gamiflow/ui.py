@@ -169,13 +169,7 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
         row = self.layout.row()
         row.enabled = gflow.includeSelf and isStandard
         row.prop(gflow, "removeHardEdges")
-        
-        
-        self.layout.prop(gflow, "bakeAnchor")
-        row = self.layout.row()
-        row.enabled = gflow.bakeAnchor is not None
-        row.prop(gflow, "bakeGhost")
-        
+                
         # Highpoly list
         row = self.layout.row()
         row.enabled = isStandard
@@ -183,6 +177,12 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
         col = row.column(align=True)
         col.operator("gflow.add_high", icon='ADD', text="")
         col.operator("gflow.remove_high", icon='REMOVE', text="")
+        
+        # Anchor
+        self.layout.prop(gflow, "bakeAnchor")
+        row = self.layout.row()
+        row.enabled = gflow.bakeAnchor is not None
+        row.prop(gflow, "bakeGhost")       
         
         
 class GamiflowObjPanel_Export(bpy.types.Panel):
