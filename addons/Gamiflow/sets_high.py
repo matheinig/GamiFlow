@@ -32,7 +32,7 @@ def generatePainterHigh(context):
     generated = []
     newObjectToOriginalParent = {}     
     for o in context.scene.gflow.workingCollection.all_objects:
-        if o.type != 'MESH': continue
+        if not (o.type == 'MESH' or o.type == 'FONT'): continue
         if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER'): continue
         
         # Make a copy the object
@@ -42,6 +42,11 @@ def generatePainterHigh(context):
         newobj = None
         if o.gflow.includeSelf:
             newobj = sets.duplicateObject(o, suffix, highCollection)
+            if newobj.type == 'FONT':
+                helpers.setSelected(context, newobj)
+                bpy.ops.object.convert(target='MESH')
+
+            
             generated.append(newobj)
             # Parenting magic
             if o.parent != None:
