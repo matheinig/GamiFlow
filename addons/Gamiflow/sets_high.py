@@ -14,6 +14,42 @@ def getCollection(context, createIfNeeded=False):
     if c: c.name = name
     return c
 
+def linearToGamma(lin):
+    if lin > 0.0031308:
+        s = 1.055 * (pow(lin, (1.0 / 2.4))) - 0.055
+    else:
+        s = 12.92 * lin
+    return s
+
+def bakeVertexColours(obj):
+    # Any existing colour is assumed to be what we want to be exported
+    if len(obj.data.color_attributes)>0: return
+    
+    # First, we need to find all the material colours
+    materialColours = []
+    for ms in obj.material_slots:
+        material = ms.material
+        colour = helpers.getMaterialColour(material)
+        sRGB = [linearToGamma(colour[0]), linearToGamma(colour[1]), linearToGamma(colour[2]), 1.0]
+        materialColours.append(sRGB)
+        #materialColours.append(colour)
+
+    # Create a suitable colour attribute
+    attrName = "GFLOW_BakedMaterial"
+    attribute = obj.data.color_attributes.new(attrName, type="BYTE_COLOR", domain="CORNER")
+    
+    # Fill in the data
+    with helpers.objectModeBmesh(obj) as bm:
+        layer = bm.loops.layers.color[attrName]
+        for f in bm.faces:
+            colour = materialColours[f.material_index]
+            for loop in f.loops:
+                loop[layer] = colour
+    return
+
+def generateIdMap(stgs, obj):
+    if stgs.idMap == 'VERTEX': bakeVertexColours(obj)
+
 def generatePainterHigh(context):
     highCollection = getCollection(context, createIfNeeded=False)
     if highCollection: sets.clearCollection(highCollection)
@@ -42,12 +78,10 @@ def generatePainterHigh(context):
         newobj = None
         if o.gflow.includeSelf:
             newobj = sets.duplicateObject(o, suffix, highCollection)
-            if newobj.type == 'FONT':
-                helpers.setSelected(context, newobj)
-                bpy.ops.object.convert(target='MESH')
-
-            
+            helpers.convertToMesh(context, newobj)
             generated.append(newobj)
+            generateIdMap(stgs, newobj)
+            
             # Parenting magic
             if o.parent != None:
                 newobj.parent = None
@@ -64,6 +98,8 @@ def generatePainterHigh(context):
         # Add all manually-linked highpolys
         for hp in o.gflow.highpolys:
             newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
+            helpers.convertToMesh(context, newhp)
+            generateIdMap(stgs, newhp)
             hpsuffix = suffix
             if hp.obj.gflow.objType == 'DECAL': 
                 hpsuffix = hpsuffix + decalsuffix

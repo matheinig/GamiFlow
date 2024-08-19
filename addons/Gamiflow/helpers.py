@@ -2,6 +2,38 @@ import bpy
 import bmesh
 import contextlib
 
+def convertToMesh(context, obj):
+    if obj.type == 'MESH': return
+    setSelected(context, obj)
+    bpy.ops.object.convert(target='MESH')
+        
+def getMaterialTreeOutput(tree):
+    for n in tree.nodes:
+        if n.type == 'OUTPUT_MATERIAL': return n
+    return None
+
+def getMaterialColour(material):
+    if material.use_nodes:
+        # Try to figure out what the Base Color might be by tracing back the material tree
+        tree = material.node_tree
+        outputNode = getMaterialTreeOutput(tree)
+        if outputNode is None: return material.diffuse_color
+        surfaceNode = outputNode.inputs[0].links[0].from_node
+        if surfaceNode is None: return material.diffuse_color 
+        diffuseInput = surfaceNode.inputs[0]
+        # If the BSDF color input is coming from another node, things can get very complicated
+        if diffuseInput.is_linked:
+            # Having the colour come from an RGB node is still reasonable
+            inputNode = diffuseInput.links[0].from_node
+            if inputNode.type == 'RGB':
+                return inputNode.outputs[0].default_value
+            
+        # If nothing reasonable further down the tree (or no tree t all), just return the BSDF node base colour
+        return diffuseInput.default_value
+        
+    else:
+        return material.diffuse_color
+        
 
 def findObjectByName(objList, name):
     for o in objList:

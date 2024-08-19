@@ -20,6 +20,17 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ],
         default="BLENDER"
         )
+        
+    idMap : bpy.props.EnumProperty(
+        name="ID Map",
+        description="Where the ID is supposed to come from",
+        items=
+        [
+        ("MATERIAL", "Material color", ""),
+        ("VERTEX", "Vertex color", ""),
+        ],
+        default="VERTEX"
+        )        
     
     def draw(self, context):
         layout = self.layout
@@ -31,6 +42,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "exportsuffix")
         
         layout.prop(self, "uvPacker")
+        layout.prop(self, "idMap")
 
         if self.uvPacker == "UVPACKER" and not uv.isUvPackerAvailable():
             row = layout.row()
