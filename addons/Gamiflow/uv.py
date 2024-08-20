@@ -183,7 +183,14 @@ def autoUnwrap(context):
 
 def lightmapUnwrap(context, objects):
     # Sanitise the list
-    obj = [o for o in objects if o.type == 'MESH']
+    meshes = []
+    obj = []
+    for o in objects:
+        if o.type != 'MESH': continue # Only real meshes can be unwrapped
+        if o.data in meshes: continue # Make sure we only allow one instance of a mesh
+        meshes.append(o.data)
+        obj.append(o)
+        
 
     # Make sure all objects have a new UV layer and that it's active
     for o in obj:
@@ -607,7 +614,17 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
         udim = findUdimId(context, self.textureSetEnum)
         bpy.ops.object.select_all(action='DESELECT')
 
-        objects = [o for o in context.scene.gflow.workingCollection.all_objects if o.type == 'MESH' and o.gflow.textureSet == udim and o.gflow.objType == 'STANDARD']
+        # Find the relevant objects
+        objects = []
+        meshes = []
+        for o in context.scene.gflow.workingCollection.all_objects:
+            if o.type != 'MESH': continue
+            if o.gflow.objType != 'STANDARD': continue
+            if o.gflow.textureSet != udim: continue
+            if o.data in meshes: continue # Make sure we don't allow the same mesh twice
+            meshes.append(o.data)
+            objects.append(o)
+
         for o in objects:
             o.select_set(True)
             context.view_layer.objects.active = o
