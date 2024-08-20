@@ -32,7 +32,8 @@ def bakeVertexColours(obj):
         colour = helpers.getMaterialColour(material)
         sRGB = [linearToGamma(colour[0]), linearToGamma(colour[1]), linearToGamma(colour[2]), 1.0]
         materialColours.append(sRGB)
-        #materialColours.append(colour)
+
+    if len(materialColours) == 0: materialColours.append([1.0,1.0,1.0,1.0])
 
     # Create a suitable colour attribute
     attrName = "GFLOW_BakedMaterial"
