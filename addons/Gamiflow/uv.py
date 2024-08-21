@@ -349,6 +349,12 @@ def rescaleIslandsIfNeeded(obj):
             for loop in face.loops:
                 loop[uv_layer].uv = loop[uv_layer].uv * scale    
 
+def offsetCoordinates(obj, offset=mathutils.Vector((1.0,1.0))):
+    with helpers.objectModeBmesh(obj) as bm:
+        uv_layer = bm.loops.layers.uv.active
+        for face in bm.faces:
+            for loop in face.loops:
+                loop[uv_layer].uv = loop[uv_layer].uv + offset    
 
 class GFLOW_OT_AutoUnwrap(bpy.types.Operator):
     bl_idname      = "gflow.auto_unwrap"

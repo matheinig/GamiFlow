@@ -2,6 +2,7 @@ import bpy
 from . import sets
 from . import settings
 from . import helpers
+from . import uv
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterLowCollection
@@ -41,7 +42,8 @@ def generatePainterLow(context):
 
     # Go through all the objects of the working set
     generated = []
-    newObjectToOriginalParent = {} 
+    newObjectToOriginalParent = {}
+    knownMeshes = []
     for o in context.scene.gflow.workingCollection.all_objects:
         if o.type != 'MESH': continue
         if o.gflow.objType != 'STANDARD': continue
@@ -49,6 +51,14 @@ def generatePainterLow(context):
         # Make a copy the object
         newobj = sets.duplicateObject(o, lpsuffix, lowCollection)
         generated.append(newobj)
+        
+        # Special handling of instanced meshes
+        # Painter doesn't like overlapping UVs when baking so we offset the UVs by 1
+        if o.data in knownMeshes:
+            # NOTE: Don't need to de-instantiate, the lowpoly copy has its own data
+            uv.offsetCoordinates(newobj)
+        else:
+            knownMeshes.append(o.data)
         
         # Parenting magic
         if o.parent != None:
