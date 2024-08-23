@@ -45,6 +45,11 @@ def setSelected(context, obj):
     context.view_layer.objects.active = obj
 def setDeselected(obj):
     obj.select_set(False)
+    
+def setParent(o, parent):
+    matrix = o.matrix_world.copy()
+    o.parent = parent
+    o.matrix_world = matrix
 
 @contextlib.contextmanager
 def objectModeBmesh(obj):

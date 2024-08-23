@@ -103,11 +103,8 @@ def generateExport(context):
         # Find new parent
         newParentName = sets.getNewName(origParent, exportSuffix)
         newParent = helpers.findObjectByName(generated, newParentName)
-        # Set new parent
-        if newParent: 
-            matrix = newobj.matrix_world.copy()
-            newobj.parent = newParent
-            newobj.matrix_world = matrix
+
+        if o.parent != None: helpers.setParent(newobj, newParent)
     
     # Deal with the anchors
     for o in generated:

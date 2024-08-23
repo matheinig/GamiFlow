@@ -83,10 +83,8 @@ def generatePainterHigh(context):
             generated.append(newobj)
             generateIdMap(stgs, newobj)
             
-            # Parenting magic
-            if o.parent != None:
-                newobj.parent = None
-                newobj.matrix_world = o.matrix_world.copy()
+            if o.parent != None: 
+                helpers.setParent(newobj, o.parent)
                 newObjectToOriginalParent[newobj] = o.parent
         
             # handle special modifiers like subdiv
@@ -107,9 +105,8 @@ def generatePainterHigh(context):
             newhp.name = sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
             sets.triangulate(context, newhp)
             # parent them to the object (in case they get transformed with anchors)
-            matrix = newhp.matrix_world.copy()
-            newhp.parent = newobj
-            newhp.matrix_world = matrix
+            if newobj: helpers.setParent(newhp, newobj)
+
 
     # Now that we have all the objects we can try rebuilding the intended hierarchy
     for newobj, origParent in newObjectToOriginalParent.items():

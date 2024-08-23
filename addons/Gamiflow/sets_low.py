@@ -60,10 +60,8 @@ def generatePainterLow(context):
         else:
             knownMeshes.append(o.data)
         
-        # Parenting magic
-        if o.parent != None:
-            newobj.parent = None
-            newobj.matrix_world = o.matrix_world.copy()
+        if o.parent != None: 
+            helpers.setParent(newobj, o.parent)
             newObjectToOriginalParent[newobj] = o.parent
         
         bpy.ops.object.select_all(action='DESELECT')  
