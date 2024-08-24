@@ -74,7 +74,7 @@ def orientUv(context, obj):
                 
     return anythingRotated
      
-# Makes a nice UV grid from tagged faces if any (supports non-grid bits too)
+# Makes a nice UV grid from tagged faces if any in individual UV islands (supports non-grid bits too)
 def straightenUv(context, obj):
     with helpers.editModeBmesh(obj) as bm:
         uv_layer = bm.loops.layers.uv.active
