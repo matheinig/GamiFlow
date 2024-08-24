@@ -238,12 +238,25 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         row = self.layout.row(align=False)
         row.prop(context.scene.gflow, 'uvScaleFactor')
         row.operator("gflow.set_uv_scale", text="Apply", icon='MOD_MESHDEFORM').scale = context.scene.gflow.uvScaleFactor
-        # Detail edges
+        
         self.layout.separator()
-        op = self.layout.operator("gflow.set_edge_level", text="Mark as high poly")
+        
+        # Detail edges
+        row = self.layout.row()
+        op = row.operator("gflow.set_edge_level", text="Mark as detail", icon='EDGESEL')
         op.level = geotags.GEO_EDGE_LEVEL_LOD0
-        op = self.layout.operator("gflow.select_edge_level", text="Select detail")
+        op = row.operator("gflow.set_edge_level", text="Clear")
+        op.level = geotags.GEO_EDGE_LEVEL_DEFAULT        
+        op = row.operator("gflow.select_edge_level", text="Select")
         op.level = 0
+        # Detail Faces
+        row = self.layout.row()
+        op = row.operator("gflow.set_face_level", text="Mark as detail", icon='FACESEL')
+        op.detail = True
+        op = row.operator("gflow.set_face_level", text="Clear")
+        op.detail = False        
+        op = row.operator("gflow.select_face_level", text="Select detail")
+          
 
 # Overlay
 class GFLOW_PT_Overlays(bpy.types.Panel):
@@ -285,15 +298,22 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 pie.separator() # Empty W
                 pie.separator() # Empty E
                 pie.operator("gflow.set_edge_level", text="Mark Painter Detail").level = geotags.GEO_EDGE_LEVEL_PAINTER
-                #pie.separator() # Empty S
                 pie.operator("gflow.add_soft_seam")
                 pie.operator("gflow.add_hard_seam")
                 pie.operator("gflow.clear_seam")
                 pie.operator("gflow.set_edge_level", text="Mark High Detail").level = geotags.GEO_EDGE_LEVEL_LOD0
                 pie.operator("gflow.set_edge_level", text="Mark Regular Detail").level = geotags.GEO_EDGE_LEVEL_DEFAULT
-            if bpy.context.tool_settings.mesh_select_mode[2]:
+            if bpy.context.tool_settings.mesh_select_mode[2] and not bpy.context.tool_settings.mesh_select_mode[1]:
+                pie.separator() # Empty W
+                pie.separator() # Empty E
+                pie.separator() # Empty S
+                pie.separator() # Empty N          
                 pie.operator("gflow.uv_gridify", text="Gridify", icon='VIEW_ORTHO')
-                pie.operator("gflow.uv_degridify", text="Ungridify", icon='CANCEL')    
+                pie.operator("gflow.uv_degridify", text="Ungridify", icon='CANCEL')       
+                pie.operator("gflow.set_face_level", text="Mark High Detail").detail = True
+                pie.operator("gflow.set_face_level", text="Mark Regular Detail").detail = True                   
+
+                             
                 
                 
 class VIEW3D_OT_PIE_Obj_call(bpy.types.Operator):

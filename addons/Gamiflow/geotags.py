@@ -2,13 +2,16 @@ import bpy
 import bmesh
 from . import helpers
 
-# 0: no straightening, 1=straighten island, -1=subset of faces that cannot be straighten
+# Per-face gridification. 0: no straightening, 1=straighten island, -1=subset of faces that cannot be straighten
 GEO_FACE_GRIDIFY_NAME = "gflow_face_grifidy" 
 GEO_FACE_GRIDIFY_INCLUDE = 1
 GEO_FACE_GRIDIFY_EXCLUDE = 0
-# Float encoding the uv scale of the face. 0=100%, -1=0%, 2=100% (-1 offset because we can't have a default value of 1)
+#TODO/IDEA: master face from which the gridification will start instead of 'whatever quad we find first' 
+
+# Float encoding the uv scale of the face. 0=100%, -1=0%, (-1 offset because we can't have a default value of 1)
 GEO_FACE_UV_SCALE_NAME = "gflow_face_uv_scale" 
-# 0: no rotation, 1=vertical, 2=horizontal
+
+# UV island orientation. 0: no rotation, 1=vertical, 2=horizontal
 GEO_EDGE_UV_ROTATION_NAME = "gflow_edge_uv_orientation"
 GEO_EDGE_UV_ROTATION_NEUTRAL = 0
 GEO_EDGE_UV_ROTATION_VERTICAL = 1
@@ -19,7 +22,7 @@ GEO_EDGE_LEVEL_NAME = "gflow_edge_lowpoly"
 GEO_EDGE_LEVEL_DEFAULT = 0
 GEO_EDGE_LEVEL_PAINTER = 1  # edge removed for lod0 but is kept in painter
 GEO_EDGE_LEVEL_LOD0 = 2 # here we start removing the tagged edges for lod0, at GEO_EDGE_LEVEL_LOD0+1 we remove them at lod1
-
+# Flag for faces that should be deleted. These faces will be not show up in the UVs and will instead have their own 0-sized UV island in the working set.
 GEO_FACE_LEVEL_NAME = "gflow_face_lowpoly" 
 GEO_FACE_LEVEL_DEFAULT = 0
 GEO_FACE_LEVEL_LOD0 = 2
@@ -165,10 +168,41 @@ class GFLOW_OT_SetFaceLevel(bpy.types.Operator):
         markSelectedFacesAsDetail(context, self.detail)
     
         return {"FINISHED"}    
+
+class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
+    bl_idname      = "gflow.select_face_level"
+    bl_label       = "Select level"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+
+    detail : bpy.props.BoolProperty(name="Detail", default=True)
+        
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[2]: 
+            cls.poll_message_set("Must be in face mode")
+            return False
+        return context.edit_object is not None
+
+    def execute(self, context):
+        #bpy.ops.mesh.select_all(action='DESELECT')
+        for obj in context.selected_objects:
+            if obj.type != 'MESH': continue
+            with helpers.editModeBmesh(obj) as bm:
+                faceDetailLayer = getDetailFacesLayer(bm, forceCreation=False)
+                if not faceDetailLayer: continue
+                for f in bm.edges:
+                    f.select = False
+                    if self.detail: 
+                        f.select = f[layer] != GEO_FACE_LEVEL_DEFAULT
+                    else:
+                        f.select = f[layer] == GEO_FACE_LEVEL_DEFAULT
+
+        return {"FINISHED"}    
     
     
-    
-classes = [GFLOW_OT_SetEdgeLevel, GFLOW_OT_SelectEdgeLevel, GFLOW_OT_SetFaceLevel]
+classes = [GFLOW_OT_SetEdgeLevel, GFLOW_OT_SelectEdgeLevel, GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel]
 
 
 def register():
