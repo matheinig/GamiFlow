@@ -7,6 +7,7 @@ from . import geotags
 previous_objects = None
 
 def invalidateCurrentObjectsCache():
+    global previous_objects
     previous_objects = None
     return
 
@@ -131,7 +132,7 @@ def setObjectSmoothing(context, obj, keep_sharp_edges=True):
     bpy.ops.object.select_all(action='DESELECT')
     obj.select_set(True)
     context.view_layer.objects.active = obj
-    bpy.ops.object.shade_smooth(keep_sharp_edges)
+    bpy.ops.object.shade_smooth(keep_sharp_edges=keep_sharp_edges)
     if getFirstModifierOfType(obj, 'WEIGHTED_NORMAL') is None: addWeightedNormals(context, obj)
 
 
@@ -199,6 +200,7 @@ class GFLOW_OT_AddBevel(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.view_layer.objects.active
+        if obj is None: return 
         bevel = obj.modifiers.new(type="BEVEL", name="GFLOW Bevel")
         bevel.segments = 2
         bevel.width = 0.01
