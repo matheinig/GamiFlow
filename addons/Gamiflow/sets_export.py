@@ -61,7 +61,8 @@ def generateExport(context):
     
     # Go through all the objects of the working set and generate the export set
     generated = []
-    newObjectToOriginalParent = {} 
+    newObjectToOriginalParent = {}
+    originalObjectToFinal = {}
     for o in context.scene.gflow.workingCollection.all_objects:
         if not (o.type == 'MESH' or o.type=='EMPTY'): continue # We could potentially allow more types (.e.g lights)
         if o.gflow.objType != 'STANDARD': continue
@@ -70,6 +71,7 @@ def generateExport(context):
         
         # Make a copy the object
         newobj = sets.duplicateObject(o, exportSuffix, collection)
+        originalObjectToFinal[o] = newobj
         
         # Unparenting for now as the new parent might not yet exist
         if o.parent != None:
@@ -101,10 +103,12 @@ def generateExport(context):
     # Now that we have all the objects we can try rebuilding the intended hierarchy
     for newobj, origParent in newObjectToOriginalParent.items():
         # Find new parent
-        newParentName = sets.getNewName(origParent, exportSuffix)
-        newParent = helpers.findObjectByName(generated, newParentName)
-
-        if o.parent != None: helpers.setParent(newobj, newParent)
+        try:
+            newParent = originalObjectToFinal[origParent]
+            if newParent != None: helpers.setParent(newobj, newParent)
+        except:
+            print("Could not find parent of "+newobj+" in the export set")
+            
     
     # Deal with the anchors
     for o in generated:
@@ -124,6 +128,8 @@ def generateExport(context):
         root = todo[0]
         todo.remove(root)
         merge, todo = mergeHierarchy(root, [], todo)
+        
+        if len(merge) == 0: continue
         
         # Do the merge
         merge.append(root) # root object must be last in the list for Blender to merge the others into it
