@@ -278,6 +278,8 @@ class GFLOW_PT_Overlays(bpy.types.Panel):
         row.prop(overlays, "uvGridification", text="UV Grid", toggle=True)
         row.prop(overlays, "uvScale", text="UV Scale", toggle=True)
         row.prop(overlays, "detailEdges", text="Edge Detail", toggle=True)
+        
+        layout.prop(overlays, "edgeOffset", text="Edge offset")
          
         
 # Pie menus

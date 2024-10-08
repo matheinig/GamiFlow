@@ -34,6 +34,10 @@ def onObjectModified(obj):
     global gCachedObject
     gCachedObject = None
 
+def purgeCache():
+    global gCachedObject
+    gCachedObject = None
+
 def createVertexColorShader():
     vert_out = gpu.types.GPUStageInterfaceInfo("my_interface")
     vert_out.smooth('VEC4', "vColor")
@@ -206,12 +210,12 @@ def drawGridified():
 
 
 
-def makeEdgeDetailDrawBuffer(bm, shader):
+def makeEdgeDetailDrawBuffer(bm, shader, offset=0.0001):
     layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
     if layer is None: return None
     
     # Could probably cache all the vertices if all we do is play with the indices
-    coords = [v.co+v.normal*0.0001 for v in bm.verts]
+    coords = [v.co+v.normal*offset for v in bm.verts]
     indices = [[v.index for v in edge.verts]
                 for edge in bm.edges if edge[layer] != geotags.GEO_EDGE_LEVEL_DEFAULT]
     batch = batch_for_shader(shader, 
@@ -234,7 +238,7 @@ def drawDetailEdges():
     if obj != gCachedObject:
         gCachedObject = obj
         with helpers.editModeObserverBmesh(obj) as bm: 
-            gCachedDetailBatch = makeEdgeDetailDrawBuffer(bm, gWireShader)
+            gCachedDetailBatch = makeEdgeDetailDrawBuffer(bm, gWireShader, bpy.context.scene.gflow.overlays.edgeOffset*0.01)
    
     if gCachedDetailBatch is None: return
         
