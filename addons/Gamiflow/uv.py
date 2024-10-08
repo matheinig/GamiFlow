@@ -144,7 +144,7 @@ def straightenUv(context, obj):
                 context.scene.tool_settings.use_uv_select_sync = False
                 bpy.ops.uv.follow_active_quads()
                 context.scene.tool_settings.use_uv_select_sync = backup_uvSync
-                
+
                 # If we had non-gridifiables we have to unwrap them
                 # TODO: Blender is not super reliable and might occasionally unwrap into a brand new island
                 #       Maybe we can unpin the edges between the gridified and ungridified regions to make it happier
@@ -158,7 +158,7 @@ def straightenUv(context, obj):
                     bpy.ops.uv.pin(clear=True)
 
                 bpy.ops.mesh.select_all(action='DESELECT')
-            #endfor layers
+            #endfor islands
             
             # Remove unused gridify layer if need be
             if not somethingFound: geotags.removeGridifyLayer(bm)

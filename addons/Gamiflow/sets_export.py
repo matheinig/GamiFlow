@@ -94,9 +94,6 @@ def generateExport(context):
             # Enforce triangulation
             sets.triangulate(context, newobj)            
             
-            # Special handing of modifiers
-            processModifiers(context, newobj)
-            
         generated.append(newobj)
     #endfor (original objects)
 
@@ -119,6 +116,9 @@ def generateExport(context):
     if context.scene.gflow.lightmapUvs:
         uv.lightmapUnwrap(context, generated)
         
+    # Now we can apply all the modifiers
+    for newobj in generated:
+        processModifiers(context, newobj)
     # Merge all possible objects
     todo = sets.findRoots(collection)
     while len(todo)>0:
