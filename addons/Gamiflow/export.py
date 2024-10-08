@@ -27,7 +27,8 @@ def exportObjects(context, objects, filename):
         use_mesh_modifiers = True,
         use_tspace = True,
         armature_nodetype  = 'NULL',
-        colors_type = 'LINEAR'
+        colors_type = 'LINEAR',
+        bake_anim = context.scene.gflow.exportAnimations
         )
     return
     
