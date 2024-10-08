@@ -612,6 +612,9 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
+        if not context.scene.gflow.workingCollection: 
+            cls.poll_message_set("Set the working collection first")
+            return False
         return True
     def execute(self, context):
         sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, True)
