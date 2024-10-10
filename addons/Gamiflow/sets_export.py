@@ -43,6 +43,11 @@ def mergeHierarchy(obj, mergeList, todoList):
         else:
             todoList.append(c) 
     return mergeList, todoList
+def findFirstNonCollapsedParent(obj):
+    if obj.parent is None: return obj
+    parent = obj.parent
+    if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent)
+    return obj
 
 def generateExport(context):
     # Make sure we don't already have a filled export set
@@ -105,7 +110,10 @@ def generateExport(context):
             if newParent != None: helpers.setParent(newobj, newParent)
         except:
             print("Could not find parent of "+newobj+" in the export set")
-            
+    # Do another pass to check that we are not parenting to something that will end up getting merged
+    for newobj in newObjectToOriginalParent.keys(): 
+        safeParent = findFirstNonCollapsedParent(newobj.parent)
+        if safeParent != newobj.parent: helpers.setParent(newobj, safeParent)
     
     # Deal with the anchors
     for o in generated:
@@ -119,6 +127,7 @@ def generateExport(context):
     # Now we can apply all the modifiers
     for newobj in generated:
         processModifiers(context, newobj)
+        
     # Merge all possible objects
     todo = sets.findRoots(collection)
     while len(todo)>0:
