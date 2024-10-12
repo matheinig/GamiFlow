@@ -14,6 +14,7 @@ gCachedObject = None
 gCachedBatch = None
 gCachedUvScaleBatch = None
 gCachedDetailBatch = None
+gCachedPainterDetailBatch = None
 
 @persistent
 def mesh_change_listener(scene, depsgraph):
@@ -134,14 +135,12 @@ def drawUvScale():
 
 def createCheckerboardShader():
     vert_out = gpu.types.GPUStageInterfaceInfo("my_interface")
-    vert_out.smooth('FLOAT', "v_ArcLength")
 
     shader_info = gpu.types.GPUShaderCreateInfo()
     shader_info.push_constant('MAT4', "ModelViewProjectionMatrix")
     shader_info.push_constant('VEC4', "uColor")
     shader_info.push_constant('VEC4', "uSecondaryColor")
     shader_info.vertex_in(0, 'VEC3', "pos")
-    #shader_info.vertex_out(vert_out)
     shader_info.fragment_out(0, 'VEC4', "FragColor")
 
     shader_info.vertex_source(
@@ -208,21 +207,34 @@ def drawGridified():
     gpu.state.face_culling_set('BACK')
     gCachedBatch.draw(gShader)
 
-
-
-def makeEdgeDetailDrawBuffer(bm, shader, offset=0.0001):
+    
+def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001):
     layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
-    if layer is None: return None
+    if layer is None: return None, None
+    
+    coords = [v.co+v.normal*offset for v in bm.verts]
     
     # Could probably cache all the vertices if all we do is play with the indices
-    coords = [v.co+v.normal*offset for v in bm.verts]
-    indices = [[v.index for v in edge.verts]
-                for edge in bm.edges if edge[layer] != geotags.GEO_EDGE_LEVEL_DEFAULT]
-    batch = batch_for_shader(shader, 
-        'LINES',
-        {"pos": coords},
-        indices=indices)   
-    return batch
+    solidBatch = None
+    indicesSolid = [[v.index for v in edge.verts]
+                for edge in bm.edges if edge[layer] >= geotags.GEO_EDGE_LEVEL_LOD0]
+    if len(indicesSolid) > 0:
+        solidBatch = batch_for_shader(solidShader, 
+            'LINES',
+            {"pos": coords},
+            indices=indicesSolid)   
+        
+    # Dotted line
+    painterBatch = None
+    indicesPainter = [[v.index for v in edge.verts]
+                for edge in bm.edges if edge[layer] == geotags.GEO_EDGE_LEVEL_PAINTER]
+    if len(indicesPainter) > 0:
+        painterBatch = batch_for_shader(solidShader, 
+            'LINES',
+            {"pos": coords},
+            indices=indicesPainter)   
+                  
+    return solidBatch, painterBatch
     
 def drawDetailEdges():
     if not bpy.context.scene.gflow.overlays.detailEdges: return
@@ -231,31 +243,35 @@ def drawDetailEdges():
     if obj is None: return
     if bpy.context.tool_settings.mesh_select_mode[1] == False: return
     
-    global gWireShader, gCachedObject, gCachedDetailBatch
+    global gWireShader, gCachedObject, gCachedDetailBatch, gCachedPainterDetailBatch
     
-    if not gWireShader: gWireShader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
-    
+    if not gWireShader: gWireShader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')    
     if obj != gCachedObject:
         gCachedObject = obj
         with helpers.editModeObserverBmesh(obj) as bm: 
-            gCachedDetailBatch = makeEdgeDetailDrawBuffer(bm, gWireShader, bpy.context.scene.gflow.overlays.edgeOffset*0.01)
+            gCachedDetailBatch, gCachedPainterDetailBatch = makeEdgeDetailDrawBuffer(bm, 
+                    gWireShader, 
+                    bpy.context.scene.gflow.overlays.edgeOffset*0.01)
    
-    if gCachedDetailBatch is None: return
-        
-    model = obj.matrix_world
-    viewproj = bpy.context.region_data.perspective_matrix
-    gWireShader.uniform_float("ModelViewProjectionMatrix", viewproj@model)
-    gWireShader.uniform_float("color", (1, 1, 0, 0.85))
     region = bpy.context.region
-    gWireShader.uniform_float("lineWidth", 3)
-    gWireShader.uniform_float("viewportSize", (region.width, region.height))    
-    #gWireShader.uniform_float("uSecondaryColor", (1, 1, 0, 0.15))
-    gpu.state.depth_test_set('LESS_EQUAL')
-    gpu.state.blend_set('ALPHA')
-    gpu.state.depth_mask_set(False)
-    gpu.state.face_culling_set('BACK')
-    gCachedDetailBatch.draw(gWireShader)
-       
+    model = obj.matrix_world
+    viewproj = bpy.context.region_data.perspective_matrix    
+    mvp = viewproj@model
+   
+    if gCachedDetailBatch or gCachedPainterDetailBatch:
+        gWireShader.uniform_float("ModelViewProjectionMatrix", mvp)
+        gWireShader.uniform_float("lineWidth", 3)
+        gWireShader.uniform_float("viewportSize", (region.width, region.height))    
+        gpu.state.depth_test_set('LESS_EQUAL')
+        gpu.state.blend_set('ALPHA')
+        gpu.state.depth_mask_set(False)
+        gpu.state.face_culling_set('BACK')
+        if gCachedDetailBatch:
+            gWireShader.uniform_float("color", (1, 1, 0, 0.85))
+            gCachedDetailBatch.draw(gWireShader)
+        if gCachedPainterDetailBatch:
+            gWireShader.uniform_float("color", (0.5, 1, 0.2, 0.85))
+            gCachedPainterDetailBatch.draw(gWireShader)        
        
        
        
