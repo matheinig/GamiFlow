@@ -159,6 +159,7 @@ def getTextureSetMaterial(setNumber):
         return m
     except:
         m = bpy.data.materials.new(name)
+        m.diffuse_color = (1.0,1.0,1.0,1.0)
         return m
 def setMaterial(obj, m):
     obj.data.materials.clear()
