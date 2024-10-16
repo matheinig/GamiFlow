@@ -184,6 +184,13 @@ def removeEdgesForLevel(context, obj, level, keepPainter=False):
         if len(relevantEdges)>0: 
             bmesh.ops.dissolve_edges(bm, edges=relevantEdges, use_verts=True, use_face_split=False)
 
+def deleteDetailFaces(context, obj):
+    with helpers.objectModeBmesh(obj) as bm:
+        faceDetailLayer = geotags.getDetailFacesLayer(bm, forceCreation=False)
+        if not faceDetailLayer: return
+        faces = [f for f in bm.faces if f[faceDetailLayer]!=geotags.GEO_FACE_LEVEL_DEFAULT] 
+        bmesh.ops.delete(bm, geom=faces, context="FACES")  
+
 class GFLOW_OT_SetSmoothing(bpy.types.Operator):
     bl_idname      = "gflow.set_smoothing"
     bl_label       = "Set smoothing"

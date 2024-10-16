@@ -88,6 +88,7 @@ def generateExport(context):
             # Remove all detail edges
             bpy.ops.object.select_all(action='DESELECT')  
             sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)
+            sets.deleteDetailFaces(context, newobj)
             
             # Set the material
             material = sets.getTextureSetMaterial(o.gflow.textureSet)
