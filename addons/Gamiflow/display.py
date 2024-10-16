@@ -4,6 +4,7 @@ from gpu_extras.batch import batch_for_shader
 from bpy.app.handlers import persistent
 from . import geotags
 from . import helpers
+from . import settings
 
 gShader = None
 gVertexColorShader = None
@@ -259,19 +260,25 @@ def drawDetailEdges():
     mvp = viewproj@model
    
     if gCachedDetailBatch or gCachedPainterDetailBatch:
+    
+        stg = settings.getSettings()
+    
         gWireShader.uniform_float("ModelViewProjectionMatrix", mvp)
-        gWireShader.uniform_float("lineWidth", 3)
+        gWireShader.uniform_float("lineWidth", stg.edgeWidth)
         gWireShader.uniform_float("viewportSize", (region.width, region.height))    
         gpu.state.depth_test_set('LESS_EQUAL')
         gpu.state.blend_set('ALPHA')
         gpu.state.depth_mask_set(False)
         gpu.state.face_culling_set('BACK')
         if gCachedDetailBatch:
-            gWireShader.uniform_float("color", (1, 1, 0, 0.85))
+            gWireShader.uniform_float("color", stg.detailEdgeColor)
             gCachedDetailBatch.draw(gWireShader)
         if gCachedPainterDetailBatch:
-            gWireShader.uniform_float("color", (0.5, 1, 0.2, 0.85))
-            gCachedPainterDetailBatch.draw(gWireShader)        
+            w = gpu.state.line_width_get()
+            gpu.state.line_width_set(stg.edgeWidth)
+            gWireShader.uniform_float("color", stg.painterEdgeColor)
+            gCachedPainterDetailBatch.draw(gWireShader)
+            gpu.state.line_width_set(w)
        
        
        

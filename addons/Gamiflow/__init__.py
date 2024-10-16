@@ -6,8 +6,8 @@ bl_info = {
     "blender"     : (3, 6, 0),
     "location"    : "Wherever",
     "warning"     : "",
-    "wiki_url"    : "",
-    "tracker_url" : "",
+    "wiki_url"    : "https://github.com/matheinig/GamiFlow",
+    "tracker_url" : "https://github.com/matheinig/GamiFlow/issues",
     "category"    : "Object"
 }
 

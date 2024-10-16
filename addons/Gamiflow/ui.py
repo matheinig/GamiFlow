@@ -227,7 +227,7 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         row.label(text="Gridify")
         op = row.operator("gflow.uv_gridify", text="On", icon='VIEW_ORTHO')
         op = row.operator("gflow.uv_degridify", text="Off", icon='CANCEL')    
-        row.operator("gflow.uv_select_gridify", icon='RESTRICT_SELECT_OFF', text='Select')
+
         # UV orientation
         row = self.layout.row(align=True)
         row.label(text="Orient")

@@ -32,8 +32,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default="VERTEX"
         )        
     
+    edgeWidth : bpy.props.FloatProperty(name="Edge width", default=2.5, min=0.1, max=4.0, description="Thickness of the edge overlay")
+    detailEdgeColor : bpy.props.FloatVectorProperty(name='Detail edge', description='', default=(1, 1, 0, 0.85), subtype='COLOR', size=4)
+    painterEdgeColor : bpy.props.FloatVectorProperty(name='Painter edge', description='', default=(0.5, 1, 0.2, 0.85), subtype='COLOR', size=4)
+    
     def draw(self, context):
         layout = self.layout
+        layout.use_property_split = True
         
         layout.label(text="Naming convention")
         layout.prop(self, "lpsuffix")
@@ -49,6 +54,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
             row.alert = True
             row.label(text="UV-Packer plugin not found")
             row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
+        
+        layout.label(text="Overlay")
+        
+        layout.prop(self, "edgeWidth")
+        layout.prop(self, "detailEdgeColor")
+        layout.prop(self, "painterEdgeColor")
         
         #layout.prop(self, "my_property")
   
