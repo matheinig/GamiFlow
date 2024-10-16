@@ -16,7 +16,7 @@ class GFLOW_PT_Panel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
     bl_idname = "GFLOW_PT_PANEL"
     def draw(self, context):
         layout = self.layout
-        layout.operator("gflow.clear_sets")
+        layout.operator("gflow.clear_sets", icon='TRASH')
         
         row = layout.row()
         op = row.operator("gflow.toggle_set_visibility", text="Working", depress=sets.getCollectionVisibility(context, context.scene.gflow.workingCollection))
@@ -34,7 +34,6 @@ class GFLOW_PT_WorkingSet(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
     bl_parent_id = "GFLOW_PT_PANEL"
     def draw(self, context):
         layout = self.layout
-
         layout.prop(context.scene.gflow, "workingCollection")
         
         layout.separator()
@@ -220,27 +219,28 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
 
     def draw(self, context):
         gflow = context.object.gflow
-        self.layout.use_property_split = True
+        #self.layout.use_property_split = True
         self.layout.use_property_decorate = False    
+        
+        self.layout.label(text="UVs")
+        # UV Scale
         row = self.layout.row(align=True)
+        #row.use_property_split = False
+        row.prop(context.scene.gflow, 'uvScaleFactor')
+        row.operator("gflow.set_uv_scale", text="Scale", icon='MOD_MESHDEFORM').scale = context.scene.gflow.uvScaleFactor        
         # UV gridification
-        row.label(text="Gridify")
-        op = row.operator("gflow.uv_gridify", text="On", icon='VIEW_ORTHO')
-        op = row.operator("gflow.uv_degridify", text="Off", icon='CANCEL')    
-
+        row = self.layout.row(align=True)
+        op = row.operator("gflow.uv_gridify", text="Grid", icon='VIEW_ORTHO')
+        op = row.operator("gflow.uv_degridify", text="Natural", icon='CANCEL')    
         # UV orientation
         row = self.layout.row(align=True)
-        row.label(text="Orient")
         row.operator("gflow.uv_orient_horizontal", text="Horizontal", icon='FORWARD')
         row.operator("gflow.uv_orient_vertical", text="Vertical", icon='SORT_DESC')
         row.operator("gflow.uv_orient_neutral", text="Neutral", icon='CANCEL')
-        # UV Scale
-        row = self.layout.row(align=False)
-        row.prop(context.scene.gflow, 'uvScaleFactor')
-        row.operator("gflow.set_uv_scale", text="Apply", icon='MOD_MESHDEFORM').scale = context.scene.gflow.uvScaleFactor
+
         
         self.layout.separator()
-        
+        self.layout.label(text="Detail level")
         # Detail edges
         row = self.layout.row()
         op = row.operator("gflow.set_edge_level", text="Mark as detail", icon='EDGESEL')

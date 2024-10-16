@@ -529,7 +529,7 @@ class GFLOW_OT_SetUvOrientationNeutral(bpy.types.Operator):
 class GFLOW_OT_SetUvIslandScale(bpy.types.Operator):
     bl_idname      = "gflow.set_uv_scale"
     bl_label       = "Set scale"
-    bl_description = "Set the relative UV scale"
+    bl_description = "Set the relative UV scale of an island"
     bl_options = {"REGISTER", "UNDO"}
 
     scale : bpy.props.FloatProperty(name="Scale", default=0, min=0, soft_max=2, description="Scale factor")
