@@ -1,9 +1,13 @@
 I have seen many game artists waste so much time trying to keep their low/high poly meshes in sync with their main ones only to realise that they missed half of them when baking. So I decided to automate this workflow as much as possible with some non-destructive system that lets you add metadata to your objects and geometry and then automate the generation of low and high poly meshes for Substance Painter. You should never have to manually duplicate your objects and add some _low and _high to their names.
 
- ![Working set](pics/example_combined.png)
+![Working set](pics/example_combined.png)
 
- Your bakes are pretty much guaranteed to be perfect.
- ![final output](pics/example_final.jpg)
+Your bakes are pretty much guaranteed to be perfect.
+![final output](pics/example_final.jpg)
+
+A video is probably better at explaining it, check it out on youtube:
+
+[![GamiFlow youtube introduction](https://img.youtube.com/vi/jy87jXTXiNc/0.jpg)](https://www.youtube.com/watch?v=jy87jXTXiNc)
  
 
 # Features
