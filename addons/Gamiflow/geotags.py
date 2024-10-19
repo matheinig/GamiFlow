@@ -192,12 +192,12 @@ class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
             with helpers.editModeBmesh(obj) as bm:
                 faceDetailLayer = getDetailFacesLayer(bm, forceCreation=False)
                 if not faceDetailLayer: continue
-                for f in bm.edges:
+                for f in bm.faces:
                     f.select = False
                     if self.detail: 
-                        f.select = f[layer] != GEO_FACE_LEVEL_DEFAULT
+                        f.select = f[faceDetailLayer] != GEO_FACE_LEVEL_DEFAULT
                     else:
-                        f.select = f[layer] == GEO_FACE_LEVEL_DEFAULT
+                        f.select = f[faceDetailLayer] == GEO_FACE_LEVEL_DEFAULT
 
         return {"FINISHED"}    
     
