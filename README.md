@@ -5,10 +5,16 @@ I have seen many game artists waste so much time trying to keep their low/high p
 Your bakes are pretty much guaranteed to be perfect.
 ![final output](pics/example_final.jpg)
 
-A video is probably better at explaining it, check it out on youtube:
+For a very quick summary of what it does, check this youtube video:
+
+[![GamiFlow youtube introduction](https://img.youtube.com/vi/6oITEIZXbKU/0.jpg)](https://www.youtube.com/watch?v=6oITEIZXbKU)
+
+For a much longer overview, check out this one:
 
 [![GamiFlow youtube introduction](https://img.youtube.com/vi/jy87jXTXiNc/0.jpg)](https://www.youtube.com/watch?v=jy87jXTXiNc)
- 
+
+# Installation
+Download the source code as a zip. Extract the zip file and navigate into the "addons" folder. Copy the "Gamiflow" folder into your Blender addons directory.
 
 # Features
  - One-click low/high poly generation for baking
