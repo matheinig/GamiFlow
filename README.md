@@ -7,7 +7,7 @@ Your bakes are pretty much guaranteed to be perfect.
 
 For a very quick summary of what it does, check this youtube video:
 
-[![GamiFlow youtube introduction](https://img.youtube.com/vi/6oITEIZXbKU/0.jpg)](https://www.youtube.com/watch?v=6oITEIZXbKU)
+[![GamiFlow youtube introduction](https://img.youtube.com/vi/cxSfqs7uISE/0.jpg)](https://www.youtube.com/watch?v=cxSfqs7uISE)
 
 For a much longer overview, check out this one:
 
