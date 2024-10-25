@@ -659,7 +659,8 @@ def getUvPacker():
 
 def pack_uvpacker(context):
     # UV-Packer is difficult to call externally because all we have is a modal operator.
-    # So instead we have to manually call the exe
+    # So instead we have to manually call the exe. And to be sure that it's done correctly, 
+    # the following code is directly lifted from the UV-Packer addon itself
 
     uvPacker = getUvPacker()
     
@@ -703,6 +704,9 @@ def pack_uvpacker(context):
 
     msg_queue = queue.SimpleQueue()
     uvPacker.misc.data_exchange_thread(process, options, meshes, msg_queue)
+    
+    # Back to my own original code
+    
     print("UV Packer response:")
     while not msg_queue.empty():
         print( msg_queue.get() )
