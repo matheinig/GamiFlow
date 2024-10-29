@@ -6,12 +6,12 @@ id = "gamiflow"
 version = "1.0.0"
 name = "GamiFlow"
 tagline = "Easier game asset creation"
-maintainer = "Developer name <email@address.com>"
+maintainer = "Mathieu Einig"
 # Supported types: "add-on", "theme"
 type = "add-on"
 
 # Optional link to documentation, support, source files, etc
-# website = "https://extensions.blender.org/add-ons/my-example-package/"
+# website = "https://github.com/matheinig/GamiFlow"
 
 # Optional list defined by Blender and server, see:
 # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
@@ -25,7 +25,7 @@ blender_version_min = "4.2.0"
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
 license = [
-  "SPDX:GPL-2.0-or-later",
+  "SPDX:GPL-3.0-or-later",
 ]
 # Optional: required by some licenses.
 # copyright = [
@@ -59,9 +59,7 @@ license = [
 # # For longer explanations use the documentation or detail page.
 #
 # [permissions]
-# network = "Need to sync motion-capture data to server"
-# files = "Import/export FBX from/to disk"
-# clipboard = "Copy and paste bone transforms"
+files = "Export FBX files to disk"
 
 # Optional: build settings.
 # https://docs.blender.org/manual/en/dev/advanced/extensions/command_line_arguments.html#command-line-args-extension-build
