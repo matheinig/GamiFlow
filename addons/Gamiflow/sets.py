@@ -137,11 +137,13 @@ def setObjectSmoothing(context, obj, keep_sharp_edges=True):
 
 
 def addWeightedNormals(context, obj):
+    if obj.type != 'MESH': return
     w = obj.modifiers.new(type="WEIGHTED_NORMAL", name="Weighted Normal (GFlow)")
     w.keep_sharp = True
     w.use_face_influence = True
     
 def triangulate(context, obj):
+    if obj.type != 'MESH': return
     tri = obj.modifiers.new(type="TRIANGULATE", name="Triangulate (GFlow)")
     # tri.keep_custom_normals = True  No longer possible as of 4.2
 
