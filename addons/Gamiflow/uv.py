@@ -174,7 +174,7 @@ def autoUnwrap(context):
     # Go through all udims and unwrap them
     for texset in range(0, len(context.scene.gflow.udims)): 
         # Gather all objects
-        obj = [o for o in context.scene.gflow.workingCollection.all_objects if o.type == 'MESH' and o.gflow.textureSet == texset]
+        obj = [o for o in context.scene.gflow.workingCollection.all_objects if helpers.isObjectValidMesh(o) and o.gflow.textureSet == texset]
 
         # Unwrap individual objects
         unwrap(context, obj)
@@ -186,7 +186,7 @@ def lightmapUnwrap(context, objects):
     meshes = []
     obj = []
     for o in objects:
-        if o.type != 'MESH': continue # Only real meshes can be unwrapped
+        if not helpers.isObjectValidMesh(o): continue # Only real meshes can be unwrapped
         if o.data in meshes: continue # Make sure we only allow one instance of a mesh
         meshes.append(o.data)
         obj.append(o)
@@ -208,7 +208,7 @@ def unwrap(context, objects):
     bpy.ops.object.select_all(action='DESELECT')
 
     for o in objects:
-        if o.type != 'MESH': continue
+        if not helpers.isObjectValidMesh(o): continue
         if not o.gflow.unwrap: continue
         if o.gflow.objType  != 'STANDARD': continue
         
@@ -253,7 +253,7 @@ def pack(context, objects, packMethod = 'FAST'):
     relevant = []
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
-        if o.type != 'MESH': continue
+        if not helpers.isObjectValidMesh(o): continue
         if o.gflow.objType  != 'STANDARD': continue
         o.select_set(True)
         context.view_layer.objects.active = o

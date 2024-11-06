@@ -6,6 +6,8 @@ def convertToMesh(context, obj):
     if obj.type == 'MESH': return
     setSelected(context, obj)
     bpy.ops.object.convert(target='MESH')
+def isObjectValidMesh(obj):
+    return obj.type == 'MESH' and len(obj.data.polygons)>0
         
 def getMaterialTreeOutput(tree):
     for n in tree.nodes:
