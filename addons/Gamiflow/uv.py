@@ -164,6 +164,23 @@ def straightenUv(context, obj):
             if not somethingFound: geotags.removeGridifyLayer(bm)
     return
 
+def _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes):
+    results = []
+    for o in all_objects:
+        if helpers.isObjectCollectionInstancer(o):
+            results.extend( filterUnwrappableOrPackableObjects(o.instance_collection.all_objects) )
+            continue
+        if helpers.isObjectValidMesh(o) and o.gflow.objType == 'STANDARD':
+            if o.data not in knownMeshes:
+                results.append(o)
+                knownMeshes.append(o.data)
+            continue
+    return results
+def filterUnwrappableOrPackableObjects(all_objects):
+    knownMeshes = []
+    return _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes)
+            
+
 def autoUnwrap(context):
     # Make sure the working set is enabled and hide the rest for clarity
     sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, True)
@@ -171,10 +188,12 @@ def autoUnwrap(context):
     sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.exportCollection, False)
     
+    unwrappables = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
+    
     # Go through all udims and unwrap them
     for texset in range(0, len(context.scene.gflow.udims)): 
         # Gather all objects
-        obj = [o for o in context.scene.gflow.workingCollection.all_objects if helpers.isObjectValidMesh(o) and o.gflow.textureSet == texset]
+        obj = [o for o in unwrappables if o.gflow.textureSet == texset]
 
         # Unwrap individual objects
         unwrap(context, obj)
@@ -182,15 +201,8 @@ def autoUnwrap(context):
         pack(context, obj, context.scene.gflow.uvPackSettings)
 
 def lightmapUnwrap(context, objects):
-    # Sanitise the list
-    meshes = []
-    obj = []
-    for o in objects:
-        if not helpers.isObjectValidMesh(o): continue # Only real meshes can be unwrapped
-        if o.data in meshes: continue # Make sure we only allow one instance of a mesh
-        meshes.append(o.data)
-        obj.append(o)
-        
+    # Sanitise the list  
+    obj = filterUnwrappableOrPackableObjects(objects)
 
     # Make sure all objects have a new UV layer and that it's active
     for o in obj:
@@ -208,9 +220,7 @@ def unwrap(context, objects):
     bpy.ops.object.select_all(action='DESELECT')
 
     for o in objects:
-        if not helpers.isObjectValidMesh(o): continue
         if not o.gflow.unwrap: continue
-        if o.gflow.objType  != 'STANDARD': continue
         
         o.select_set(True)
         context.view_layer.objects.active = o
@@ -253,8 +263,6 @@ def pack(context, objects, packMethod = 'FAST'):
     relevant = []
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
-        if not helpers.isObjectValidMesh(o): continue
-        if o.gflow.objType  != 'STANDARD': continue
         o.select_set(True)
         context.view_layer.objects.active = o
         relevant.append(o)
@@ -623,18 +631,10 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
         udim = findUdimId(context, self.textureSetEnum)
         bpy.ops.object.select_all(action='DESELECT')
 
-        # Find the relevant objects
-        objects = []
-        meshes = []
-        for o in context.scene.gflow.workingCollection.all_objects:
-            if o.type != 'MESH': continue
-            if o.gflow.objType != 'STANDARD': continue
-            if o.gflow.textureSet != udim: continue
-            if o.data in meshes: continue # Make sure we don't allow the same mesh twice
-            meshes.append(o.data)
-            objects.append(o)
-
+        # Select all the relevant objects and their faces
+        objects = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
         for o in objects:
+            if o.gflow.textureSet != udim: continue
             o.select_set(True)
             context.view_layer.objects.active = o
             
@@ -645,7 +645,6 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
     
         bpy.context.window.workspace = bpy.data.workspaces["UV Editing"]
         
-
         return {"FINISHED"}         
 
 # UV-Packer backend
