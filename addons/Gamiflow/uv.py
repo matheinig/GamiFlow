@@ -165,30 +165,35 @@ def straightenUv(context, obj):
     return
 
 def _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes):
-    results = []
+    objects = []
+    collections = []
     for o in all_objects:
         if helpers.isObjectCollectionInstancer(o):
-            results.extend( filterUnwrappableOrPackableObjects(o.instance_collection.all_objects) )
+            [objs, colls] = _filterUnwrappableOrPackableObjectsRecurs(o.instance_collection.all_objects, knownMeshes)
+            objects.extend( objs )
+            collections.extend( colls )
+            if o.instance_collection not in collections: collections.append(o.instance_collection)
             continue
         if helpers.isObjectValidMesh(o) and o.gflow.objType == 'STANDARD':
             if o.data not in knownMeshes:
-                results.append(o)
+                objects.append(o)
                 knownMeshes.append(o.data)
             continue
-    return results
+    return objects, collections
 def filterUnwrappableOrPackableObjects(all_objects):
     knownMeshes = []
     return _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes)
             
 
 def autoUnwrap(context):
-    # Make sure the working set is enabled and hide the rest for clarity
-    sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, True)
-    sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, False)
-    sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, False)
-    sets.setCollectionVisibility(context, context.scene.gflow.exportCollection, False)
+    unwrappables, collections = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
+    collections.append(context.scene.gflow.workingCollection)
     
-    unwrappables = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
+    # Make sure all the relevant collections are enabled
+    originalCollectionVisibility = {}
+    for c in collections:
+        originalCollectionVisibility[c] = sets.getCollectionVisibility(context, c)
+        sets.setCollectionVisibility(context, c, True)
     
     # Go through all udims and unwrap them
     for texset in range(0, len(context.scene.gflow.udims)): 
@@ -199,10 +204,14 @@ def autoUnwrap(context):
         unwrap(context, obj)
         # Pack everything together
         pack(context, obj, context.scene.gflow.uvPackSettings)
+        
+    # Revert collection visibility
+    for c in collections:
+        sets.setCollectionVisibility(context, c, originalCollectionVisibility[c])
 
 def lightmapUnwrap(context, objects):
     # Sanitise the list  
-    obj = filterUnwrappableOrPackableObjects(objects)
+    obj, collections = filterUnwrappableOrPackableObjects(objects)
 
     # Make sure all objects have a new UV layer and that it's active
     for o in obj:
@@ -625,14 +634,13 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
             return False
         return True
     def execute(self, context):
-        sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, True)
-    
         # find the right udim id
         udim = findUdimId(context, self.textureSetEnum)
         bpy.ops.object.select_all(action='DESELECT')
 
         # Select all the relevant objects and their faces
-        objects = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
+        objects, collections = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
+        for c in collections: sets.setCollectionVisibility(context, c, True)
         for o in objects:
             if o.gflow.textureSet != udim: continue
             o.select_set(True)
