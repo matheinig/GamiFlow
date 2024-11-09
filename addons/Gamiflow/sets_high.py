@@ -81,11 +81,14 @@ def generatePainterHigh(context):
             generateCopy = True
             if helpers.isObjectCollectionInstancer(o): generateCopy = False
             
+            suffix = stgs.hpsuffix
+            if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"               
+            newobj = None
+            
             if generateCopy:
                 # Anything here is objects that are mesh-like
                 if o.gflow.includeSelf:
-                    suffix = stgs.hpsuffix
-                    if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"                
+             
                     newobj = sets.duplicateObject(o, suffix, highCollection)
                     newobj.name = namePrefix + newobj.name
                     # Convert the 'mesh-adjacent' objects into actual meshes
