@@ -117,10 +117,20 @@ def generatePainterHigh(context):
                     hpsuffix = suffix
                     if hp.obj.gflow.objType == 'DECAL': 
                         hpsuffix = hpsuffix + decalsuffix
-                    newhp.name = sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
+                    newhp.name = namePrefix+sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
                     sets.triangulate(context, newhp)
-                    # parent them to the object (in case they get transformed with anchors)
-                    if newobj: helpers.setParent(newhp, newobj)
+                    gen.register(newhp, hp.obj)
+                    
+                    if newobj: 
+                        # if we had a base object, parent them to it (in case they get transformed with anchors)
+                        helpers.setParent(newhp, newobj)
+                    else:
+                        # Otherwise, assume they are like any other objects
+                        ## TODO: this does not take into account that the base object might have had a bake anchor
+                        if o.parent != None: 
+                            newhp.parent = None
+                            newhp.matrix_world = o.matrix_world.copy()
+                            parented.append(newhp)                    
             else:
                 # Realise the instance
                 if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
