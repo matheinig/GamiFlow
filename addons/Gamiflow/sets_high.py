@@ -66,61 +66,82 @@ def generatePainterHigh(context):
     decalsuffix = stgs.decalsuffix
 
     # Go through all the objects of the working set
-    generated = []
-    newObjectToOriginalParent = {}     
-    for o in context.scene.gflow.workingCollection.all_objects:
-        if not (o.type == 'MESH' or o.type == 'FONT'): continue
-        if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER'): continue
-        
-        # Make a copy the object
-        suffix = stgs.hpsuffix
-        if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"
-        
-        newobj = None
-        if o.gflow.includeSelf:
-            newobj = sets.duplicateObject(o, suffix, highCollection)
-            helpers.convertToMesh(context, newobj)
-            generated.append(newobj)
-            generateIdMap(stgs, newobj)
+    gen = sets.GeneratorData()
+    
+    def populateHighList(objectsToDuplicate, namePrefix=""):
+        roots = []
+        parented = []
+        instanceRootsTransforms = {}
+    
+        for o in objectsToDuplicate:
+            if not (o.type == 'MESH' or o.type == 'FONT' or o.type == 'CURVE' or o.type=='EMPTY'): continue
+            if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER'): continue
             
-            if o.parent != None: 
-                helpers.setParent(newobj, o.parent)
-                newObjectToOriginalParent[newobj] = o.parent
-        
-            # handle special modifiers like subdiv
-    
-            sets.triangulate(context, newobj)
-    
-            # remove all hard edges
-            if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
-        
-        # Add all manually-linked highpolys
-        for hp in o.gflow.highpolys:
-            newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
-            helpers.convertToMesh(context, newhp)
-            generateIdMap(stgs, newhp)
-            hpsuffix = suffix
-            if hp.obj.gflow.objType == 'DECAL': 
-                hpsuffix = hpsuffix + decalsuffix
-            newhp.name = sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
-            sets.triangulate(context, newhp)
-            # parent them to the object (in case they get transformed with anchors)
-            if newobj: helpers.setParent(newhp, newobj)
+
+            generateCopy = True
+            if helpers.isObjectCollectionInstancer(o): generateCopy = False
+            
+            if generateCopy:
+                # Anything here is objects that are mesh-like
+                if o.gflow.includeSelf:
+                    suffix = stgs.hpsuffix
+                    if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"                
+                    newobj = sets.duplicateObject(o, suffix, highCollection)
+                    newobj.name = namePrefix + newobj.name
+                    # Convert the 'mesh-adjacent' objects into actual meshes
+                    if o.type == 'FONT' or o.type == 'CURVE': 
+                        helpers.convertToMesh(context, newobj)
+                    gen.register(newobj, o)
+                    
+                    if o.parent != None: 
+                        newobj.parent = None
+                        newobj.matrix_world = o.matrix_world.copy()
+                        parented.append(newobj)
+                    else:
+                        roots.append(newobj)
+            
+                    if o.type == 'MESH':
+                        generateIdMap(stgs, newobj)
+                        sets.triangulate(context, newobj)
+                        # remove all hard edges
+                        if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
+                            
+                # Add all manually-linked highpolys
+                for hp in o.gflow.highpolys:
+                    newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
+                    helpers.convertToMesh(context, newhp)
+                    generateIdMap(stgs, newhp)
+                    hpsuffix = suffix
+                    if hp.obj.gflow.objType == 'DECAL': 
+                        hpsuffix = hpsuffix + decalsuffix
+                    newhp.name = sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
+                    sets.triangulate(context, newhp)
+                    # parent them to the object (in case they get transformed with anchors)
+                    if newobj: helpers.setParent(newhp, newobj)
+            else:
+                # Realise the instance
+                if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
+                    if o.gflow.instanceBake == "LOW_HIGH" or o.gflow.instanceBake == "HIGH":
+                        instanced = o.instance_collection.all_objects
+                        instanceRoots = populateHighList(instanced, o.name+"_")
+                        # Keep track of where the instances should be located
+                        for r in instanceRoots: instanceRootsTransforms[r] = o.matrix_world            
+
+        # Now that we have all the objects we can try rebuilding the intended hierarchy
+        for newobj in parented:
+            gen.reparent(newobj)
+        # Put the realised instances back in their right place
+        for instanceRoot, xform in instanceRootsTransforms.items():
+            instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
+        return roots
 
 
-    # Now that we have all the objects we can try rebuilding the intended hierarchy
-    for newobj, origParent in newObjectToOriginalParent.items():
-        # Find new parent
-        newParentName = sets.getNewName(origParent, suffix)
-        newParent = helpers.findObjectByName(generated, newParentName)
-        # Set new parent
-        if newParent: 
-            matrix = newobj.matrix_world.copy()
-            newobj.parent = newParent
-            newobj.matrix_world = matrix    
+        
+    populateHighList(context.scene.gflow.workingCollection.all_objects)
+        
 
     # Deal with anchors
-    for o in generated:
+    for o in gen.generated:
         if o.gflow.bakeAnchor:
             # Leave a ghost behind if need be
             ## TODO: maybe the children should also be ghosted

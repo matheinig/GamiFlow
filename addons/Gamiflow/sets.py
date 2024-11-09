@@ -48,6 +48,44 @@ def checkForNewObjects(scene, depsgraph):
                     for o in new_objects: onNewObject(o, scene)      
     return
 
+class GeneratorData:
+    def __init__(self):
+        self.generated = []    
+        self.generatedToOriginal = {} 
+        self.originalToGenerated = {}
+    def register(self, generatedObj, sourceObj):
+        self.generated.append(generatedObj)
+        self.generatedToOriginal[generatedObj] = sourceObj
+        if sourceObj not in self.originalToGenerated.keys(): self.originalToGenerated[sourceObj] = []
+        self.originalToGenerated[sourceObj].append(generatedObj)
+
+    def findSource(self, generatedObj):
+        try:
+            return self.generatedToOriginal[generatedObj]
+        except:
+            pass
+        return None
+    def findGenerated(self, sourceObj):
+        try:
+            return self.originalToGenerated[sourceObj]
+        except:
+            print("Source object "+sourceObj.name+ " was never used to generated anything")
+            pass
+        return None
+    def reparent(self, generatedObj):
+        source = self.findSource(generatedObj)
+        possibleNewParents = self.findGenerated(source.parent)
+        newParent = findBestMatch(possibleNewParents, source.parent)
+        if newParent: helpers.setParent(generatedObj, newParent)    
+        
+# A source object can have multiple generated objects, 
+# so when checking for what a generated object's parent should be based on what the original parent was, we potentially have multiple possibilities. We choose by looking at a transform that matches.
+def findBestMatch(generatedObjects, source):
+    if len(generatedObjects) == 0: return None
+    bestCandidate = generatedObjects[0]
+    for c in generatedObjects[1:]:
+        if c.matrix_world == source.matrix_world: return c
+    return bestCandidate
             
 def onNewObject(o, scene):
     o.gflow.textureSetEnum = scene.gflow.udims[scene.gflow.ui_selectedUdim].name

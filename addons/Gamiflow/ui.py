@@ -122,30 +122,31 @@ class GamiflowObjPanel_UV(bpy.types.Panel):
     bl_idname = "OBJECT_PT_gamiflow_uv"
     
     def draw(self, context):
-        gflow = context.object.gflow
+        obj = context.object
+        gflow = obj.gflow
         self.layout.use_property_split = True
         self.layout.use_property_decorate = False
         self.layout.enabled = gflow.objType == "STANDARD"
-        
-        # Unwrap
-        col = self.layout.column(align=False, heading="Unwrap")
-        row = col.row(align=True)
-        sub = row.row(align=True)
-        sub.prop(gflow, "unwrap", text="")
-        sub = sub.row(align=True)
-        sub.active = gflow.unwrap
-        sub.prop(gflow, "unwrap_method", text="")
-        
-        # Smooth
-        row = col.row(align=True)
-        row.active = gflow.unwrap
-        sub = row.row(align=True)
-        sub.prop(gflow, "unwrap_smooth_iterations", text="Smooth")
-        sub.prop(gflow, "unwrap_smooth_strength", text="x", slider=True)
-        
-        # Texture set
-        self.layout.separator()
-        self.layout.prop(gflow, "textureSetEnum")
+        if obj.type == 'MESH':
+            # Unwrap
+            col = self.layout.column(align=False, heading="Unwrap")
+            row = col.row(align=True)
+            sub = row.row(align=True)
+            sub.prop(gflow, "unwrap", text="")
+            sub = sub.row(align=True)
+            sub.active = gflow.unwrap
+            sub.prop(gflow, "unwrap_method", text="")
+            
+            # Smooth
+            row = col.row(align=True)
+            row.active = gflow.unwrap
+            sub = row.row(align=True)
+            sub.prop(gflow, "unwrap_smooth_iterations", text="Smooth")
+            sub.prop(gflow, "unwrap_smooth_strength", text="x", slider=True)
+            
+            # Texture set
+            self.layout.separator()
+            self.layout.prop(gflow, "textureSetEnum")
 
 class GamiflowObjPanel_Bake(bpy.types.Panel):
     bl_label = "Bake"
@@ -155,33 +156,40 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
     bl_parent_id = "GFLOW_PT_OBJ_PANEL"
     bl_idname = "OBJECT_PT_gamiflow_bake"
     
-    def draw(self, context):    
-        gflow = context.object.gflow
-        isStandard = gflow.objType == "STANDARD"
+    def draw(self, context):
+        obj = context.object
+        gflow = obj.gflow
         self.layout.use_property_split = True
-        self.layout.use_property_decorate = False        
-        self.layout.prop(gflow, "objType")
-        
-        row = self.layout.row()
-        row.prop(gflow, "includeSelf")
-        row.enabled = isStandard
-        row = self.layout.row()
-        row.enabled = gflow.includeSelf and isStandard
-        row.prop(gflow, "removeHardEdges")
-                
-        # Highpoly list
-        row = self.layout.row()
-        row.enabled = isStandard
-        row.template_list("GFLOW_UL_highpolies", "", gflow, "highpolys", gflow, "ui_selectedHighPoly", rows=3)
-        col = row.column(align=True)
-        col.operator("gflow.add_high", icon='ADD', text="")
-        col.operator("gflow.remove_high", icon='REMOVE', text="")
-        
-        # Anchor
-        self.layout.prop(gflow, "bakeAnchor")
-        row = self.layout.row()
-        row.enabled = gflow.bakeAnchor is not None
-        row.prop(gflow, "bakeGhost")       
+        self.layout.use_property_decorate = False           
+        if obj.type == 'MESH':
+            isStandard = gflow.objType == "STANDARD"
+     
+            self.layout.prop(gflow, "objType")
+            
+            row = self.layout.row()
+            row.prop(gflow, "includeSelf")
+            row.enabled = isStandard
+            row = self.layout.row()
+            row.enabled = gflow.includeSelf and isStandard
+            row.prop(gflow, "removeHardEdges")
+                    
+            # Highpoly list
+            row = self.layout.row()
+            row.enabled = isStandard
+            row.template_list("GFLOW_UL_highpolies", "", gflow, "highpolys", gflow, "ui_selectedHighPoly", rows=3)
+            col = row.column(align=True)
+            col.operator("gflow.add_high", icon='ADD', text="")
+            col.operator("gflow.remove_high", icon='REMOVE', text="")
+            
+            # Anchor
+            self.layout.prop(gflow, "bakeAnchor")
+            row = self.layout.row()
+            row.enabled = gflow.bakeAnchor is not None
+            row.prop(gflow, "bakeGhost")
+        elif obj.type == 'EMPTY':
+            row = self.layout.row()
+            row.enabled = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))
+            row.prop(gflow, "instanceBake")
         
         
 class GamiflowObjPanel_Export(bpy.types.Panel):
@@ -193,11 +201,17 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
     bl_idname = "OBJECT_PT_gamiflow_export"
     
     def draw(self, context):
-        gflow = context.object.gflow
+        obj = context.object
+        gflow = obj.gflow
         self.layout.use_property_split = True
-        self.layout.use_property_decorate = False     
-        self.layout.prop(gflow, "exportAnchor")        
-        self.layout.prop(gflow, "mergeWithParent")
+        self.layout.use_property_decorate = False
+        if obj.type == 'MESH':        
+            self.layout.prop(gflow, "exportAnchor")        
+            self.layout.prop(gflow, "mergeWithParent")
+        elif obj.type == 'EMPTY':
+            row = self.layout.row()
+            row.enabled = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))
+            row.prop(gflow, "instanceAllowExport")            
        
 
 class GFLOW_UL_highpolies(bpy.types.UIList):

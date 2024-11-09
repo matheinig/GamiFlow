@@ -49,6 +49,14 @@ gUV_MARGIN = [
     ]    
     
 class GFlowObject(bpy.types.PropertyGroup):
+    # export
+    instanceType: bpy.props.EnumProperty(name="Instance", default='BOTH', items=[
+        ("BAKE", "Bake", "This instance will be used only when baking", 0),
+        ("EXPORT", "Export", "This instance will be used only when creating the final export set", 1),
+        ("BOTH", "Bake/Export", "This instance will be used when baking and exporting", 2),
+    ]) 
+
+
     # UV mapping
     unwrap: bpy.props.BoolProperty(name="Auto Unwrap", default=True)
     unwrap_method: bpy.props.EnumProperty(default='ANGLE_BASED', items=gUV_UNWRAP_METHODS)
@@ -65,6 +73,11 @@ class GFlowObject(bpy.types.PropertyGroup):
         ("OCCLUDER", "Occluder", "An object used exclusively for baking, but only as a shadow caster", 3),
         ("IGNORED", "Ignored", "This object will be completely ignored", 4),
     ])
+    instanceBake: bpy.props.EnumProperty(name="Instance in", default='LOW_HIGH', items=[
+        ("NONE", "None", "", 0),
+        ("LOW_HIGH", "Low/High", "The instance will be added to the low and high-poly baking sets.", 1),
+        ("HIGH", "High", "The instance will be added to the high-poly set.", 2),
+    ])
     bakeAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor")
     bakeGhost: bpy.props.BoolProperty(name="Leave ghost", default=False, description="If enabled, an occluder will be left behind in the high-poly")
     removeHardEdges: bpy.props.BoolProperty(name="Remove hard edges", default=True, description="Remove hard edges in the high-poly")
@@ -72,8 +85,8 @@ class GFlowObject(bpy.types.PropertyGroup):
     highpolys: bpy.props.CollectionProperty(type=GFlowHighPolyItem)
     ui_selectedHighPoly : bpy.props.IntProperty(name="[UI] HP Index", default=0, description="Internal")
 
-
     # Export
+    instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)
     mergeWithParent: bpy.props.BoolProperty(name="Merge with parents", default=True)
     exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set")
 
@@ -90,6 +103,8 @@ class GFlowDisplay(bpy.types.PropertyGroup):
     edgeOffset: bpy.props.FloatProperty(name="Edge offset", default=0.1, min=0.0, max=1.0, description="Pushes the edges outward to avoid clipping", update=onEdgeOffsetChange)
     
 class GFlowScene(bpy.types.PropertyGroup):
+    version : bpy.props.IntProperty(name="GamiFlow version", default=0, description="Internal version number")
+
     # Sets
     workingCollection : bpy.props.PointerProperty(type=bpy.types.Collection, name="Working set", update=onCollectionChanged)
     painterLowCollection : bpy.props.PointerProperty(type=bpy.types.Collection)

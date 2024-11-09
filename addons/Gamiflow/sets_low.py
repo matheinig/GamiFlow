@@ -42,60 +42,84 @@ def generatePainterLow(context):
     lpsuffix = settings.getSettings().lpsuffix
 
     # Go through all the objects of the working set
-    generated = []
-    newObjectToOriginalParent = {}
     knownMeshes = []
-    for o in context.scene.gflow.workingCollection.all_objects:
-        if o.type != 'MESH': continue
-        if o.gflow.objType != 'STANDARD': continue
-        
-        # Make a copy the object
-        newobj = sets.duplicateObject(o, lpsuffix, lowCollection)
-        generated.append(newobj)
-        
-        # Special handling of instanced meshes
-        # Painter doesn't like overlapping UVs when baking so we offset the UVs by 1
-        if o.data in knownMeshes:
-            # NOTE: Don't need to de-instantiate, the lowpoly copy has its own data
-            uv.offsetCoordinates(newobj)
-        else:
-            knownMeshes.append(o.data)
-        
-        if o.parent != None: 
-            helpers.setParent(newobj, o.parent)
-            newObjectToOriginalParent[newobj] = o.parent
-        
-        bpy.ops.object.select_all(action='DESELECT')  
-        sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
-        sets.deleteDetailFaces(context, newobj)
-        
-        # Set the material
-        material = sets.getTextureSetMaterial(o.gflow.textureSet)
-        sets.setMaterial(newobj, material)
-        
-        # Remove flagged modifiers
-        sets.removeLowModifiers(context, newobj)
-        # handle special modifiers like subdiv, mirrors, etc
-        processModifiers(context, newobj)
-        
-        # Add simple modifiers if need be
-        #TODO: check if modifiers already present
-        #sets.addWeightedNormals(context, newobj)
-        sets.triangulate(context, newobj)
+    gen = sets.GeneratorData()
     
-    # Now that we have all the objects we can try rebuilding the intended hierarchy
-    for newobj, origParent in newObjectToOriginalParent.items():
-        # Find new parent
-        newParentName = sets.getNewName(origParent, lpsuffix)
-        newParent = helpers.findObjectByName(generated, newParentName)
-        # Set new parent
-        if newParent: 
-            matrix = newobj.matrix_world.copy()
-            newobj.parent = newParent
-            newobj.matrix_world = matrix    
-    
+    def populateLowList(objectsToDuplicate, namePrefix=""):
+        roots = []
+        parented = []
+        instanceRootsTransforms = {}
+        for o in objectsToDuplicate:
+            if not (o.type == 'MESH' or o.type=='EMPTY'): continue
+            if o.gflow.objType != 'STANDARD': continue
+            
+            generateCopy = True
+            if helpers.isObjectCollectionInstancer(o): generateCopy = False
+            
+            if generateCopy:
+                # Make a copy the object
+                newobj = sets.duplicateObject(o, lpsuffix, lowCollection)
+                newobj.name = namePrefix+newobj.name
+                gen.register(newobj, o)
+
+                if o.parent != None: 
+                    parented.append(newobj)
+                    # Unparent for now
+                    newobj.parent = None
+                    newobj.matrix_world = o.matrix_world.copy()
+                else:
+                    roots.append(newobj)
+                
+                if not o.type=='EMPTY':
+                    # Special handling of instanced meshes
+                    # Painter doesn't like overlapping UVs when baking so we offset the UVs by 1
+                    if o.data in knownMeshes:
+                        # NOTE: Don't need to de-instantiate, the lowpoly copy has its own data
+                        uv.offsetCoordinates(newobj)
+                    else:
+                        knownMeshes.append(o.data)            
+                
+                    bpy.ops.object.select_all(action='DESELECT')  
+                    sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
+                    sets.deleteDetailFaces(context, newobj)
+                    
+                    # Set the material
+                    material = sets.getTextureSetMaterial(o.gflow.textureSet)
+                    sets.setMaterial(newobj, material)
+                    
+                    # Remove flagged modifiers
+                    sets.removeLowModifiers(context, newobj)
+                    # handle special modifiers like subdiv, mirrors, etc
+                    processModifiers(context, newobj)
+                    
+                    # Add simple modifiers if need be
+                    #TODO: check if modifiers already present
+                    #sets.addWeightedNormals(context, newobj)
+                    sets.triangulate(context, newobj)
+            else:
+                # Realise the instance
+                if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
+                    if o.gflow.instanceBake == "LOW_HIGH":
+                        instanced = o.instance_collection.all_objects
+                        instanceRoots = populateLowList(instanced, o.name+"_")
+                        # Keep track of where the instances should be located
+                        for r in instanceRoots: instanceRootsTransforms[r] = o.matrix_world
+        #endfor object duplication
+  
+        # Now that we have all the objects we can try rebuilding the intended hierarchy
+        for newobj in parented:
+            gen.reparent(newobj)
+        
+        # Put the realised instances back in their right place
+        for instanceRoot, xform in instanceRootsTransforms.items():
+            instanceRoot.matrix_world = xform @ instanceRoot.matrix_world                    
+                
+        return roots
+                
+    populateLowList(context.scene.gflow.workingCollection.all_objects)
+     
     # Deal with anchors
-    for o in generated:
+    for o in gen.generated:
         if o.gflow.bakeAnchor:
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
 

@@ -8,7 +8,7 @@ def convertToMesh(context, obj):
     bpy.ops.object.convert(target='MESH')
 def isObjectValidMesh(obj):
     return obj.type == 'MESH' and len(obj.data.polygons)>0
-        
+
 def getMaterialTreeOutput(tree):
     for n in tree.nodes:
         if n.type == 'OUTPUT_MATERIAL': return n
@@ -36,6 +36,8 @@ def getMaterialColour(material):
     else:
         return material.diffuse_color
         
+def isObjectCollectionInstancer(obj):
+    return obj.type == 'EMPTY' and obj.instance_type == 'COLLECTION'
 
 def findObjectByName(objList, name):
     for o in objList:

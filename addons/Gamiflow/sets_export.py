@@ -49,6 +49,8 @@ def findFirstNonCollapsedParent(obj):
     if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent)
     return obj
 
+
+
 def generateExport(context):
     # Make sure we don't already have a filled export set
     collection = getCollection(context, createIfNeeded=False)
@@ -65,95 +67,125 @@ def generateExport(context):
     exportSuffix = settings.getSettings().exportsuffix
     
     # Go through all the objects of the working set and generate the export set
-    generated = []
-    newObjectToOriginalParent = {}
-    originalObjectToFinal = {}
-    for o in context.scene.gflow.workingCollection.all_objects:
-        if not (o.type == 'MESH' or o.type=='EMPTY'): continue # We could potentially allow more types (.e.g lights)
-        if o.gflow.objType != 'STANDARD': continue
-        
-        isEmpty = (o.type=='EMPTY')
-        
-        # Make a copy the object
-        newobj = sets.duplicateObject(o, exportSuffix, collection)
-        originalObjectToFinal[o] = newobj
-        
-        # Unparenting for now as the new parent might not yet exist
-        if o.parent != None:
-            newobj.parent = None
-            newobj.matrix_world = o.matrix_world.copy()
-            newObjectToOriginalParent[newobj] = o.parent
-            
-        if not isEmpty:
-            # Remove all detail edges
-            bpy.ops.object.select_all(action='DESELECT')  
-            sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)
-            sets.deleteDetailFaces(context, newobj)
-            
-            # Set the material
-            material = sets.getTextureSetMaterial(o.gflow.textureSet)
-            sets.setMaterial(newobj, material)
-            
-            # Remove modifiers flagged as being irrelevant for low-poly
-            sets.removeLowModifiers(context, newobj)
-            
-            # Enforce triangulation
-            sets.triangulate(context, newobj)            
-            
-        generated.append(newobj)
-    #endfor (original objects)
+    gen = sets.GeneratorData()
 
-    # Now that we have all the objects we can try rebuilding the intended hierarchy
-    for newobj, origParent in newObjectToOriginalParent.items():
-        # Find new parent
-        try:
-            newParent = originalObjectToFinal[origParent]
-            if newParent != None: helpers.setParent(newobj, newParent)
-        except:
-            print("Could not find parent of "+newobj+" in the export set")
-    # Do another pass to check that we are not parenting to something that will end up getting merged
-    for newobj in newObjectToOriginalParent.keys(): 
-        safeParent = findFirstNonCollapsedParent(newobj.parent)
-        if safeParent != newobj.parent: helpers.setParent(newobj, safeParent)
+    def populateExportList(objectsToDuplicate, namePrefix=""):
+        roots = []
+        parented = []
+        instanceRootsTransforms = {}
+        for o in objectsToDuplicate:
+            if not (o.type == 'MESH' or o.type=='EMPTY'): continue # We could potentially allow more types (.e.g lights)
+            if o.gflow.objType != 'STANDARD': continue
+            
+
+            generateCopy = True
+            if helpers.isObjectCollectionInstancer(o): generateCopy = False
+            
+            # Make a copy the object
+            if generateCopy:
+                newobj = sets.duplicateObject(o, exportSuffix, collection)
+                newobj.name = namePrefix+newobj.name
+                gen.register(newobj, o)
+                
+                # Unparenting for now as the new parent might not yet exist
+                if o.parent != None:
+                    newobj.parent = None
+                    newobj.matrix_world = o.matrix_world.copy()
+                    parented.append(newobj)
+                    #newObjectToOriginalParent[newobj] = o.parent
+                else:
+                    roots.append(newobj)
+                
+                if not o.type=='EMPTY':
+                    # Remove all detail edges
+                    bpy.ops.object.select_all(action='DESELECT')  
+                    sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)
+                    sets.deleteDetailFaces(context, newobj)
+                    
+                    # Set the material
+                    material = sets.getTextureSetMaterial(o.gflow.textureSet)
+                    sets.setMaterial(newobj, material)
+                    
+                    # Remove modifiers flagged as being irrelevant for low-poly
+                    sets.removeLowModifiers(context, newobj)
+                    
+                    # Enforce triangulation
+                    sets.triangulate(context, newobj)  
+                #endif empty
+            else:
+                # Realise the instance
+                if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
+                    if o.gflow.instanceAllowExport:
+                        instanced = o.instance_collection.all_objects
+                        instanceRoots = populateExportList(instanced, o.name+"_",)
+                        # Keep track of where the instances should be located
+                        for r in instanceRoots: instanceRootsTransforms[r] = o.matrix_world
+        #endfor (original objects)
+
+        # Now that we have all the objects we can try rebuilding the intended hierarchy
+        for newobj in parented:
+            gen.reparent(newobj)
+        # Put the realised instances back in their right place
+        for instanceRoot, xform in instanceRootsTransforms.items():
+            instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
+        # Do another pass to check that we are not parenting to something that will end up getting merged
+        for newobj in parented: 
+            safeParent = findFirstNonCollapsedParent(newobj.parent)
+            if safeParent != newobj.parent: helpers.setParent(newobj, safeParent)        
+        
+        return roots
     
+    populateExportList(context.scene.gflow.workingCollection.all_objects)
+
     # Deal with the anchors
-    for o in generated:
+    for o in gen.generated:
         if o.gflow.exportAnchor:
             o.matrix_world = o.gflow.exportAnchor.matrix_world.copy()
 
     # Lightmap UVs generation
     if context.scene.gflow.lightmapUvs:
-        uv.lightmapUnwrap(context, generated)
+        uv.lightmapUnwrap(context, gen.generated)
         
     # Now we can apply all the modifiers
-    for newobj in generated:
+    for newobj in gen.generated:
         processModifiers(context, newobj)
         
     # Merge all possible objects
-    todo = sets.findRoots(collection)
-    while len(todo)>0:
-        bpy.ops.object.select_all(action='DESELECT')
-        
-        # Pick one object in the todo list and decide what to do with its children
-        root = todo[0]
-        todo.remove(root)
-        merge, todo = mergeHierarchy(root, [], todo)
-        
-        if len(merge) == 0: continue
-        
-        # Do the merge
-        merge.append(root) # root object must be last in the list for Blender to merge the others into it
-        for m in merge:
-            if m.type == 'MESH': helpers.setSelected(context, m)
-        bpy.ops.object.join()
-        mergedObject = context.object
-        
-        # If the root was not a proper mesh we have to make changes to the new merged mesh to match some of the root settings
-        if root.type != 'MESH':
-            mergedObject.name = root.name
-            # TODO: match new pivot to the original root
-            # TODO: there could be other objects with constraints pointing to the original root
-    #endwhile (merge todolist)    
+    doMerge = True
+    if doMerge:
+        todo = sets.findRoots(collection)
+        while len(todo)>0:
+            bpy.ops.object.select_all(action='DESELECT')
+            
+            # Pick one object in the todo list and decide what to do with its children
+            root = todo[0]
+            todo.remove(root)
+            merge, todo = mergeHierarchy(root, [], todo)
+            
+            if len(merge) == 0: continue
+            
+            # Do the merge
+            merge.append(root) # root object must be last in the list for Blender to merge the others into it
+            for m in merge:
+                if m.type == 'MESH': helpers.setSelected(context, m)
+            bpy.ops.object.join()
+            mergedObject = context.object
+            
+            # If the root was not a proper mesh we have to make changes to the new merged mesh to match some of the root settings
+            if root.type != 'MESH':
+                originalRootName = root.name
+                # Match the root transform and pivot
+                rootTransform = mergedObject.parent.matrix_world
+                offsetMatrix = (mergedObject.matrix_world.inverted() @ rootTransform).inverted()
+                mergedObject.data.transform(offsetMatrix)
+                mergedObject.parent = None
+                mergedObject.matrix_world = rootTransform
+                # Remove the (hopefully) useless parent
+                bpy.data.objects.remove(root, do_unlink=True)
+                # Match the root name
+                mergedObject.name = originalRootName
+                # TODO: there could be other objects with constraints pointing to the original root
+        #endwhile (merge todolist)    
 
 class GFLOW_OT_MakeExport(bpy.types.Operator):
     bl_idname      = "gflow.make_export"
