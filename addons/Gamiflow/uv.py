@@ -619,6 +619,16 @@ def findUdimId(context, name):
         if u.name==name: return i
     return None
     
+def findUvWorkspace():
+    for ws in bpy.data.workspaces:
+        for sc in ws.screens:
+            for ar in sc.areas:
+                if ar.type == 'IMAGE_EDITOR':
+                    # image editor isn't necessarily a uv editor so we need to keep checking
+                    for sp in ar.spaces: 
+                        if sp.mode == 'UV': return ws
+    return ws
+
 class GFLOW_OT_ShowUv(bpy.types.Operator):
     bl_idname      = "gflow.show_uv"
     bl_label       = "Show UV"
@@ -651,7 +661,8 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
             bpy.ops.uv.select_all(action='SELECT')
             bpy.ops.mesh.reveal(select=False)
     
-        bpy.context.window.workspace = bpy.data.workspaces["UV Editing"]
+        uvEditor = findUvWorkspace()
+        if uvEditor: bpy.context.window.workspace = uvEditor
         
         return {"FINISHED"}         
 
