@@ -9,6 +9,8 @@ class AddonPreferences(bpy.types.AddonPreferences):
     lpsuffix : bpy.props.StringProperty(name = "Low poly", default = "_low")
     decalsuffix : bpy.props.StringProperty(name = "Decal", default = "_ignorebf")
     exportsuffix : bpy.props.StringProperty(name = "Export", default = "_e")
+    mergeExportMeshes : bpy.props.BoolProperty(name = "Auto merge", default=True, description="Collapses hierarchies when possible and when allowed")
+    renameExportMeshes : bpy.props.BoolProperty(name = "Rename meshes", default=True, description="Renames meshes so that they have the same name as their object")
     
     uvPacker : bpy.props.EnumProperty(
         name="UV Packer",
@@ -32,7 +34,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default="VERTEX"
         )        
     
-    edgeWidth : bpy.props.FloatProperty(name="Edge width", default=2.5, min=0.1, max=4.0, description="Thickness of the edge overlay")
+    edgeWidth : bpy.props.FloatProperty(name="Edge overlay width", default=2.5, min=0.1, max=4.0, description="Thickness of the edge overlay")
     detailEdgeColor : bpy.props.FloatVectorProperty(name='Detail edge', description='', default=(1, 1, 0, 0.85), subtype='COLOR', size=4)
     painterEdgeColor : bpy.props.FloatVectorProperty(name='Painter edge', description='', default=(0.5, 1, 0.2, 0.85), subtype='COLOR', size=4)
     
@@ -46,8 +48,21 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "decalsuffix")
         layout.prop(self, "exportsuffix")
         
+        layout.label(text="Working set")
         layout.prop(self, "uvPacker")
+        layout.prop(self, "edgeWidth")
+        layout.prop(self, "detailEdgeColor")
+        layout.prop(self, "painterEdgeColor")
+        
+        layout.label(text="Baking sets")
         layout.prop(self, "idMap")
+        
+        layout.label(text="Export set")
+        layout.prop(self, "mergeExportMeshes")
+        layout.prop(self, "renameExportMeshes")
+        
+        
+        
 
         if self.uvPacker == "UVPACKER" and not uv.isUvPackerAvailable():
             row = layout.row()
@@ -55,11 +70,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
             row.label(text="UV-Packer plugin not found")
             row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
         
-        layout.label(text="Overlay")
-        
-        layout.prop(self, "edgeWidth")
-        layout.prop(self, "detailEdgeColor")
-        layout.prop(self, "painterEdgeColor")
         
         #layout.prop(self, "my_property")
   

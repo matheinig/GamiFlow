@@ -64,7 +64,8 @@ def generateExport(context):
     sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, False)
     
-    exportSuffix = settings.getSettings().exportsuffix
+    stgs = settings.getSettings()
+    exportSuffix = stgs.exportsuffix
     
     # Go through all the objects of the working set and generate the export set
     gen = sets.GeneratorData()
@@ -151,8 +152,7 @@ def generateExport(context):
         processModifiers(context, newobj)
         
     # Merge all possible objects
-    doMerge = True
-    if doMerge:
+    if stgs.mergeExportMeshes:
         todo = sets.findRoots(collection)
         while len(todo)>0:
             bpy.ops.object.select_all(action='DESELECT')
@@ -185,7 +185,14 @@ def generateExport(context):
                 # Match the root name
                 mergedObject.name = originalRootName
                 # TODO: there could be other objects with constraints pointing to the original root
-        #endwhile (merge todolist)    
+        #endwhile (merge todolist) 
+    
+    if stgs.renameExportMeshes:
+        meshes = []
+        for o in collection.all_objects:
+            if o.type == 'MESH' and o.data not in meshes:
+                o.data.name = o.name
+                meshes.append(o.data)
 
 class GFLOW_OT_MakeExport(bpy.types.Operator):
     bl_idname      = "gflow.make_export"

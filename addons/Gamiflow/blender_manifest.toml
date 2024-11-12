@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "gamiflow"
-version = "1.1.0"
+version = "1.1.1"
 name = "GamiFlow"
 tagline = "Easier game asset creation"
 maintainer = "Mathieu Einig"
@@ -11,7 +11,7 @@ maintainer = "Mathieu Einig"
 type = "add-on"
 
 # Optional link to documentation, support, source files, etc
-# website = "https://github.com/matheinig/GamiFlow"
+website = "https://github.com/matheinig/GamiFlow"
 
 # Optional list defined by Blender and server, see:
 # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
@@ -58,7 +58,7 @@ license = [
 # # Keep this a single short sentence without a period (.) at the end.
 # # For longer explanations use the documentation or detail page.
 #
-# [permissions]
+[permissions]
 files = "Export FBX files to disk"
 
 # Optional: build settings.
