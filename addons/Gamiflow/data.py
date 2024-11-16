@@ -75,9 +75,11 @@ class GFlowObject(bpy.types.PropertyGroup):
     ])
     instanceBake: bpy.props.EnumProperty(name="Instance in", default='LOW_HIGH', items=[
         ("NONE", "None", "", 0),
+        ("LOW", "Low", "", 3),
         ("LOW_HIGH", "Low/High", "The instance will be added to the low and high-poly baking sets.", 1),
         ("HIGH", "High", "The instance will be added to the high-poly set.", 2),
     ])
+    instancePriority: bpy.props.BoolProperty(name="Main instance", default=False, description="If you have multiple instances in the low set, it can be difficult to predict which one will actually be paintable. Set to True to force it to be this one.")
     bakeAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor")
     bakeGhost: bpy.props.BoolProperty(name="Leave ghost", default=False, description="If enabled, an occluder will be left behind in the high-poly")
     removeHardEdges: bpy.props.BoolProperty(name="Remove hard edges", default=True, description="Remove hard edges in the high-poly")

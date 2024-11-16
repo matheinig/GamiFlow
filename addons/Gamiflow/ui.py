@@ -188,8 +188,12 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row.prop(gflow, "bakeGhost")
         elif obj.type == 'EMPTY':
             row = self.layout.row()
-            row.enabled = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))
+            validInstancer = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))
+            row.enabled = validInstancer
             row.prop(gflow, "instanceBake")
+            row = self.layout.row()
+            row.enabled = validInstancer and (gflow.instanceBake=='LOW' or gflow.instanceBake=='LOW_HIGH')
+            row.prop(gflow, "instancePriority")
         
         
 class GamiflowObjPanel_Export(bpy.types.Panel):
@@ -210,6 +214,7 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             self.layout.prop(gflow, "mergeWithParent")
         elif obj.type == 'EMPTY':
             row = self.layout.row()
+            self.layout.prop(gflow, "mergeWithParent")
             row.enabled = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))
             row.prop(gflow, "instanceAllowExport")            
        

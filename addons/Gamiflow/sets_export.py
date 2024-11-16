@@ -71,6 +71,7 @@ def generateExport(context):
     gen = sets.GeneratorData()
 
     def populateExportList(objectsToDuplicate, namePrefix=""):
+        localgen = sets.GeneratorData()
         roots = []
         parented = []
         instanceRootsTransforms = {}
@@ -83,52 +84,58 @@ def generateExport(context):
             if helpers.isObjectCollectionInstancer(o): generateCopy = False
             
             # Make a copy the object
-            if generateCopy:
-                newobj = sets.duplicateObject(o, exportSuffix, collection)
-                newobj.name = namePrefix+newobj.name
-                gen.register(newobj, o)
+
+            newobj = sets.duplicateObject(o, exportSuffix, collection)
+            newobj.name = namePrefix+newobj.name
+            gen.register(newobj, o)
+            localgen.register(newobj, o)
                 
-                # Unparenting for now as the new parent might not yet exist
-                if o.parent != None:
-                    newobj.parent = None
-                    newobj.matrix_world = o.matrix_world.copy()
-                    parented.append(newobj)
-                    #newObjectToOriginalParent[newobj] = o.parent
-                else:
-                    roots.append(newobj)
-                
-                if not o.type=='EMPTY':
-                    # Remove all detail edges
-                    bpy.ops.object.select_all(action='DESELECT')  
-                    sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)
-                    sets.deleteDetailFaces(context, newobj)
-                    
-                    # Set the material
-                    material = sets.getTextureSetMaterial(o.gflow.textureSet)
-                    sets.setMaterial(newobj, material)
-                    
-                    # Remove modifiers flagged as being irrelevant for low-poly
-                    sets.removeLowModifiers(context, newobj)
-                    
-                    # Enforce triangulation
-                    sets.triangulate(context, newobj)  
-                #endif empty
+            # Unparenting for now as the new parent might not yet exist
+            if o.parent != None:
+                newobj.parent = None
+                newobj.matrix_world = o.matrix_world.copy()
+                parented.append(newobj)
+                #newObjectToOriginalParent[newobj] = o.parent
             else:
+                roots.append(newobj)
+                
+            if not o.type=='EMPTY':
+                # Remove all detail edges
+                bpy.ops.object.select_all(action='DESELECT')  
+                sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)
+                sets.deleteDetailFaces(context, newobj)
+                
+                # Set the material
+                material = sets.getTextureSetMaterial(o.gflow.textureSet)
+                sets.setMaterial(newobj, material)
+                
+                # Remove modifiers flagged as being irrelevant for low-poly
+                sets.removeLowModifiers(context, newobj)
+                
+                # Enforce triangulation
+                sets.triangulate(context, newobj)  
+            else:
+                newobj.instance_type = 'NONE'
                 # Realise the instance
                 if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
                     if o.gflow.instanceAllowExport:
                         instanced = o.instance_collection.all_objects
                         instanceRoots = populateExportList(instanced, o.name+"_",)
                         # Keep track of where the instances should be located
-                        for r in instanceRoots: instanceRootsTransforms[r] = o.matrix_world
+                        for r in instanceRoots: 
+                            helpers.setParent(r, newobj) # we can parent everything to the new empty
+                            r.matrix_world = o.matrix_world @ r.matrix_world  # we also need to move the instances into world space
+            #endif empty
+            
+
         #endfor (original objects)
 
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:
-            gen.reparent(newobj)
+            localgen.reparent(newobj)
         # Put the realised instances back in their right place
-        for instanceRoot, xform in instanceRootsTransforms.items():
-            instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
+        #for instanceRoot, xform in instanceRootsTransforms.items():
+        #    instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
         # Do another pass to check that we are not parenting to something that will end up getting merged
         for newobj in parented: 
             safeParent = findFirstNonCollapsedParent(newobj.parent)
@@ -162,12 +169,17 @@ def generateExport(context):
             todo.remove(root)
             merge, todo = mergeHierarchy(root, [], todo)
             
+            print(root)
+            print(merge)
+            
             if len(merge) == 0: continue
             
             # Do the merge
             merge.append(root) # root object must be last in the list for Blender to merge the others into it
+            oldEmpties = []
             for m in merge:
                 if m.type == 'MESH': helpers.setSelected(context, m)
+                if m.type == 'EMPTY': oldEmpties.append(m)
             bpy.ops.object.join()
             mergedObject = context.object
             
@@ -180,11 +192,13 @@ def generateExport(context):
                 mergedObject.data.transform(offsetMatrix)
                 mergedObject.parent = None
                 mergedObject.matrix_world = rootTransform
-                # Remove the (hopefully) useless parent
-                bpy.data.objects.remove(root, do_unlink=True)
+                # Temporary swap the names until the root gets deleted
+                root.name = mergedObject.name
                 # Match the root name
                 mergedObject.name = originalRootName
                 # TODO: there could be other objects with constraints pointing to the original root
+                
+            for oe in oldEmpties: bpy.data.objects.remove(oe)
         #endwhile (merge todolist) 
     
     if stgs.renameExportMeshes:

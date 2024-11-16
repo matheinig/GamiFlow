@@ -69,6 +69,7 @@ def generatePainterHigh(context):
     gen = sets.GeneratorData()
     
     def populateHighList(objectsToDuplicate, namePrefix=""):
+        localgen = sets.GeneratorData()
         roots = []
         parented = []
         instanceRootsTransforms = {}
@@ -77,72 +78,81 @@ def generatePainterHigh(context):
             if not (o.type == 'MESH' or o.type == 'FONT' or o.type == 'CURVE' or o.type=='EMPTY'): continue
             if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER'): continue
             
-
-            generateCopy = True
-            if helpers.isObjectCollectionInstancer(o): generateCopy = False
-            
             suffix = stgs.hpsuffix
-            if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"               
+            if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"                
+
+            
+
+            # Collection instancing
+            if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
+                newobj = sets.duplicateObject(o, suffix, highCollection)
+                newobj.name = namePrefix + newobj.name
+                newobj.instance_type = 'NONE'
+                gen.register(newobj, o)
+                localgen.register(newobj, o)
+            
+                if o.gflow.instanceBake == "LOW_HIGH" or o.gflow.instanceBake == "HIGH":
+                    instanced = o.instance_collection.all_objects
+                    instanceRoots = populateHighList(instanced, o.name+"_")
+                    # Keep track of where the instances should be located
+                    for r in instanceRoots: 
+                        helpers.setParent(r, newobj) # we can parent everything to the new empty
+                        r.matrix_world = o.matrix_world @ r.matrix_world  # we also need to move the instances into world space   
+                continue
+
+            # Anything here is objects that are mesh-like
             newobj = None
             
-            if generateCopy:
-                # Anything here is objects that are mesh-like
-                if o.gflow.includeSelf:
-             
-                    newobj = sets.duplicateObject(o, suffix, highCollection)
-                    newobj.name = namePrefix + newobj.name
-                    # Convert the 'mesh-adjacent' objects into actual meshes
-                    if o.type == 'FONT' or o.type == 'CURVE': 
-                        helpers.convertToMesh(context, newobj)
-                    gen.register(newobj, o)
-                    
+            # Standard case: we just duplicate the working object and make minor adjustments
+            if o.gflow.includeSelf:
+                newobj = sets.duplicateObject(o, suffix, highCollection)
+                newobj.name = namePrefix + newobj.name
+                
+                # Convert the 'mesh-adjacent' objects into actual meshes
+                if o.type == 'FONT' or o.type == 'CURVE': 
+                    helpers.convertToMesh(context, newobj)
+                gen.register(newobj, o)
+                localgen.register(newobj, o)
+                
+                if o.parent != None: 
+                    newobj.parent = None
+                    newobj.matrix_world = o.matrix_world.copy()
+                    parented.append(newobj)
+                else:
+                    roots.append(newobj)
+        
+                if o.type == 'MESH':
+                    generateIdMap(stgs, newobj)
+                    sets.triangulate(context, newobj)
+                    # remove all hard edges
+                    if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
+                        
+            # But we can also have manually-linked high-polys that we have to add and parent
+            for hp in o.gflow.highpolys:
+                newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
+                helpers.convertToMesh(context, newhp)
+                hpsuffix = suffix
+                if hp.obj.gflow.objType == 'DECAL': 
+                    hpsuffix = hpsuffix + decalsuffix
+                newhp.name = namePrefix+sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
+                generateIdMap(stgs, newhp)
+                sets.triangulate(context, newhp)
+                gen.register(newhp, hp.obj)
+                localgen.register(newhp, hp.obj)
+                if newobj: 
+                    # if we had a base object, parent them to it (in case they get transformed with anchors)
+                    helpers.setParent(newhp, newobj)
+                else:
+                    # Otherwise, assume they are like any other objects
+                    ## TODO: this does not take into account that the base object might have had a bake anchor
                     if o.parent != None: 
-                        newobj.parent = None
-                        newobj.matrix_world = o.matrix_world.copy()
-                        parented.append(newobj)
-                    else:
-                        roots.append(newobj)
-            
-                    if o.type == 'MESH':
-                        generateIdMap(stgs, newobj)
-                        sets.triangulate(context, newobj)
-                        # remove all hard edges
-                        if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
-                            
-                # Add all manually-linked highpolys
-                for hp in o.gflow.highpolys:
-                    newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
-                    helpers.convertToMesh(context, newhp)
-                    generateIdMap(stgs, newhp)
-                    hpsuffix = suffix
-                    if hp.obj.gflow.objType == 'DECAL': 
-                        hpsuffix = hpsuffix + decalsuffix
-                    newhp.name = namePrefix+sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
-                    sets.triangulate(context, newhp)
-                    gen.register(newhp, hp.obj)
-                    
-                    if newobj: 
-                        # if we had a base object, parent them to it (in case they get transformed with anchors)
-                        helpers.setParent(newhp, newobj)
-                    else:
-                        # Otherwise, assume they are like any other objects
-                        ## TODO: this does not take into account that the base object might have had a bake anchor
-                        if o.parent != None: 
-                            newhp.parent = None
-                            newhp.matrix_world = o.matrix_world.copy()
-                            parented.append(newhp)                    
-            else:
-                # Realise the instance
-                if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
-                    if o.gflow.instanceBake == "LOW_HIGH" or o.gflow.instanceBake == "HIGH":
-                        instanced = o.instance_collection.all_objects
-                        instanceRoots = populateHighList(instanced, o.name+"_")
-                        # Keep track of where the instances should be located
-                        for r in instanceRoots: instanceRootsTransforms[r] = o.matrix_world            
+                        newhp.parent = None
+                        newhp.matrix_world = o.matrix_world.copy()
+                        parented.append(newhp)                    
 
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:
-            gen.reparent(newobj)
+            localgen.reparent(newobj)
         # Put the realised instances back in their right place
         for instanceRoot, xform in instanceRootsTransforms.items():
             instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
