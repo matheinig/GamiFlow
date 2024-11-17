@@ -169,9 +169,6 @@ def generateExport(context):
             todo.remove(root)
             merge, todo = mergeHierarchy(root, [], todo)
             
-            print(root)
-            print(merge)
-            
             if len(merge) == 0: continue
             
             # Do the merge
