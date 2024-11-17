@@ -125,7 +125,16 @@ def toggleCollectionVisibility(context, coll):
     
 def _clearCollection(coll):
     for o in list(coll.objects):
-        bpy.data.objects.remove(o, do_unlink=True)
+        mustDeleteObject = True
+        # Make sure we absolutely nuke the meshes too
+        # This avoids 'leaking' an increasingly large amout of orphaned meshes into the file
+        if o.type == 'MESH': 
+            if o.data.users == 1: 
+                bpy.data.meshes.remove(o.data)
+                mustDeleteObject = False
+                
+        if mustDeleteObject:
+            bpy.data.objects.remove(o, do_unlink=True)
 def deleteCollection(coll):
     for c in coll.children:
         deleteCollection(c)
