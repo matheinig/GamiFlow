@@ -74,7 +74,6 @@ def generatePainterLow(context):
                 # Special handling of instanced meshes
                 # Painter doesn't like overlapping UVs when baking so we offset the UVs by 1
                 if o.data in knownMeshes:
-                    
                     if allowUvOffset:
                         # So in case of conflict, if we are allowed to, we just offset the UVs by exactly one UV square
                         # NOTE: Don't need to de-instantiate, the lowpoly copy has its own data
@@ -83,8 +82,8 @@ def generatePainterLow(context):
                         # However, there are times we absolutely want one specific instance to be the one staying in the main uv square
                         # So instead we leave the current one where it is, but move whatever instance was there before outside
                         try:
-                            uv.offsetCoordinates(knownObjectsWithMeshInUvSquare[o])
-                            knownObjectsWithMeshInUvSquare[o] = newobj
+                            uv.offsetCoordinates(knownObjectsWithMeshInUvSquare[o.data])
+                            knownObjectsWithMeshInUvSquare[o.data] = newobj
                         except:
                             # Turns out there was nothing in the uv square
                             pass
