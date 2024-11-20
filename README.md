@@ -17,6 +17,7 @@ For a much longer overview, check out this one:
 ## The easy way
 Open the Blender settings menu and go to **Get Extensions**. Click on **Repositories** in the top right, click on the **+**, select **Add Remote Repository** and use the following url: https://matheinig.github.io/extensions/ 
 You should then be able to enable the extension and automatically get updates. The only drawback is that you have to wait until I officially publish a new version.
+Note: there is also a version on the official Blender extensions platform but it hasn't been approved yet and I won't really bother updating it in the meantime.
 ## The harder but more up-to-date way
 Download the source code as a zip. Inside the zip, navigate into _GamiFlow-main/addons/_. There will be one folder inside named _Gamiflow_ (and directly inside are all the python files). Take that _Gamiflow_ folder and put inside your Blender addons directory, which is usually _%appdata%/Blender Foundation/Blender/*version*/scripts/addons/_). Then in the Blender settings, if you refresh the addons list, it should show up as being disabled. Just enabled it and it should show up in the viewport side menu.
 
