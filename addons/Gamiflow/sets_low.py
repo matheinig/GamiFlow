@@ -94,6 +94,7 @@ def generatePainterLow(context):
                 bpy.ops.object.select_all(action='DESELECT')  
                 sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
                 sets.deleteDetailFaces(context, newobj)
+                sets.generatePartialSymmetryIfNeeded(context, newobj, offsetUvs=True)
                 
                 # Set the material
                 material = sets.getTextureSetMaterial(o.gflow.textureSet)

@@ -100,6 +100,8 @@ def generateExport(context):
                 roots.append(newobj)
                 
             if not o.type=='EMPTY':
+                sets.generatePartialSymmetryIfNeeded(context, newobj)
+            
                 # Remove all detail edges
                 bpy.ops.object.select_all(action='DESELECT')  
                 sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)

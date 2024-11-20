@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import math
+import mathutils
 from . import helpers
 from . import geotags
 
@@ -239,6 +240,43 @@ def deleteDetailFaces(context, obj):
         if not faceDetailLayer: return
         faces = [f for f in bm.faces if f[faceDetailLayer]!=geotags.GEO_FACE_LEVEL_DEFAULT] 
         bmesh.ops.delete(bm, geom=faces, context="FACES")  
+
+def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
+    helpers.setSelected(context, obj)
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    mirrorLayer = None
+    with helpers.editModeBmesh(obj) as bm:
+        mirrorLayer = geotags.getMirrorLayer(bm)
+        if not mirrorLayer: return
+        # Select all the faces we want to mirror
+        for face in bm.faces:
+            face.select = (face[mirrorLayer] == geotags.GEO_FACE_MIRROR_X)
+        
+    # Duplicate and flip the selected faces
+    orientation = obj.matrix_world.to_3x3() # TODO: check if there are cases where it's not true
+    bpy.ops.mesh.duplicate_move(MESH_OT_duplicate={"mode":1}, TRANSFORM_OT_translate={"value":(0, 0, 0), "orient_type":'LOCAL', "orient_matrix":orientation, "orient_matrix_type":'LOCAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False})
+    bpy.ops.transform.mirror(orient_type='LOCAL', orient_matrix=orientation, orient_matrix_type='LOCAL', constraint_axis=(True, False, False), center_override=(0.0, 0.0, 0.0))
+    bpy.ops.mesh.flip_normals()
+    # Offset the UVs outside of the UV square (used in the lowp set to avoid ruining the Painter bakes)
+    if offsetUvs:
+        with helpers.editModeBmesh(obj) as bm:
+            uvOffset = mathutils.Vector((1.0,1.0))
+            uv_layer = bm.loops.layers.uv.active  
+            for face in bm.faces:
+                if not face.select: continue
+                for loop in face.loops:
+                    loop[uv_layer].uv = loop[uv_layer].uv + uvOffset 
+    # Try hding the seam by selecting all the open edges and vertex welding them
+    # ISSUE: This could potentially have undesirable effects if the user had non-welded vertices along not just the seam, but any open edge
+    bpy.ops.mesh.select_all(action='DESELECT')
+    bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
+    bpy.ops.mesh.select_non_manifold()
+    bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='VERT')
+    bpy.ops.mesh.remove_doubles()
+    
+    bpy.ops.object.mode_set(mode='OBJECT')
+
 
 class GFLOW_OT_SetSmoothing(bpy.types.Operator):
     bl_idname      = "gflow.set_smoothing"

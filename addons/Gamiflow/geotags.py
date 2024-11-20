@@ -27,6 +27,22 @@ GEO_FACE_LEVEL_NAME = "gflow_face_lowpoly"
 GEO_FACE_LEVEL_DEFAULT = 0
 GEO_FACE_LEVEL_LOD0 = 2
 
+# Flag for faces that need to be mirrored on the X axis
+GEO_FACE_MIRROR_NAME = "gflow_face_mirror"
+GEO_FACE_MIRROR_NONE = 0
+GEO_FACE_MIRROR_X = 1
+GEO_FACE_MIRROR_Y = 2
+GEO_FACE_MIRROR_Z = 4
+
+def getMirrorLayer(bm, forceCreation=False):
+    layer = None
+    try:
+        layer = bm.faces.layers.int[GEO_FACE_MIRROR_NAME]
+    except:
+        if forceCreation: layer = bm.faces.layers.int.new(GEO_FACE_MIRROR_NAME)
+    return layer
+
+
 def getGridifyLayer(bm, forceCreation=False):
     layer = None
     try:
@@ -121,6 +137,36 @@ class GFLOW_OT_SelectEdgeLevel(bpy.types.Operator):
         return {"FINISHED"}
     
     
+class GFLOW_OT_SetFaceMirror(bpy.types.Operator):
+    bl_idname      = "gflow.set_face_mirror"
+    bl_label       = "Set mirror"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+
+    level : bpy.props.IntProperty(name="Level", default=0, min=0, soft_max=4, description="Edge level")
+     
+    mirror: bpy.props.EnumProperty(name="Mirror mode", default='X', items=[
+        ("NONE", "None", "", GEO_FACE_MIRROR_NONE),
+        ("X", "X", "", GEO_FACE_MIRROR_X),
+        ])
+    
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[2]: 
+            cls.poll_message_set("Must be in face mode")
+            return False
+        return context.edit_object is not None
+
+    def execute(self, context):
+        obj = context.edit_object
+        mirrorCode = {"NONE":GEO_FACE_MIRROR_NONE, "X":GEO_FACE_MIRROR_X}[self.mirror]
+        with helpers.editModeBmesh(obj) as bm:
+            mirrorLayer = getMirrorLayer(bm, forceCreation=True)
+            for face in bm.faces:
+                if face.select: face[mirrorLayer] = mirrorCode
+        return {"FINISHED"}        
+    
 def markSelectedFacesAsDetail(context, isDetail):
     obj = context.edit_object
 
@@ -202,7 +248,7 @@ class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
         return {"FINISHED"}    
     
     
-classes = [GFLOW_OT_SetEdgeLevel, GFLOW_OT_SelectEdgeLevel, GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel]
+classes = [GFLOW_OT_SetEdgeLevel, GFLOW_OT_SelectEdgeLevel, GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
 
 
 def register():

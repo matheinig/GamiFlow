@@ -325,8 +325,8 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 pie.operator("gflow.set_edge_level", text="Mark High Detail").level = geotags.GEO_EDGE_LEVEL_LOD0
                 pie.operator("gflow.set_edge_level", text="Mark Regular Detail").level = geotags.GEO_EDGE_LEVEL_DEFAULT
             if bpy.context.tool_settings.mesh_select_mode[2] and not bpy.context.tool_settings.mesh_select_mode[1]:
-                pie.separator() # Empty W
-                pie.separator() # Empty E
+                pie.operator("gflow.set_face_mirror", text="Mirror", icon='MOD_MIRROR').mirror = "X"        # W
+                pie.operator("gflow.set_face_mirror", text="Unmirror", icon='MOD_MIRROR').mirror = "NONE"   # E
                 pie.separator() # Empty S
                 pie.separator() # Empty N          
                 pie.operator("gflow.uv_gridify", text="Gridify", icon='VIEW_ORTHO')

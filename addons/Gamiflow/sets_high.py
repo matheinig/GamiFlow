@@ -123,6 +123,7 @@ def generatePainterHigh(context):
         
                 if o.type == 'MESH':
                     generateIdMap(stgs, newobj)
+                    sets.generatePartialSymmetryIfNeeded(context, newobj)
                     sets.triangulate(context, newobj)
                     # remove all hard edges
                     if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
