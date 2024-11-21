@@ -143,8 +143,6 @@ class GFLOW_OT_SetFaceMirror(bpy.types.Operator):
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
 
-    level : bpy.props.IntProperty(name="Level", default=0, min=0, soft_max=4, description="Edge level")
-     
     mirror: bpy.props.EnumProperty(name="Mirror mode", default='X', items=[
         ("NONE", "None", "", GEO_FACE_MIRROR_NONE),
         ("X", "X", "", GEO_FACE_MIRROR_X),
