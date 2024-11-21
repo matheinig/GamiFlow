@@ -23,6 +23,7 @@ def onLoad(dummy):
 
 # This is very awkward because I can't find a reliable way to detect new objects
 ## The update_pre handler seems to be called *after* the creation has already happened so can't really do a pre/post comparison
+## Other problem: when undoing an object duplication, the source object seems to be invalidated too so we can't just keep track of the objects themselves but have to use their names instead
 @bpy.app.handlers.persistent  
 def checkForNewObjects(scene, depsgraph):
     global previous_objects
@@ -32,7 +33,7 @@ def checkForNewObjects(scene, depsgraph):
     # Special case (and also bug) that should only happen when having just reloaded the plugin
     if previous_objects is None:
         # We have no way to know what the previous objects were so we have to accept that we're going to miss this update
-        previous_objects = set(scene.gflow.workingCollection.all_objects)
+        previous_objects = set(o.name for o in scene.gflow.workingCollection.all_objects)
         return
     
     for u in depsgraph.updates:
@@ -40,13 +41,21 @@ def checkForNewObjects(scene, depsgraph):
         # Only collection updates are useful if we want to find new objects in the working set
         if type(data) is bpy.types.Collection:
             if data.name != scene.gflow.workingCollection.name: continue
-            current_objects = set(scene.gflow.workingCollection.all_objects)
+            # Not sure if really relevant but might occasionally save some processing
+            if u.is_updated_transform: continue
+            if u.is_updated_shading: continue
+            
+            current_objects = set(o.name for o in scene.gflow.workingCollection.all_objects)
             if len(current_objects) != len(previous_objects): # TODO: maybe this isn't safe, maybe it's possible for one tick to add and delete an object
                 new_objects = current_objects - previous_objects
                 previous_objects = current_objects
                 # Handle the new objects
                 if new_objects:
-                    for o in new_objects: onNewObject(o, scene)      
+                    for name in new_objects: onNewObject(scene.objects[name], scene)      
+    return
+
+def onNewObject(o, scene):
+    o.gflow.textureSetEnum = scene.gflow.udims[scene.gflow.ui_selectedUdim].name
     return
 
 class GeneratorData:
@@ -87,10 +96,6 @@ def findBestMatch(generatedObjects, source):
     for c in generatedObjects[1:]:
         if c.matrix_world == source.matrix_world: return c
     return bestCandidate
-            
-def onNewObject(o, scene):
-    o.gflow.textureSetEnum = scene.gflow.udims[scene.gflow.ui_selectedUdim].name
-    return
 
 def _findLayerCollRec(layerCol, targetCol):
     for c in layerCol.children:
