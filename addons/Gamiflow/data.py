@@ -99,6 +99,7 @@ class GFlowUdim(bpy.types.PropertyGroup):
     # TODO: custom resolution and margin
     
 class GFlowDisplay(bpy.types.PropertyGroup):
+    mirroring: bpy.props.BoolProperty(name="Mirrors", default=True)
     uvGridification: bpy.props.BoolProperty(name="Gridification", default=True)
     uvScale: bpy.props.BoolProperty(name="Scale", default=True)
     detailEdges: bpy.props.BoolProperty(name="Details", default=True)  

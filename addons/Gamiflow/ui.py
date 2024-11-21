@@ -294,6 +294,7 @@ class GFLOW_PT_Overlays(bpy.types.Panel):
         overlays = context.scene.gflow.overlays
         
         row = layout.row(align=True)
+        row.prop(overlays, "mirroring", text="Mirrors", toggle=True)
         row.prop(overlays, "uvGridification", text="UV Grid", toggle=True)
         row.prop(overlays, "uvScale", text="UV Scale", toggle=True)
         row.prop(overlays, "detailEdges", text="Edge Detail", toggle=True)

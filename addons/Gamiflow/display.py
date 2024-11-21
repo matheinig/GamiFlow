@@ -1,4 +1,5 @@
 import bpy
+import mathutils
 import gpu
 from gpu_extras.batch import batch_for_shader
 from bpy.app.handlers import persistent
@@ -7,12 +8,15 @@ from . import helpers
 from . import settings
 
 gShader = None
+gMirrorShader = None
 gVertexColorShader = None
 gWireShader = None
 
-gChangedObject = False
+
 gCachedObject = None
 gCachedBatch = None
+gCachedMirrorObject = None
+gCachedMirrorBatch = None
 gCachedUvScaleBatch = None
 gCachedDetailBatch = None
 gCachedPainterDetailBatch = None
@@ -33,12 +37,12 @@ def mesh_change_listener(scene, depsgraph):
     return
 
 def onObjectModified(obj):
-    global gCachedObject
-    gCachedObject = None
+    global gCachedObject, gCachedMirrorObject
+    gCachedObject = gCachedMirrorObject = None
 
 def purgeCache():
-    global gCachedObject
-    gCachedObject = None
+    global gCachedObject, gCachedMirrorObject
+    gCachedObject = gCachedMirrorObject = None
 
 def createVertexColorShader():
     vert_out = gpu.types.GPUStageInterfaceInfo("my_interface")
@@ -208,6 +212,88 @@ def drawGridified():
     gpu.state.face_culling_set('BACK')
     gCachedBatch.draw(gShader)
 
+def createMirrorShader():
+    vert_out = gpu.types.GPUStageInterfaceInfo("my_interface")
+
+    shader_info = gpu.types.GPUShaderCreateInfo()
+    shader_info.push_constant('MAT4', "ModelViewProjectionMatrix")
+    shader_info.push_constant('VEC4', "uColor")
+    shader_info.push_constant('VEC4', "uSecondaryColor")
+    shader_info.vertex_in(0, 'VEC3', "pos")
+    shader_info.vertex_in(1, 'VEC3', "normal")
+    
+    vert_out = gpu.types.GPUStageInterfaceInfo("my_interface")
+    vert_out.smooth('FLOAT', "vLighting")
+    shader_info.vertex_out(vert_out)
+    shader_info.fragment_out(0, 'VEC4', "FragColor")
+
+    shader_info.vertex_source(
+        "void main()"
+        "{"
+        "  vLighting = dot(normal, vec3(1.0,1.0,1.0))*0.5+0.5;"
+        "  gl_Position = ModelViewProjectionMatrix * vec4(pos+normal*0.001, 1.0f);"
+        "  gl_Position.z -= 0.0001;"
+        "}"
+    )
+    
+    shader_info.fragment_source(
+        "void main()"
+        "{"
+        "  int magic = int(gl_FragCoord.x)/2 + int(gl_FragCoord.y)/2;"
+        "  vec4 c = magic % 2 == 0? uColor : uSecondaryColor;"
+        "  c.rgb *= vLighting*0.75+0.25;"
+        "  FragColor = vec4(c);"
+        "}"
+    )
+    shader = gpu.shader.create_from_info(shader_info)    
+    return shader
+
+def makeMirrorDrawBuffer(bm, shader):
+    mirror = geotags.getMirrorLayer(bm, forceCreation=False)
+    if mirror is None: return None
+    
+    mirrorFunction =  mathutils.Vector((-1.0,1.0,1.0))
+    
+    # Could probably cache all the vertices if all we do is play with the indices
+    coords = [ (v.co+v.normal*0.000002)*mirrorFunction for v in bm.verts]
+    norms = [v.normal * mirrorFunction for v in bm.verts]
+    indices = [[loop.vert.index for loop in looptris]
+                for looptris in bm.calc_loop_triangles() if looptris[0].face[mirror] != geotags.GEO_FACE_MIRROR_NONE]
+    batch = batch_for_shader(shader, 
+        'TRIS',
+        {"pos": coords, "normal": norms},
+        indices=indices)   
+    return batch
+def drawMirrored():
+    if not bpy.context.scene.gflow.overlays.mirroring: return
+    obj = bpy.context.edit_object
+    if bpy.context.mode != 'EDIT_MESH': return
+    if obj is None: return
+    if bpy.context.tool_settings.mesh_select_mode[2] == False: return 
+    
+    global gMirrorShader, gCachedMirrorObject, gCachedMirrorBatch
+    
+    if not gMirrorShader: gMirrorShader = createMirrorShader() 
+    
+    if obj != gCachedMirrorObject:
+        gCachedMirrorObject = obj
+        with helpers.editModeObserverBmesh(obj) as bm: 
+            gCachedMirrorBatch = makeMirrorDrawBuffer(bm, gMirrorShader)
+   
+    if gCachedMirrorBatch is None: return
+
+    model = obj.matrix_world
+    viewproj = bpy.context.region_data.perspective_matrix
+    gMirrorShader.uniform_float("ModelViewProjectionMatrix", viewproj@model)
+    gMirrorShader.uniform_float("uColor", (1, 0.5, 0.5, 0.125))
+    gMirrorShader.uniform_float("uSecondaryColor", (1, 0, 0, 0.05))
+    gpu.state.depth_test_set('LESS_EQUAL')
+    gpu.state.blend_set('ALPHA')
+    gpu.state.depth_mask_set(False)
+    gpu.state.face_culling_set('FRONT')
+    gCachedMirrorBatch.draw(gMirrorShader)    
+
+    
     
 def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001):
     layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
@@ -283,7 +369,7 @@ def drawDetailEdges():
        
        
 classes = []
-handlersFunctions = [drawGridified, drawUvScale, drawDetailEdges]
+handlersFunctions = [drawGridified, drawMirrored, drawUvScale, drawDetailEdges]
 handlers = []
 
 def register():
