@@ -285,8 +285,8 @@ def drawMirrored():
     model = obj.matrix_world
     viewproj = bpy.context.region_data.perspective_matrix
     gMirrorShader.uniform_float("ModelViewProjectionMatrix", viewproj@model)
-    gMirrorShader.uniform_float("uColor", (1, 0.5, 0.5, 0.125))
-    gMirrorShader.uniform_float("uSecondaryColor", (1, 0, 0, 0.05))
+    gMirrorShader.uniform_float("uColor", (1, 0.5, 0.5, 0.25))
+    gMirrorShader.uniform_float("uSecondaryColor", (1, 0, 0, 0.15))
     gpu.state.depth_test_set('LESS_EQUAL')
     gpu.state.blend_set('ALPHA')
     gpu.state.depth_mask_set(False)
