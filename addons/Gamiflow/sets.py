@@ -267,7 +267,7 @@ def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
         # Duplicate and flip the selected faces
         orientation = obj.matrix_world.to_3x3() # TODO: check if there are cases where it's not true
         bpy.ops.mesh.duplicate_move(MESH_OT_duplicate={"mode":1}, TRANSFORM_OT_translate={"value":(0, 0, 0), "orient_type":'LOCAL', "orient_matrix":orientation, "orient_matrix_type":'LOCAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False})
-        bpy.ops.transform.mirror(orient_type='LOCAL', orient_matrix=orientation, orient_matrix_type='LOCAL', constraint_axis=(True, False, False), center_override=(0.0, 0.0, 0.0))
+        bpy.ops.transform.mirror(orient_type='LOCAL', orient_matrix=orientation, orient_matrix_type='LOCAL', constraint_axis=(True, False, False), center_override=obj.location)
         bpy.ops.mesh.flip_normals()
         # Offset the UVs outside of the UV square (used in the lowp set to avoid ruining the Painter bakes)
         if offsetUvs:
