@@ -289,6 +289,7 @@ def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
         context.scene.tool_settings.use_mesh_automerge = mergeBackup
     
     bpy.ops.object.mode_set(mode='OBJECT')
+    helpers.setDeselected(obj)
 
 
 class GFLOW_OT_SetSmoothing(bpy.types.Operator):
