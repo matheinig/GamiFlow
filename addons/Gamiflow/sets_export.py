@@ -3,6 +3,7 @@ from . import sets
 from . import helpers
 from . import settings
 from . import uv
+from . import geotags
 
 # Find or create the Export Set
 def getCollection(context, createIfNeeded=False):
@@ -111,11 +112,10 @@ def generateExport(context):
                 material = sets.getTextureSetMaterial(o.gflow.textureSet)
                 sets.setMaterial(newobj, material)
                 
-                # Remove modifiers flagged as being irrelevant for low-poly
+                # Process modifiers, clean up metadata, etc
                 sets.removeLowModifiers(context, newobj)
-                
-                # Enforce triangulation
                 sets.triangulate(context, newobj)  
+                geotags.removeObjectLayers(newobj)
             else:
                 newobj.instance_type = 'NONE'
                 # Realise the instance

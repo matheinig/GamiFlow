@@ -2,6 +2,7 @@ import bpy
 from . import sets
 from . import settings
 from . import helpers
+from . import geotags
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterHighCollection
@@ -50,6 +51,13 @@ def bakeVertexColours(obj):
 
 def generateIdMap(stgs, obj):
     if stgs.idMap == 'VERTEX': bakeVertexColours(obj)
+
+def processNewObject(context, o, stgs):
+    generateIdMap(stgs, o)
+    sets.generatePartialSymmetryIfNeeded(context, o)
+    if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
+    sets.triangulate(context, o)
+    geotags.removeObjectLayers(o)
 
 def generatePainterHigh(context):
     highCollection = getCollection(context, createIfNeeded=False)
@@ -122,11 +130,7 @@ def generatePainterHigh(context):
                     roots.append(newobj)
         
                 if o.type == 'MESH':
-                    generateIdMap(stgs, newobj)
-                    sets.generatePartialSymmetryIfNeeded(context, newobj)
-                    sets.triangulate(context, newobj)
-                    # remove all hard edges
-                    if o.gflow.removeHardEdges: sets.removeSharpEdges(newobj)
+                    processNewObject(context, newobj, stgs)
                         
             # But we can also have manually-linked high-polys that we have to add and parent
             for hp in o.gflow.highpolys:
@@ -136,8 +140,7 @@ def generatePainterHigh(context):
                 if hp.obj.gflow.objType == 'DECAL': 
                     hpsuffix = hpsuffix + decalsuffix
                 newhp.name = namePrefix+sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
-                generateIdMap(stgs, newhp)
-                sets.triangulate(context, newhp)
+                processNewObject(context, newhp, stgs)
                 gen.register(newhp, hp.obj)
                 localgen.register(newhp, hp.obj)
                 if newobj: 

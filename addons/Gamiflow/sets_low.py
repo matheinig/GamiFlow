@@ -3,6 +3,7 @@ from . import sets
 from . import settings
 from . import helpers
 from . import uv
+from . import geotags
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterLowCollection
@@ -39,7 +40,8 @@ def generatePainterLow(context):
 
     bpy.ops.object.select_all(action='DESELECT')  
 
-    lpsuffix = settings.getSettings().lpsuffix
+    stgs = settings.getSettings()
+    lpsuffix = stgs.lpsuffix
 
     # Go through all the objects of the working set
     knownMeshes = []
@@ -100,15 +102,12 @@ def generatePainterLow(context):
                 material = sets.getTextureSetMaterial(o.gflow.textureSet)
                 sets.setMaterial(newobj, material)
                 
-                # Remove flagged modifiers
+                # Process modifiers, clean up metadata, etc
                 sets.removeLowModifiers(context, newobj)
-                # handle special modifiers like subdiv, mirrors, etc
                 processModifiers(context, newobj)
-                
-                # Add simple modifiers if need be
-                #TODO: check if modifiers already present
-                #sets.addWeightedNormals(context, newobj)
                 sets.triangulate(context, newobj)
+                geotags.removeObjectLayers(newobj)
+                
             else:
                 newobj.instance_type = 'NONE'
 

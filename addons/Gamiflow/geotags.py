@@ -34,6 +34,15 @@ GEO_FACE_MIRROR_X = 1
 GEO_FACE_MIRROR_Y = 2
 GEO_FACE_MIRROR_Z = 4
 
+def removeObjectLayers(o):
+    print(o)
+    with helpers.objectModeBmesh(o) as bm:
+        removeMirrorLayer(bm)
+        removeGridifyLayer(bm)  
+        removeUvScaleLayer(bm)
+        removeDetailFaceLayer(bm)
+        removeDetailEdgeLayer(bm)
+
 def getMirrorLayer(bm, forceCreation=False):
     layer = None
     try:
@@ -41,7 +50,11 @@ def getMirrorLayer(bm, forceCreation=False):
     except:
         if forceCreation: layer = bm.faces.layers.int.new(GEO_FACE_MIRROR_NAME)
     return layer
-
+def removeMirrorLayer(bm):
+    try:
+        bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_MIRROR_NAME])
+    except:
+        pass
 
 def getGridifyLayer(bm, forceCreation=False):
     layer = None
@@ -51,7 +64,10 @@ def getGridifyLayer(bm, forceCreation=False):
         if forceCreation: layer = bm.faces.layers.int.new(GEO_FACE_GRIDIFY_NAME)
     return layer
 def removeGridifyLayer(bm):
-    bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_GRIDIFY_NAME])
+    try:
+        bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_GRIDIFY_NAME])
+    except:
+        pass
     
 def getUvOrientationLayer(bm, forceCreation=False):
     layer = bm.edges.layers.int.get(GEO_EDGE_UV_ROTATION_NAME)
@@ -68,17 +84,32 @@ def getUvScaleCode(scaleFactor):
     return scaleFactor-1.0
 def getUvScaleFromCode(code):
     return code+1.0
+def removeUvScaleLayer(bm):
+    try:
+        bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_UV_SCALE_NAME])
+    except:
+        pass   
     
 def getDetailFacesLayer(bm, forceCreation=False):
     layer = bm.faces.layers.int.get(GEO_FACE_LEVEL_NAME)
     if forceCreation and not layer: layer = bm.faces.layers.int.new(GEO_FACE_LEVEL_NAME)
     return layer  
-    
+def removeDetailFaceLayer(bm):
+    try:
+        bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_LEVEL_NAME])
+    except:
+        pass   
+        
 def getDetailEdgesLayer(bm, forceCreation=False):
     layer = bm.edges.layers.int.get(GEO_EDGE_LEVEL_NAME)
     if forceCreation and not layer: layer = bm.edges.layers.int.new(GEO_EDGE_LEVEL_NAME)
     return layer   
-    
+def removeDetailEdgeLayer(bm):
+    try:
+        bm.edges.layers.int.remove(bm.edges.layers.int[GEO_EDGE_LEVEL_NAME])
+    except:
+        pass   
+        
 class GFLOW_OT_SetEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.set_edge_level"
     bl_label       = "Set level"
