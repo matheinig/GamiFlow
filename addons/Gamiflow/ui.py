@@ -136,7 +136,10 @@ class GamiflowObjPanel_UV(bpy.types.Panel):
             sub = sub.row(align=True)
             sub.active = gflow.unwrap
             sub.prop(gflow, "unwrap_method", text="")
-            
+            if gflow.unwrap_method == 'MINIMUM_STRETCH':
+                sub = sub.row(align=True)
+                sub.active = gflow.unwrap
+                sub.prop(gflow, "unwrap_extraParameter", text="x")    
             # Smooth
             row = col.row(align=True)
             row.active = gflow.unwrap

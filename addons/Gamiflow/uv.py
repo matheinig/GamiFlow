@@ -153,7 +153,7 @@ def straightenUv(context, obj):
                     bpy.ops.uv.pin(clear=False)
                     # Unwrap everything in the island
                     bpy.ops.mesh.select_linked(delimit={'SEAM'})
-                    bpy.ops.uv.unwrap(method=obj.gflow.unwrap_method, margin=0.001)
+                    safeUnwrap(obj)
                     # Unpin
                     bpy.ops.uv.pin(clear=True)
 
@@ -240,7 +240,7 @@ def unwrap(context, objects):
         bpy.ops.mesh.reveal(select=False)
 
         # Unwrap
-        bpy.ops.uv.unwrap(method=o.gflow.unwrap_method, margin=0.001)
+        safeUnwrap(o)
         
         # Smooth if needed
         if o.gflow.unwrap_smooth_iterations>0:
@@ -253,7 +253,16 @@ def unwrap(context, objects):
         
         o.select_set(False)
     bpy.ops.object.select_all(action='DESELECT')
-
+def safeUnwrap(o):
+    # Unwrap
+    method = o.gflow.unwrap_method
+    # Pre 4.3 blender does not support minimum stretch unwrapping
+    if bpy.app.version < (4, 3, 0):
+        if method == 'MINIMUM_STRETCH': method = 'ANGLE_BASED'
+        bpy.ops.uv.unwrap(method=method, margin=0.001)
+    else:
+        bpy.ops.uv.unwrap(method=method, margin=0.001, iterations=o.gflow.unwrap_extraParameter)
+    
 
 def pack(context, objects, packMethod = 'FAST'):
     shapeMethod = 'AABB'
