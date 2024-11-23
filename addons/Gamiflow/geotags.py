@@ -35,7 +35,6 @@ GEO_FACE_MIRROR_Y = 2
 GEO_FACE_MIRROR_Z = 4
 
 def removeObjectLayers(o):
-    print(o)
     with helpers.objectModeBmesh(o) as bm:
         removeMirrorLayer(bm)
         removeGridifyLayer(bm)  
