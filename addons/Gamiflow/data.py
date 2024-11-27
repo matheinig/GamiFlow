@@ -84,6 +84,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     instancePriority: bpy.props.BoolProperty(name="Main instance", default=False, description="If you have multiple instances in the low set, it can be difficult to predict which one will actually be paintable. Set to True to force it to be this one.")
     bakeAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor")
     bakeGhost: bpy.props.BoolProperty(name="Leave ghost", default=False, description="If enabled, an occluder will be left behind in the high-poly")
+    singleSided: bpy.props.BoolProperty(name="Single-sided", default=False, description="Treats surface as single-sided, which means the back faces will not cast AO")
     removeHardEdges: bpy.props.BoolProperty(name="Remove hard edges", default=True, description="Remove hard edges in the high-poly")
     includeSelf: bpy.props.BoolProperty(name="Include self", default=True, description="If the object should bake onto itself")
     highpolys: bpy.props.CollectionProperty(type=GFlowHighPolyItem)

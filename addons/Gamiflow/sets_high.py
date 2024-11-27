@@ -113,6 +113,7 @@ def generatePainterHigh(context):
             
             # Standard case: we just duplicate the working object and make minor adjustments
             if o.gflow.includeSelf:
+                if o.gflow.singleSided: suffix += decalsuffix
                 newobj = sets.duplicateObject(o, suffix, highCollection)
                 newobj.name = namePrefix + newobj.name
                 
@@ -137,7 +138,7 @@ def generatePainterHigh(context):
                 newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
                 helpers.convertToMesh(context, newhp)
                 hpsuffix = suffix
-                if hp.obj.gflow.objType == 'DECAL': 
+                if hp.obj.gflow.objType == 'DECAL' or hp.obj.gflow.singleSided: 
                     hpsuffix = hpsuffix + decalsuffix
                 newhp.name = namePrefix+sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
                 processNewObject(context, newhp, stgs)

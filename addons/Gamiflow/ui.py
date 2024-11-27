@@ -175,6 +175,9 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row = self.layout.row()
             row.enabled = gflow.includeSelf and isStandard
             row.prop(gflow, "removeHardEdges")
+            row = self.layout.row()
+            row.enabled = gflow.includeSelf and isStandard
+            row.prop(gflow, "singleSided")
                     
             # Highpoly list
             row = self.layout.row()
