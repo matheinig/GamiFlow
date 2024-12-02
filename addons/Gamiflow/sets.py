@@ -4,57 +4,47 @@ import math
 import mathutils
 from . import helpers
 from . import geotags
-
-previous_objects = None
-
-def invalidateCurrentObjectsCache():
-    global previous_objects
-    previous_objects = None
-    return
-
-def registerCurrentObjects():
-    global previous_objects
-    if bpy.context.scene.gflow.workingCollection is None: return
-    previous_objects = set(bpy.context.scene.gflow.workingCollection.all_objects)
+  
+def backwardCompatibility(scene):
+    currentVersion = 1
+    if scene.gflow.version == currentVersion: return
     
+    print("Scene "+scene.name + " was saved in different version ("+str(scene.gflow.version)+")")
+    
+    if scene.gflow.version == 0:
+        # Add at least one UDIM
+        if len(scene.gflow.udims) == 0:
+            scene.gflow.udims.add()
+            scene.gflow.udims[0].name = "UDIM_0"
+        # After version 1, we have a flag that says if the object is already known by gflow
+        for o in bpy.context.scene.objects:
+            o.gflow.registered = True
+            
+    scene.gflow.version = currentVersion 
+
 @bpy.app.handlers.persistent
 def onLoad(dummy):
-    registerCurrentObjects()
+    # Backward compatibility check
+    for s in bpy.data.scenes: backwardCompatibility(s)
 
-# This is very awkward because I can't find a reliable way to detect new objects
-## The update_pre handler seems to be called *after* the creation has already happened so can't really do a pre/post comparison
-## Other problem: when undoing an object duplication, the source object seems to be invalidated too so we can't just keep track of the objects themselves but have to use their names instead
 @bpy.app.handlers.persistent  
 def checkForNewObjects(scene, depsgraph):
-    global previous_objects
-
-    if scene.gflow.workingCollection is None: return
-    
-    # Special case (and also bug) that should only happen when having just reloaded the plugin
-    if previous_objects is None:
-        # We have no way to know what the previous objects were so we have to accept that we're going to miss this update
-        previous_objects = set(o.name for o in scene.gflow.workingCollection.all_objects)
-        return
-    
     for u in depsgraph.updates:
         data = u.id
-        # Only collection updates are useful if we want to find new objects in the working set
-        if type(data) is bpy.types.Collection:
-            if data.name != scene.gflow.workingCollection.name: continue
-            # Not sure if really relevant but might occasionally save some processing
-            if u.is_updated_transform: continue
-            if u.is_updated_shading: continue
-            
-            current_objects = set(o.name for o in scene.gflow.workingCollection.all_objects)
-            if len(current_objects) != len(previous_objects): # TODO: maybe this isn't safe, maybe it's possible for one tick to add and delete an object
-                new_objects = current_objects - previous_objects
-                previous_objects = current_objects
-                # Handle the new objects
-                if new_objects:
-                    for name in new_objects: onNewObject(scene.objects[name], scene)      
+
+        # We unfortunately still have to check here because there is no callback when a new scene is created
+        if type(data) is bpy.types.Scene:
+            backwardCompatibility(scene)
+        
+        if type(data) is bpy.types.Object:  
+            if not data.gflow.registered:
+                # Weirdness: modifying the 'data' object directly does nothing, so we have to fetch the object from the scene itself
+                onNewObject(scene.objects[data.name], scene)   
+                
     return
 
 def onNewObject(o, scene):
+    o.gflow.registered = True
     o.gflow.textureSetEnum = scene.gflow.udims[scene.gflow.ui_selectedUdim].name
     return
 
@@ -323,6 +313,18 @@ class GFLOW_OT_AddBevel(bpy.types.Operator):
         
         return {"FINISHED"}        
 
+class GFLOW_OT_SetUDIM(bpy.types.Operator):
+    bl_idname      = "gflow.set_udim"
+    bl_label       = "Set UDIM"
+    bl_description = "Apply the current UDIM to the selection"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        udimName = context.scene.gflow.udims[context.scene.gflow.ui_selectedUdim].name
+        for o in context.selected_objects:
+            o.gflow.textureSetEnum = udimName
+        return {"FINISHED"} 
+
 class GFLOW_OT_MarkHardSeam(bpy.types.Operator):
     bl_idname      = "gflow.add_hard_seam"
     bl_label       = "Mark Hard Seam"
@@ -426,7 +428,7 @@ class GFLOW_OT_ToggleSetVisibility(bpy.types.Operator):
                
         
         
-classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel,
+classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
     GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly,
     GFLOW_OT_MarkHardSeam, GFLOW_OT_MarkSoftSeam, GFLOW_OT_ClearSeam,
     GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility]
@@ -437,7 +439,7 @@ def register():
         bpy.utils.register_class(c)
     bpy.app.handlers.depsgraph_update_post.append(checkForNewObjects)
     bpy.app.handlers.load_post.append(onLoad)
-    invalidateCurrentObjectsCache()
+
     return
 def unregister():
     bpy.app.handlers.depsgraph_update_post.remove(checkForNewObjects)

@@ -50,6 +50,8 @@ gUV_MARGIN = [
     ]    
     
 class GFlowObject(bpy.types.PropertyGroup):
+    registered: bpy.props.BoolProperty(name="Registered (internal)", description="just to track which objects are known", default=False)
+
     # export
     instanceType: bpy.props.EnumProperty(name="Instance", default='BOTH', items=[
         ("BAKE", "Bake", "This instance will be used only when baking", 0),
