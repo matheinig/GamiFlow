@@ -34,40 +34,44 @@ def make_rotation_transformation(angle, origin=(0, 0)):
     
 # Potentially orients UV islands based on a tagged edge
 def orientUv(context, obj):
-    anythingRotated = False
-    with helpers.editModeBmesh(obj) as bm:
-        uv_layer = bm.loops.layers.uv.active  
+    orientLayer = None
+    with helpers.editModeObserverBmesh(obj) as bm:
         orientLayer = geotags.getUvOrientationLayer(bm, forceCreation=False)
-        if orientLayer:
-            # Clean slate
-            bpy.ops.mesh.select_mode(type='FACE')
-            bpy.ops.mesh.select_all(action='DESELECT')  
+    if not orientLayer: return
+
+    anythingRotated = False
+    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
+        uv_layer = bm.loops.layers.uv.active  
+
+        # Clean slate
+        bpy.ops.mesh.select_mode(type='FACE')
+        bpy.ops.mesh.select_all(action='DESELECT')  
+        
+        # Check every island for tagged edge
+        islands = bmesh_linked_uv_islands(bm, uv_layer)
+        for island in islands:
+            rotatorEdge = findOrientationEdgeInIsland(island, orientLayer)
+            if not rotatorEdge: continue
             
-            # Check every island for tagged edge
-            islands = bmesh_linked_uv_islands(bm, uv_layer)
-            for island in islands:
-                rotatorEdge = findOrientationEdgeInIsland(island, orientLayer)
-                if not rotatorEdge: continue
-                
-                # Find by how much we need to rotate the current edge
-                pt0 = rotatorEdge.link_loops[0][uv_layer].uv
-                pt1 = rotatorEdge.link_loops[0].link_loop_next[uv_layer].uv 
-                v = (pt0-pt1).normalized()
-                targetAngle = math.radians((rotatorEdge[orientLayer]-1)*90.0)                
-                currentAngle = math.atan2(v.x, v.y)
-                rotationAngle = currentAngle-targetAngle
+            # Find by how much we need to rotate the current edge
+            pt0 = rotatorEdge.link_loops[0][uv_layer].uv
+            pt1 = rotatorEdge.link_loops[0].link_loop_next[uv_layer].uv 
+            v = (pt0-pt1).normalized()
+            targetAngle = math.radians((rotatorEdge[orientLayer]-1)*90.0)                
+            currentAngle = math.atan2(v.x, v.y)
+            rotationAngle = currentAngle-targetAngle
 
-                # Perform the UV rotation
-                if rotationAngle != 0:
-                    anythingRotated = True
-                    rotationMatrix = make_rotation_transformation(rotationAngle, pt0)
-                    for f in island:
-                        for l in f.loops:
-                            l[uv_layer].uv = rotationMatrix(l[uv_layer].uv)
-            #endfor islands
+            # Perform the UV rotation
+            if rotationAngle != 0:
+                anythingRotated = True
+                rotationMatrix = make_rotation_transformation(rotationAngle, pt0)
+                for f in island:
+                    for l in f.loops:
+                        l[uv_layer].uv = rotationMatrix(l[uv_layer].uv)
+        #endfor islands
 
-            # Delete the ortientation layer if it was empty
-            if not anythingRotated: geotags.removeUvOrientationLayer(bm)
+        # Delete the ortientation layer if it was empty
+        if not anythingRotated: geotags.removeUvOrientationLayer(bm)
             
     # Upload the mesh changes
     if anythingRotated: bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False) 
@@ -76,92 +80,96 @@ def orientUv(context, obj):
      
 # Makes a nice UV grid from tagged faces if any in individual UV islands (supports non-grid bits too)
 def straightenUv(context, obj):
-    with helpers.editModeBmesh(obj) as bm:
-        uv_layer = bm.loops.layers.uv.active
+    gridifyLayer = None
+    with helpers.editModeObserverBmesh(obj) as bm:
         gridifyLayer = geotags.getGridifyLayer(bm, forceCreation=False)
-        if gridifyLayer:
-            # Clean slate
-            bpy.ops.mesh.select_mode(type='FACE')
-            bpy.ops.mesh.select_all(action='DESELECT')     
-            
-            somethingFound = False
-            
-            islands = bmesh_linked_uv_islands(bm, uv_layer)
-            for island in islands:
-                # Explore the mesh and select the reference face
-                mainFace = None
-                gridFaces = []
-                forbiddenFaces = []
-                for f in island:
-                    if f[gridifyLayer] == geotags.GEO_FACE_GRIDIFY_INCLUDE: 
-                        gridFaces.append(f)
-                        somethingFound = True
-                        # Use the first quad as our starting point
-                        if mainFace is None and len(f.edges) == 4:
-                            mainFace = f
-                            mainFace.select = True
-                            bm.faces.active = mainFace
-                    elif f[gridifyLayer] == geotags.GEO_FACE_GRIDIFY_EXCLUDE: 
-                        forbiddenFaces.append(f)
-                
-                # No relevant quad found, we can ignore the island
-                if mainFace is None: continue
-                    
-                # Find the side lengths
-                points = []
-                for loop in mainFace.loops:
-                    uv = loop[uv_layer].uv
-                    points.append(uv)
-                lengths = []
-                for index, p in enumerate(points):
-                    pt0 = points[index]
-                    pt1 = points[(index+1) % (len(points)-1)]
-                    l =  (pt1-pt0).length
-                    lengths.append(l)
-                    
-                ### Doesn't work great with uneven quad sizes
-                # Average the sides a bit (maybe optional?)
-                #lengths[0] = (lengths[0] + lengths[2])*0.5
-                #lengths[1] = (lengths[1] + lengths[3])*0.5
-                
-                # Turn the main face into a proper rectangle
-                currentPt = mainFace.loops[0][uv_layer].uv
-                currentPt = currentPt + mathutils.Vector( (lengths[0], 0.0) )
-                mainFace.loops[1][uv_layer].uv = currentPt
-                currentPt = currentPt + mathutils.Vector( (0.0, -lengths[1]) )
-                mainFace.loops[2][uv_layer].uv = currentPt    
-                currentPt = currentPt + mathutils.Vector( (-lengths[0], 0.0) )
-                mainFace.loops[3][uv_layer].uv = currentPt
+    if not gridifyLayer: return
+    
+    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
+        uv_layer = bm.loops.layers.uv.active
 
-                # Upload the mesh changes
-                bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False) 
-                
-                # Select all gridifiable faces
-                for f in gridFaces: f.select = True
-                    
-                # Gridify
-                backup_uvSync = context.scene.tool_settings.use_uv_select_sync
-                context.scene.tool_settings.use_uv_select_sync = False
-                bpy.ops.uv.follow_active_quads()
-                context.scene.tool_settings.use_uv_select_sync = backup_uvSync
-
-                # If we had non-gridifiables we have to unwrap them
-                # TODO: Blender is not super reliable and might occasionally unwrap into a brand new island
-                #       Maybe we can unpin the edges between the gridified and ungridified regions to make it happier
-                if len(forbiddenFaces)>0:
-                    # Pin the gridifiable quads
-                    bpy.ops.uv.pin(clear=False)
-                    # Unwrap everything in the island
-                    bpy.ops.mesh.select_linked(delimit={'SEAM'})
-                    safeUnwrap(obj)
-                    # Unpin
-                    bpy.ops.uv.pin(clear=True)
-
-                bpy.ops.mesh.select_all(action='DESELECT')
-            #endfor islands
+        # Clean slate
+        bpy.ops.mesh.select_mode(type='FACE')
+        bpy.ops.mesh.select_all(action='DESELECT')     
+        
+        somethingFound = False
+        
+        islands = bmesh_linked_uv_islands(bm, uv_layer)
+        for island in islands:
+            # Explore the mesh and select the reference face
+            mainFace = None
+            gridFaces = []
+            forbiddenFaces = []
+            for f in island:
+                if f[gridifyLayer] == geotags.GEO_FACE_GRIDIFY_INCLUDE: 
+                    gridFaces.append(f)
+                    somethingFound = True
+                    # Use the first quad as our starting point
+                    if mainFace is None and len(f.edges) == 4:
+                        mainFace = f
+                        mainFace.select = True
+                        bm.faces.active = mainFace
+                elif f[gridifyLayer] == geotags.GEO_FACE_GRIDIFY_EXCLUDE: 
+                    forbiddenFaces.append(f)
             
-            # Remove unused gridify layer if need be
-            if not somethingFound: geotags.removeGridifyLayer(bm)
+            # No relevant quad found, we can ignore the island
+            if mainFace is None: continue
+                
+            # Find the side lengths
+            points = []
+            for loop in mainFace.loops:
+                uv = loop[uv_layer].uv
+                points.append(uv)
+            lengths = []
+            for index, p in enumerate(points):
+                pt0 = points[index]
+                pt1 = points[(index+1) % (len(points)-1)]
+                l =  (pt1-pt0).length
+                lengths.append(l)
+                
+            ### Doesn't work great with uneven quad sizes
+            # Average the sides a bit (maybe optional?)
+            #lengths[0] = (lengths[0] + lengths[2])*0.5
+            #lengths[1] = (lengths[1] + lengths[3])*0.5
+            
+            # Turn the main face into a proper rectangle
+            currentPt = mainFace.loops[0][uv_layer].uv
+            currentPt = currentPt + mathutils.Vector( (lengths[0], 0.0) )
+            mainFace.loops[1][uv_layer].uv = currentPt
+            currentPt = currentPt + mathutils.Vector( (0.0, -lengths[1]) )
+            mainFace.loops[2][uv_layer].uv = currentPt    
+            currentPt = currentPt + mathutils.Vector( (-lengths[0], 0.0) )
+            mainFace.loops[3][uv_layer].uv = currentPt
+
+            # Upload the mesh changes
+            bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False) 
+            
+            # Select all gridifiable faces
+            for f in gridFaces: f.select = True
+                
+            # Gridify
+            backup_uvSync = context.scene.tool_settings.use_uv_select_sync
+            context.scene.tool_settings.use_uv_select_sync = False
+            bpy.ops.uv.follow_active_quads()
+            context.scene.tool_settings.use_uv_select_sync = backup_uvSync
+
+            # If we had non-gridifiables we have to unwrap them
+            # TODO: Blender is not super reliable and might occasionally unwrap into a brand new island
+            #       Maybe we can unpin the edges between the gridified and ungridified regions to make it happier
+            if len(forbiddenFaces)>0:
+                # Pin the gridifiable quads
+                bpy.ops.uv.pin(clear=False)
+                # Unwrap everything in the island
+                bpy.ops.mesh.select_linked(delimit={'SEAM'})
+                safeUnwrap(obj)
+                # Unpin
+                bpy.ops.uv.pin(clear=True)
+
+            bpy.ops.mesh.select_all(action='DESELECT')
+        #endfor islands
+        
+        # Remove unused gridify layer if need be
+        if not somethingFound: geotags.removeGridifyLayer(bm)
     return
 
 def _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes):
@@ -185,7 +193,7 @@ def filterUnwrappableOrPackableObjects(all_objects):
     return _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes)
             
 
-def autoUnwrap(context):
+def autoUnwrap(context, udimIDs):
     unwrappables, collections = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
     collections.append(context.scene.gflow.workingCollection)
     
@@ -196,7 +204,7 @@ def autoUnwrap(context):
         sets.setCollectionVisibility(context, c, True)
     
     # Go through all udims and unwrap them
-    for texset in range(0, len(context.scene.gflow.udims)): 
+    for texset in udimIDs: 
         # Gather all objects
         obj = [o for o in unwrappables if o.gflow.textureSet == texset]
 
@@ -364,10 +372,13 @@ def snapUv(obj, resolution):
     return     
 
 def rescaleIslandsIfNeeded(obj):
+    uvScaleLayer = None
+    with helpers.editModeObserverBmesh(obj) as bm:
+        uvScaleLayer = geotags.getUvScaleLayer(bm, forceCreation=False)
+    if not uvScaleLayer: return
+    
     with helpers.editModeBmesh(obj) as bm:
         uv_layer = bm.loops.layers.uv.active
-        uvScaleLayer = geotags.getUvScaleLayer(bm, forceCreation=False)
-        if not uvScaleLayer: return
         neutralCode = geotags.getUvScaleCode(1.0)
         for face in bm.faces:
             if face[uvScaleLayer] == neutralCode: continue
@@ -385,19 +396,34 @@ def offsetCoordinates(obj, offset=mathutils.Vector((1.0,1.0))):
 class GFLOW_OT_AutoUnwrap(bpy.types.Operator):
     bl_idname      = "gflow.auto_unwrap"
     bl_label       = "Unwrap"
-    bl_description = "Automatically unwrap everything"
+    bl_description = "Automatically unwrap everything.\nCtrl-click to only unwrap the selected UDIM"
     bl_options = {"REGISTER", "UNDO"}
+    
     @classmethod
     def poll(cls, context):
         if context.mode != "OBJECT": return False
         if not context.scene.gflow.workingCollection: 
             cls.poll_message_set("Set the working collection first")
             return False
-        return True
-    def execute(self, context):
-        autoUnwrap(context)
+        return True    
+    
+    def invoke(self, context, event): 
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+    def modal(self, context, event):
+    
+        onlyCurrent = False
+        udims = None
+        if event.ctrl:
+            onlyCurrent = True
+            udims = [context.scene.gflow.ui_selectedUdim]
+        else:
+            udims = range(0, len(context.scene.gflow.udims))
+        autoUnwrap(context, udims)
         
-        return {"FINISHED"}  
+        return {'FINISHED'}
+    def execute(self, context):
+        return {"FINISHED"}        
 
 # Set/unset gridification
 class GFLOW_OT_SetGridify(bpy.types.Operator):
@@ -653,10 +679,11 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
             return False
         return True
     def execute(self, context):
+        bpy.ops.object.select_all(action='DESELECT')
+    
         # find the right udim id
         udim = findUdimId(context, self.textureSetEnum)
-        bpy.ops.object.select_all(action='DESELECT')
-
+        
         # Select all the relevant objects and their faces
         objects, collections = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
         collections.append(context.scene.gflow.workingCollection)
