@@ -239,46 +239,45 @@ def deleteDetailFaces(context, obj):
         bmesh.ops.delete(bm, geom=faces, context="FACES")  
 
 def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
+    mirrorLayer = None
+    with helpers.objectModeBmesh(obj) as bm:
+        mirrorLayer = geotags.getMirrorLayer(bm)
+    if not mirrorLayer: return
+
     helpers.setSelected(context, obj)
     bpy.ops.object.mode_set(mode='EDIT')
-    
-
-    mirrorLayer = None
-    with helpers.editModeBmesh(obj) as bm:
-        mirrorLayer = geotags.getMirrorLayer(bm)
-        if mirrorLayer:         
-            # Select all the faces we want to mirror
-            for face in bm.faces:
-                face.select = (face[mirrorLayer] == geotags.GEO_FACE_MIRROR_X)
-            
-    if mirrorLayer:          
-        # Very important: we must temporarily disable automerging
-        mergeBackup = context.scene.tool_settings.use_mesh_automerge
-        context.scene.tool_settings.use_mesh_automerge = False
-            
-        # Duplicate and flip the selected faces
-        orientation = obj.matrix_world.to_3x3() # TODO: check if there are cases where it's not true
-        bpy.ops.mesh.duplicate_move(MESH_OT_duplicate={"mode":1}, TRANSFORM_OT_translate={"value":(0, 0, 0), "orient_type":'LOCAL', "orient_matrix":orientation, "orient_matrix_type":'LOCAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False})
-        bpy.ops.transform.mirror(orient_type='LOCAL', orient_matrix=orientation, orient_matrix_type='LOCAL', constraint_axis=(True, False, False), center_override=obj.location)
-        bpy.ops.mesh.flip_normals()
-        # Offset the UVs outside of the UV square (used in the lowp set to avoid ruining the Painter bakes)
-        if offsetUvs:
-            with helpers.editModeBmesh(obj) as bm:
-                uvOffset = mathutils.Vector((1.0,1.0))
-                uv_layer = bm.loops.layers.uv.active  
-                for face in bm.faces:
-                    if not face.select: continue
-                    for loop in face.loops:
-                        loop[uv_layer].uv = loop[uv_layer].uv + uvOffset 
-        # Try hding the seam by selecting all the open edges and vertex welding them
-        # ISSUE: This could potentially have undesirable effects if the user had non-welded vertices along not just the seam, but any open edge
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
-        bpy.ops.mesh.select_non_manifold()
-        bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='VERT')
-        bpy.ops.mesh.remove_doubles()
+    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:      
+        # Select all the faces we want to mirror
+        for face in bm.faces:
+            face.select = (face[mirrorLayer] == geotags.GEO_FACE_MIRROR_X)
+                   
+    # Very important: we must temporarily disable automerging
+    mergeBackup = context.scene.tool_settings.use_mesh_automerge
+    context.scene.tool_settings.use_mesh_automerge = False
         
-        context.scene.tool_settings.use_mesh_automerge = mergeBackup
+    # Duplicate and flip the selected faces
+    orientation = obj.matrix_world.to_3x3() # TODO: check if there are cases where it's not true
+    bpy.ops.mesh.duplicate_move(MESH_OT_duplicate={"mode":1}, TRANSFORM_OT_translate={"value":(0, 0, 0), "orient_type":'LOCAL', "orient_matrix":orientation, "orient_matrix_type":'LOCAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False})
+    bpy.ops.transform.mirror(orient_type='LOCAL', orient_matrix=orientation, orient_matrix_type='LOCAL', constraint_axis=(True, False, False), center_override=obj.location)
+    bpy.ops.mesh.flip_normals()
+    # Offset the UVs outside of the UV square (used in the lowp set to avoid ruining the Painter bakes)
+    if offsetUvs:
+        with helpers.editModeBmesh(obj) as bm:
+            uvOffset = mathutils.Vector((1.0,1.0))
+            uv_layer = bm.loops.layers.uv.active  
+            for face in bm.faces:
+                if not face.select: continue
+                for loop in face.loops:
+                    loop[uv_layer].uv = loop[uv_layer].uv + uvOffset 
+    # Try hding the seam by selecting all the open edges and vertex welding them
+    # ISSUE: This could potentially have undesirable effects if the user had non-welded vertices along not just the seam, but any open edge
+    bpy.ops.mesh.select_all(action='DESELECT')
+    bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
+    bpy.ops.mesh.select_non_manifold()
+    bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='VERT')
+    bpy.ops.mesh.remove_doubles()
+    
+    context.scene.tool_settings.use_mesh_automerge = mergeBackup
     
     bpy.ops.object.mode_set(mode='OBJECT')
     helpers.setDeselected(obj)
