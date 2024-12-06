@@ -348,7 +348,7 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 
 class VIEW3D_OT_PIE_Obj_call(bpy.types.Operator):
     bl_idname = 'gamiflow.objpiecaller'
-    bl_label = 'S.Menu Navigation'
+    bl_label = 'GamiFlow Pie Menu'
     bl_description = 'Calls pie menu'
     bl_options = {'REGISTER', 'UNDO'}
     
@@ -380,10 +380,10 @@ def register():
     # object Mode
     km = kc.keymaps.new(name='Object Mode', space_type='EMPTY')
     kmi = km.keymap_items.new(VIEW3D_OT_PIE_Obj_call.bl_idname, 'V', 'PRESS', ctrl=False, shift=True)
+    addon_keymaps.append((km, kmi))    
     # edit Mode
     km = kc.keymaps.new(name='Mesh', space_type='EMPTY')
     kmi = km.keymap_items.new(VIEW3D_OT_PIE_Obj_call.bl_idname, 'V', 'PRESS', ctrl=False, shift=True)    
-    
     addon_keymaps.append((km, kmi))    
         
     pass
