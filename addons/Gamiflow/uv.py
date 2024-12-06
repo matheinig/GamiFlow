@@ -659,6 +659,7 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
 
         # Select all the relevant objects and their faces
         objects, collections = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
+        collections.append(context.scene.gflow.workingCollection)
         for c in collections: sets.setCollectionVisibility(context, c, True)
         for o in objects:
             if o.gflow.textureSet != udim: continue
