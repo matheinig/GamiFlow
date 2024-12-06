@@ -191,6 +191,7 @@ def generateExport(context):
                 mergedObject.data.transform(offsetMatrix)
                 mergedObject.parent = None
                 mergedObject.matrix_world = rootTransform
+                mergedObject.parent = root.parent
                 # Temporary swap the names until the root gets deleted
                 root.name = mergedObject.name
                 # Match the root name
