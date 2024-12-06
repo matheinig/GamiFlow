@@ -20,7 +20,7 @@ def backwardCompatibility(scene):
         for o in bpy.context.scene.objects:
             o.gflow.registered = True
             
-    scene.gflow.version = currentVersion 
+    bpy.data.scenes[scene.name].gflow.version = currentVersion 
 
 @bpy.app.handlers.persistent
 def onLoad(dummy):
