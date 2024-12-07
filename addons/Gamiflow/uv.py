@@ -305,8 +305,10 @@ def pack(context, objects, packMethod = 'FAST'):
     ## Then rescale individual islands based on user values
     for o in objects:
         rescaleIslandsIfNeeded(o)
+    bpy.ops.object.mode_set(mode='OBJECT')
 
     # Actual packing
+    bpy.ops.object.mode_set(mode='EDIT')
     ## Pack into [0,1]
     generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=True, rotate_method=rotateMethod)
     ## Go through individual objects and orient the islands
