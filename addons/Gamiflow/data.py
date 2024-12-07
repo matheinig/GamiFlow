@@ -64,7 +64,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     unwrap: bpy.props.BoolProperty(name="Auto Unwrap", default=True)
     unwrap_method: bpy.props.EnumProperty(default='ANGLE_BASED', items=gUV_UNWRAP_METHODS)
     unwrap_extraParameter: bpy.props.IntProperty(name="Unwrap param", default=10, min=1, soft_max=20, description="Method-specific parameter")
-    unwrap_smooth_iterations : bpy.props.IntProperty(name="Smooth iterations", default=16, min=0, soft_max=100, description="How many smoothing iterations to perform")
+    unwrap_smooth_iterations : bpy.props.IntProperty(name="Smooth iterations", default=0, min=0, soft_max=100, description="How many smoothing iterations to perform")
     unwrap_smooth_strength : bpy.props.FloatProperty(name="Smooth strength", default=0.8, min=0.0, max=1.0, description="How much of the smoothing is applied") # Must be inverted when calling the minimize stretch operator
     textureSet : bpy.props.IntProperty(name="UDIM", default=0, min=0, soft_max=8, description="What texture set to use")
     textureSetEnum : bpy.props.EnumProperty(items = udimItemGenerator, name = 'UDIM', update=onVisualUdimChange)
