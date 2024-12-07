@@ -191,9 +191,8 @@ def _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes):
 def filterUnwrappableOrPackableObjects(all_objects):
     knownMeshes = []
     return _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes)
-            
 
-def autoUnwrap(context, udimIDs):
+def autoUnwrap(context, udimIDs, doUnwrap=True, doPack=True):
     unwrappables, collections = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
     collections.append(context.scene.gflow.workingCollection)
     
@@ -209,13 +208,13 @@ def autoUnwrap(context, udimIDs):
         obj = [o for o in unwrappables if o.gflow.textureSet == texset]
 
         # Unwrap individual objects
-        unwrap(context, obj)
+        if doUnwrap: unwrap(context, obj)
         # Pack everything together
-        pack(context, obj, context.scene.gflow.uvPackSettings)
+        if doPack: pack(context, obj, context.scene.gflow.uvPackSettings)
         
     # Revert collection visibility
     for c in collections:
-        sets.setCollectionVisibility(context, c, originalCollectionVisibility[c])
+        sets.setCollectionVisibility(context, c, originalCollectionVisibility[c])    
 
 def lightmapUnwrap(context, objects):
     # Sanitise the list  
@@ -261,6 +260,7 @@ def unwrap(context, objects):
         
         o.select_set(False)
     bpy.ops.object.select_all(action='DESELECT')
+
 def safeUnwrap(o):
     # Unwrap
     method = o.gflow.unwrap_method
@@ -286,12 +286,10 @@ def pack(context, objects, packMethod = 'FAST'):
     margin = int(context.scene.gflow.uvMargin) / resolution
 
     # Select all the relevant meshes
-    relevant = []
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
         o.select_set(True)
         context.view_layer.objects.active = o
-        relevant.append(o)
 
     # Select the UVs
     bpy.ops.object.mode_set(mode='EDIT')
@@ -302,7 +300,7 @@ def pack(context, objects, packMethod = 'FAST'):
     ## First average everything
     bpy.ops.uv.average_islands_scale()
     ## Then rescale individual islands based on user values
-    for o in relevant:
+    for o in objects:
         rescaleIslandsIfNeeded(o)
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -313,7 +311,7 @@ def pack(context, objects, packMethod = 'FAST'):
     generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=True, rotate_method=rotateMethod)
     ## Go through individual objects and orient the islands
     anythingRotated = False
-    for o in relevant:
+    for o in objects:
         o.select_set(True)
         context.view_layer.objects.active = o
         anythingRotated = orientUv(context, o) or anythingRotated
@@ -325,7 +323,7 @@ def pack(context, objects, packMethod = 'FAST'):
 
     # Snap UVs to pixels
     if context.scene.gflow.uvSnap:
-        for o in relevant:
+        for o in objects:
             snapUv(o, resolution)
     
     # Exit
@@ -359,7 +357,7 @@ def uvpacker_pack_island(context, margin, rotate, rotate_method):
     return
     
 def snapUv(obj, resolution):
-    with helpers.editModeBmesh(obj) as bm:
+    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
         uv_layer = bm.loops.layers.uv.active
         for face in bm.faces:
             for loop in face.loops:
@@ -377,7 +375,7 @@ def rescaleIslandsIfNeeded(obj):
         uvScaleLayer = geotags.getUvScaleLayer(bm, forceCreation=False)
     if not uvScaleLayer: return
     
-    with helpers.editModeBmesh(obj) as bm:
+    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
         uv_layer = bm.loops.layers.uv.active
         neutralCode = geotags.getUvScaleCode(1.0)
         for face in bm.faces:
@@ -396,7 +394,7 @@ def offsetCoordinates(obj, offset=mathutils.Vector((1.0,1.0))):
 class GFLOW_OT_AutoUnwrap(bpy.types.Operator):
     bl_idname      = "gflow.auto_unwrap"
     bl_label       = "Unwrap"
-    bl_description = "Automatically unwrap everything.\nCtrl-click to only unwrap the selected UDIM"
+    bl_description = "Automatically unwrap everything.\nCtrl-click to only unwrap the selected UDIM.\nShift-click to only repack."
     bl_options = {"REGISTER", "UNDO"}
     
     @classmethod
@@ -413,13 +411,16 @@ class GFLOW_OT_AutoUnwrap(bpy.types.Operator):
     def modal(self, context, event):
     
         onlyCurrent = False
+        doUnwrap=True
         udims = None
         if event.ctrl:
             onlyCurrent = True
             udims = [context.scene.gflow.ui_selectedUdim]
         else:
             udims = range(0, len(context.scene.gflow.udims))
-        autoUnwrap(context, udims)
+        if event.shift: doUnwrap=False
+            
+        autoUnwrap(context, udims, doUnwrap=doUnwrap)
         
         return {'FINISHED'}
     def execute(self, context):
@@ -444,7 +445,7 @@ class GFLOW_OT_SetGridify(bpy.types.Operator):
         obj = context.object
         
         nonQuadFound = False
-        with helpers.editModeBmesh(obj) as bm:
+        with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
             gridifyLayer = geotags.getGridifyLayer(bm, forceCreation=True)
             for face in bm.faces:
                 if face.select: 
@@ -470,7 +471,7 @@ class GFLOW_OT_DeGridify(bpy.types.Operator):
     def execute(self, context):
         obj = context.object
         
-        with helpers.editModeBmesh(obj) as bm:
+        with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
             gridifyLayer = geotags.getGridifyLayer(bm, forceCreation=True)
             for face in bm.faces:
                 if face.select: face[gridifyLayer] = geotags.GEO_FACE_GRIDIFY_EXCLUDE
@@ -516,7 +517,7 @@ class GFLOW_OT_SelectGridify(bpy.types.Operator):
 
 # Set orientation
 def setEdgesOrientation(editMeshObj, orientationCode):
-    with helpers.editModeBmesh(editMeshObj) as bm:
+    with helpers.editModeBmesh(editMeshObj, loop_triangles=False, destructive=False) as bm:
         layer = geotags.getUvOrientationLayer(bm, forceCreation=True)
         for edge in bm.edges:
             if edge.select: 
