@@ -273,6 +273,8 @@ def safeUnwrap(o):
     
 
 def pack(context, objects, packMethod = 'FAST'):
+    if len(objects) == 0: return
+
     shapeMethod = 'AABB'
     rotateMethod = 'AXIS_ALIGNED' # Fast and pretty good
     if packMethod == 'ACCURATE':
@@ -293,6 +295,7 @@ def pack(context, objects, packMethod = 'FAST'):
 
     # Select the UVs
     bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.reveal(select=False)
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.select_all(action='SELECT')
     
@@ -302,11 +305,8 @@ def pack(context, objects, packMethod = 'FAST'):
     ## Then rescale individual islands based on user values
     for o in objects:
         rescaleIslandsIfNeeded(o)
-    bpy.ops.object.mode_set(mode='OBJECT')
 
-    
     # Actual packing
-    bpy.ops.object.mode_set(mode='EDIT')
     ## Pack into [0,1]
     generic_pack_island(context, margin=margin, shape_method=shapeMethod, rotate=True, rotate_method=rotateMethod)
     ## Go through individual objects and orient the islands
@@ -331,7 +331,7 @@ def pack(context, objects, packMethod = 'FAST'):
     pass
 def generic_pack_island(context, margin, shape_method, rotate, rotate_method):
     if settings.getSettings().uvPacker == "BLENDER":
-        bpy.ops.uv.pack_islands(margin=margin, margin_method='FRACTION', shape_method=shape_method, rotate=rotate, rotate_method=rotate_method)
+        bpy.ops.uv.pack_islands(margin=margin, shape_method=shape_method, rotate=rotate, rotate_method=rotate_method)
     else:
         uvpacker_pack_island(context=context, margin=margin, rotate=rotate, rotate_method=rotate_method)
     return
