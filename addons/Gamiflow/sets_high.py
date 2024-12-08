@@ -152,7 +152,7 @@ def generatePainterHigh(context):
                     ## TODO: this does not take into account that the base object might have had a bake anchor
                     if o.parent != None: 
                         newhp.parent = None
-                        newhp.matrix_world = o.matrix_world.copy()
+                        newhp.matrix_world = hp.obj.matrix_world.copy()
                         parented.append(newhp)                    
 
         # Now that we have all the objects we can try rebuilding the intended hierarchy

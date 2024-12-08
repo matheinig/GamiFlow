@@ -81,7 +81,7 @@ class GeneratorData:
 # A source object can have multiple generated objects, 
 # so when checking for what a generated object's parent should be based on what the original parent was, we potentially have multiple possibilities. We choose by looking at a transform that matches.
 def findBestMatch(generatedObjects, source):
-    if len(generatedObjects) == 0: return None
+    if generatedObjects is None or len(generatedObjects) == 0: return None
     bestCandidate = generatedObjects[0]
     for c in generatedObjects[1:]:
         if c.matrix_world == source.matrix_world: return c
