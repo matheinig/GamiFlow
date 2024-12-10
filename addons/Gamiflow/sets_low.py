@@ -99,7 +99,7 @@ def generatePainterLow(context):
                 sets.generatePartialSymmetryIfNeeded(context, newobj, offsetUvs=True)
                 
                 # Set the material
-                material = sets.getTextureSetMaterial(o.gflow.textureSet)
+                material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
                 sets.setMaterial(newobj, material)
                 
                 # Process modifiers, clean up metadata, etc

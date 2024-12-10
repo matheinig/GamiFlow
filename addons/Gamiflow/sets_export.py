@@ -31,23 +31,23 @@ def processModifiers(context, obj):
 
 
 # Hierarchy optimiser
-def areMergeCompatible(p, c):
+def areMergeCompatible(p, c, mergeUdims=False):
     if not c.gflow.mergeWithParent: return False
-    if p.gflow.textureSet != c.gflow.textureSet: return False
+    if not mergeUdims and p.gflow.textureSet != c.gflow.textureSet: return False
     # TODO: there are more conditions that should probably be met such as smoothing method
     return True
-def mergeHierarchy(obj, mergeList, todoList):
+def mergeHierarchy(obj, mergeList, todoList, mergeUdims):
     for c in obj.children:
-        if areMergeCompatible(obj, c):
+        if areMergeCompatible(obj, c, mergeUdims):
             mergeList.append(c)
             mergeList, todoList = mergeHierarchy(c, mergeList, todoList)
         else:
             todoList.append(c) 
     return mergeList, todoList
-def findFirstNonCollapsedParent(obj):
+def findFirstNonCollapsedParent(obj, mergeUdims):
     if obj.parent is None: return obj
     parent = obj.parent
-    if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent)
+    if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent, mergeUdims)
     return obj
 
 
@@ -109,7 +109,7 @@ def generateExport(context):
                 sets.deleteDetailFaces(context, newobj)
                 
                 # Set the material
-                material = sets.getTextureSetMaterial(o.gflow.textureSet)
+                material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
                 sets.setMaterial(newobj, material)
                 
                 # Process modifiers, clean up metadata, etc
@@ -140,7 +140,7 @@ def generateExport(context):
         #    instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
         # Do another pass to check that we are not parenting to something that will end up getting merged
         for newobj in parented: 
-            safeParent = findFirstNonCollapsedParent(newobj.parent)
+            safeParent = findFirstNonCollapsedParent(newobj.parent, context.scene.gflow.mergeUdims)
             if safeParent != newobj.parent: helpers.setParent(newobj, safeParent)        
         
         return roots
@@ -169,7 +169,7 @@ def generateExport(context):
             # Pick one object in the todo list and decide what to do with its children
             root = todo[0]
             todo.remove(root)
-            merge, todo = mergeHierarchy(root, [], todo)
+            merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
             
             if len(merge) == 0: continue
             

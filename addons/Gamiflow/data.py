@@ -127,6 +127,7 @@ class GFlowScene(bpy.types.PropertyGroup):
     # Udims
     udims: bpy.props.CollectionProperty(type=GFlowUdim)
     ui_selectedUdim : bpy.props.IntProperty(name="[UI] UDIM Index", default=0, description="Internal")
+    mergeUdims: bpy.props.BoolProperty(name="Merge UDIMs", default=False, description="All objects will be treated as if part of the first UDIM.\nUseful if you want to experiment and check if you could get away with only one UDIM.") 
     
     # export
     exportTarget: bpy.props.EnumProperty(name="Target", default='UNITY', items=[

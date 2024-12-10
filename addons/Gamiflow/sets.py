@@ -196,10 +196,12 @@ def removeLowModifiers(context, obj):
     for m in list(obj.modifiers):
         if not m.show_render:  obj.modifiers.remove(m)
 
-def getTextureSetName(setNumber):
+def getTextureSetName(setNumber, mergeUdims=False):
+    if mergeUdims: return bpy.context.scene.gflow.udims[0].name
     udim = bpy.context.scene.gflow.udims[setNumber]
     return udim.name
-def getTextureSetMaterial(setNumber):
+def getTextureSetMaterial(setNumber, mergeUdims=False):
+    if mergeUdims: setNumber=0
     name = getTextureSetName(setNumber)
     try:
         m = bpy.data.materials[name]

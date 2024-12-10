@@ -89,6 +89,7 @@ class GFLOW_PT_UdimsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         col = row.column(align=True)
         col.operator("gflow.add_udim", icon='ADD', text="")
         col.operator("gflow.remove_udim", icon='REMOVE', text="")
+        col.prop(gflow, "mergeUdims", icon='AREA_JOIN_DOWN', text="")
         
 class GFLOW_UL_udims(bpy.types.UIList):
     def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, _index):

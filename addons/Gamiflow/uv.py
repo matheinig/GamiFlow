@@ -202,15 +202,23 @@ def autoUnwrap(context, udimIDs, doUnwrap=True, doPack=True):
         originalCollectionVisibility[c] = sets.getCollectionVisibility(context, c)
         sets.setCollectionVisibility(context, c, True)
     
-    # Go through all udims and unwrap them
-    for texset in udimIDs: 
-        # Gather all objects
-        obj = [o for o in unwrappables if o.gflow.textureSet == texset]
+    
+    if not context.scene.gflow.mergeUdims:
+        # Go through all udims and unwrap them
+        for texset in udimIDs: 
+            # Gather all objects
+            obj = [o for o in unwrappables if o.gflow.textureSet == texset]
 
-        # Unwrap individual objects
-        if doUnwrap: unwrap(context, obj)
-        # Pack everything together
-        if doPack: pack(context, obj, context.scene.gflow.uvPackSettings)
+            # Unwrap individual objects
+            if doUnwrap: unwrap(context, obj)
+            # Pack everything together
+            if doPack: pack(context, obj, context.scene.gflow.uvPackSettings)    
+    else:
+        # Special case if the user wants to merge all the udims together
+        if doUnwrap: unwrap(context, unwrappables)
+        if doPack: pack(context, unwrappables, context.scene.gflow.uvPackSettings)    
+            
+    
         
     # Revert collection visibility
     for c in collections:
@@ -692,7 +700,7 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
         collections.append(context.scene.gflow.workingCollection)
         for c in collections: sets.setCollectionVisibility(context, c, True)
         for o in objects:
-            if o.gflow.textureSet != udim: continue
+            if (not context.scene.gflow.mergeUdims) and o.gflow.textureSet != udim: continue
             o.select_set(True)
             context.view_layer.objects.active = o
             
