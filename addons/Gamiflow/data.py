@@ -5,7 +5,7 @@ from . import display
 
 # Per object
 class GFlowHighPolyItem(bpy.types.PropertyGroup):
-    obj : bpy.props.PointerProperty(type=bpy.types.Object)
+    obj : bpy.props.PointerProperty(type=bpy.types.Object, name="High-poly")
 
 def udimItemGenerator(self,context):
     items = []

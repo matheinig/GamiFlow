@@ -186,6 +186,10 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             col = row.column(align=True)
             col.operator("gflow.add_high", icon='ADD', text="")
             col.operator("gflow.remove_high", icon='REMOVE', text="")
+            row = col.row()
+            row.enabled = len(gflow.highpolys)>0
+            op = row.operator("gflow.select_by_name", icon='RESTRICT_SELECT_OFF', text="")
+            if row.enabled: op.name = gflow.highpolys[gflow.ui_selectedHighPoly].obj.name
             
             # Anchor
             self.layout.prop(gflow, "bakeAnchor")
@@ -228,9 +232,13 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
 class GFLOW_UL_highpolies(bpy.types.UIList):
 
     def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, _index):
-        layout.label(text="", icon="KEYFRAME")
-        layout.prop(item, "obj", text="")
-        if item.obj: layout.prop(item.obj.gflow, "objType", text="")
+        split = layout.split(factor=0.70)
+        c = split.row()
+        c.label(text="", icon="KEYFRAME")
+        c.prop(item, "obj", text="")
+        if item.obj: 
+            c = split.row()
+            c.prop(item.obj.gflow, "objType", text="")
         
 
 # Object settings

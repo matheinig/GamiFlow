@@ -376,7 +376,25 @@ class GFLOW_OT_RemoveHighPoly(bpy.types.Operator):
         obj = context.object
         obj.gflow.highpolys.remove(obj.gflow.ui_selectedHighPoly)
         obj.gflow.ui_selectedHighPoly = min( obj.gflow.ui_selectedHighPoly, len(obj.gflow.highpolys)-1)
-        return {"FINISHED"}         
+        return {"FINISHED"}
+class GFLOW_OT_SelectHighPoly(bpy.types.Operator):
+    bl_idname      = "gflow.select_by_name"
+    bl_label       = "Select"
+    bl_description = "Select the high-poly"
+    bl_options = {"REGISTER", "UNDO"}
+
+    name: bpy.props.StringProperty(name="Name", default="")
+
+    def execute(self, context):
+        print(self.name)
+        if len(self.name)==0: return
+        #try:
+        obj = context.scene.objects[self.name]
+        helpers.setSelected(context, obj)
+        #except:
+        #    return {"CANCELLED"}
+            
+        return {"FINISHED"}            
 
 class GFLOW_OT_ClearGeneratedSets(bpy.types.Operator):
     bl_idname      = "gflow.clear_sets"
@@ -428,7 +446,7 @@ class GFLOW_OT_ToggleSetVisibility(bpy.types.Operator):
         
         
 classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
-    GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly,
+    GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly,
     GFLOW_OT_MarkHardSeam, GFLOW_OT_MarkSoftSeam, GFLOW_OT_ClearSeam,
     GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility]
 
