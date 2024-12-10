@@ -33,14 +33,14 @@ def processModifiers(context, obj):
 # Hierarchy optimiser
 def areMergeCompatible(p, c, mergeUdims=False):
     if not c.gflow.mergeWithParent: return False
-    if not mergeUdims and p.gflow.textureSet != c.gflow.textureSet: return False
+    if (not mergeUdims) and p.gflow.textureSet != c.gflow.textureSet: return False
     # TODO: there are more conditions that should probably be met such as smoothing method
     return True
 def mergeHierarchy(obj, mergeList, todoList, mergeUdims):
     for c in obj.children:
         if areMergeCompatible(obj, c, mergeUdims):
             mergeList.append(c)
-            mergeList, todoList = mergeHierarchy(c, mergeList, todoList)
+            mergeList, todoList = mergeHierarchy(c, mergeList, todoList, mergeUdims)
         else:
             todoList.append(c) 
     return mergeList, todoList
