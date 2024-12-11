@@ -190,7 +190,7 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row = col.row()
             row.enabled = len(gflow.highpolys)>0
             op = row.operator("gflow.select_by_name", icon='RESTRICT_SELECT_OFF', text="")
-            if row.enabled: op.name = gflow.highpolys[gflow.ui_selectedHighPoly].obj.name
+            if row.enabled and gflow.highpolys[gflow.ui_selectedHighPoly].obj is not None: op.name = gflow.highpolys[gflow.ui_selectedHighPoly].obj.name
             
             # Anchor
             self.layout.prop(gflow, "bakeAnchor")
