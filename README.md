@@ -15,7 +15,7 @@ For a much longer overview, check out this one:
 
 # Installation
 ## The easy way
-Open the Blender settings menu and go to **Get Extensions**. Click on **Repositories** in the top right, click on the **+**, select **Add Remote Repository** and use the following url: https://matheinig.github.io/extensions/ 
+Open the Blender settings menu and go to **Get Extensions**. Click on **Repositories** in the top right, click on the **+**, select **Add Remote Repository** and use the following url: https://matheinig.github.io/extensions/index.json 
 You should then be able to enable the extension and automatically get updates. The only drawback is that you have to wait until I officially publish a new version.
 Note: there is also a version on the official Blender extensions platform but it hasn't been approved yet and I won't really bother updating it in the meantime.
 ## The harder but more up-to-date way
