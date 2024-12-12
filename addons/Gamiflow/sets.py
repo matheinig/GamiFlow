@@ -248,7 +248,8 @@ def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
 
     helpers.setSelected(context, obj)
     bpy.ops.object.mode_set(mode='EDIT')
-    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:      
+    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:   
+        mirrorLayer = geotags.getMirrorLayer(bm)
         # Select all the faces we want to mirror
         for face in bm.faces:
             face.select = (face[mirrorLayer] == geotags.GEO_FACE_MIRROR_X)
