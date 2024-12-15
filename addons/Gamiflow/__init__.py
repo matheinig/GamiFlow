@@ -2,7 +2,7 @@ bl_info = {
     "name"        : "Gamiflow",
     "description" : "Workflow improvements for game assets",
     "author"      : "Mathieu Einig",
-    "version"     : (1, 2),
+    "version"     : (1, 3),
     "blender"     : (3, 6, 0),
     "location"    : "Wherever",
     "warning"     : "",
@@ -29,6 +29,7 @@ if "bpy" in locals():
     importlib.reload(sets_high)
     importlib.reload(sets_export)
     importlib.reload(export)
+    importlib.reload(baker)
 
 import bpy
 from . import data
@@ -43,6 +44,7 @@ from . import sets_low
 from . import sets_high
 from . import sets_export
 from . import export
+from . import baker
 
     
 modules = [
@@ -50,7 +52,7 @@ modules = [
     geotags,
     uv, 
     sets, sets_low, sets_high, sets_export,
-    export]
+    export, baker]
     
 def register():
     print("-------Registering gflow-------")

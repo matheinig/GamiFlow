@@ -1,6 +1,7 @@
 import bpy
 from . import geotags
 from . import sets
+from . import settings
 
 # Side panel
 class GFLOW_PT_BASE_PANEL(bpy.types.Panel):
@@ -57,7 +58,11 @@ class GFLOW_PT_PainterPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         row = layout.row()
         row.operator("gflow.make_low")
         row.operator("gflow.make_high")
-        layout.operator("gflow.export_painter")
+        stgs = settings.getSettings()
+        if stgs.baker == 'BLENDER':
+            layout.operator("gflow.bake")
+        else:
+            layout.operator("gflow.export_painter")
         
 class GFLOW_PT_ExportPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
     bl_label = "Export Sets"

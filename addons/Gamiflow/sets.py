@@ -66,6 +66,7 @@ class GeneratorData:
             pass
         return None
     def findGenerated(self, sourceObj):
+        if sourceObj is None: return None
         try:
             return self.originalToGenerated[sourceObj]
         except:

@@ -12,6 +12,17 @@ class AddonPreferences(bpy.types.AddonPreferences):
     mergeExportMeshes : bpy.props.BoolProperty(name = "Auto merge", default=True, description="Collapses hierarchies when possible and when allowed")
     renameExportMeshes : bpy.props.BoolProperty(name = "Rename meshes", default=True, description="Renames meshes so that they have the same name as their object")
     
+    baker : bpy.props.EnumProperty(
+        name="Baker",
+        description="Chose which UV packer to use",
+        items=
+        [
+        ("BLENDER", "Blender", "The bake will be done internally by Blender which will be quite slow."),
+        ("EXTERNAL", "External", "You want to bake everything in an external tool such as Painter or Toolbag."),
+        ],
+        default="EXTERNAL"
+        )    
+    
     uvPacker : bpy.props.EnumProperty(
         name="UV Packer",
         description="Chose which UV packer to use",
@@ -55,6 +66,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "painterEdgeColor")
         
         layout.label(text="Baking sets")
+        layout.prop(self, "baker")
         layout.prop(self, "idMap")
         
         layout.label(text="Export set")

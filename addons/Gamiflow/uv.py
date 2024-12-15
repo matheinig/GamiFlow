@@ -18,6 +18,14 @@ def isUvPackerAvailable():
 def hardenSeams(context, obj):
     return
 
+def areUVsProbablyInside(obj):
+    with helpers.objectModeBmesh(obj) as bm:
+        uv_layer = bm.loops.layers.uv.active
+        for f in bm.faces:
+            for l in f.loops:
+                uv = l[uv_layer].uv
+                if uv[0] < 1.0 or uv[1]<1.0: return True
+    return True
 def findOrientationEdgeInIsland(faces, layer):
     for face in faces:
         for edge in face.edges:

@@ -58,6 +58,11 @@ def processNewObject(context, o, stgs):
     if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
     sets.triangulate(context, o)
     geotags.removeObjectLayers(o)
+    
+    # When using the blender baker we actually *need* the hp-only modifiers to have their visibility set back to render mode
+    if stgs.baker == 'BLENDER':
+        for m in o.modifiers:
+            if m.show_viewport: m.show_render = True
 
 def generatePainterHigh(context):
     highCollection = getCollection(context, createIfNeeded=False)
