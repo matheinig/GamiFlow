@@ -11,10 +11,11 @@ from . import helpers
 from . import sets
 from . import settings
 
+#BEGINTRIM -------------------------------------------------- 
 def isUvPackerAvailable():
     (default, current) = addon_utils.check("UV-Packer")
     return current
-
+#ENDTRIM -----------------------------------------------------  
 def hardenSeams(context, obj):
     return
 
@@ -348,10 +349,12 @@ def pack(context, objects, packMethod = 'FAST'):
     bpy.ops.object.mode_set(mode='OBJECT')
     pass
 def generic_pack_island(context, margin, shape_method, rotate, rotate_method):
-    if settings.getSettings().uvPacker == "BLENDER":
-        bpy.ops.uv.pack_islands(margin=margin, shape_method=shape_method, rotate=rotate, rotate_method=rotate_method)
-    else:
+    #BEGINTRIM --------------------------------------------------
+    if settings.getSettings().uvPacker == "UVPACKER":
         uvpacker_pack_island(context=context, margin=margin, rotate=rotate, rotate_method=rotate_method)
+        return
+    #ENDTRIM -----------------------------------------------------
+    bpy.ops.uv.pack_islands(margin=margin, shape_method=shape_method, rotate=rotate, rotate_method=rotate_method)
     return
 def uvpacker_pack_island(context, margin, rotate, rotate_method):
     props = context.scene.UVPackerProps
@@ -722,6 +725,7 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
         
         return {"FINISHED"}         
 
+#BEGINTRIM --------------------------------------------------
 # UV-Packer backend
 uvPacker = None
 def getUvPacker():
@@ -780,12 +784,14 @@ def pack_uvpacker(context):
     uvPacker.misc.data_exchange_thread(process, options, meshes, msg_queue)
     
     # Back to my own original code
-    
     print("UV Packer response:")
     while not msg_queue.empty():
         print( msg_queue.get() )
     return
-
+    
+    print("UV-Packer integration not available in this version of GamiFlow")
+    return
+#ENDTRIM --------------------------------------------------
 
 @bpy.app.handlers.persistent
 def onLoad(dummy):

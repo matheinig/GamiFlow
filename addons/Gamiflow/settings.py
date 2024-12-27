@@ -60,7 +60,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "exportsuffix")
         
         layout.label(text="Working set")
+#BEGINTRIM --------------------------------------------------     
         layout.prop(self, "uvPacker")
+#ENDTRIM -----------------------------------------------------        
         layout.prop(self, "edgeWidth")
         layout.prop(self, "detailEdgeColor")
         layout.prop(self, "painterEdgeColor")
@@ -75,13 +77,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
         
         
         
-
+#BEGINTRIM -------------------------------------------------- 
         if self.uvPacker == "UVPACKER" and not uv.isUvPackerAvailable():
             row = layout.row()
             row.alert = True
             row.label(text="UV-Packer plugin not found")
             row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
-        
+#ENDTRIM -----------------------------------------------------          
         
         #layout.prop(self, "my_property")
   
