@@ -356,6 +356,7 @@ def generic_pack_island(context, margin, shape_method, rotate, rotate_method):
     #ENDTRIM -----------------------------------------------------
     bpy.ops.uv.pack_islands(margin=margin, shape_method=shape_method, rotate=rotate, rotate_method=rotate_method)
     return
+#BEGINTRIM --------------------------------------------------
 def uvpacker_pack_island(context, margin, rotate, rotate_method):
     props = context.scene.UVPackerProps
     props.uvp_selection_only = False
@@ -376,7 +377,7 @@ def uvpacker_pack_island(context, margin, rotate, rotate_method):
     
     pack_uvpacker(context)
     return
-    
+#ENDTRIM -----------------------------------------------------
 def snapUv(obj, resolution):
     with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
         uv_layer = bm.loops.layers.uv.active
@@ -815,8 +816,6 @@ def register():
     for c in classes: 
         bpy.utils.register_class(c)
     bpy.app.handlers.load_post.append(onLoad) # Make sure we have an udim whenever we load a new scene
-
-    print("UVpacker found: "+str(isUvPackerAvailable()))
     
     pass
 def unregister():
