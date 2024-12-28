@@ -14,12 +14,14 @@ For a much longer overview, check out this one:
 [![GamiFlow youtube introduction](https://img.youtube.com/vi/jy87jXTXiNc/0.jpg)](https://www.youtube.com/watch?v=jy87jXTXiNc)
 
 # Installation
-## The easy way
+There are two separate versions of GamiFlow: the official one hosted on the Blender extensions platform, and the 'full' one which is here on github. Both of them are free, so why two versions? The full GamiFlow version can optionally make use of specific plugins (currently only _UV-Packer_, which is great and also free), but Blender have a very strict policy with regards to third party plugins so I had to make a 'light' version without it to be able ot host GamiFlow on their platform. Not a big deal, the 'light' version is still perfectly usable.
+## The easiest and official way (Light version)
+Open the Blender settings menu and go to **Get Extensions**. Look for _GamiFlow_ there and install it. You can also grab it from the Blender website: https://extensions.blender.org/add-ons/gamiflow/
+## The still easy way (Full version)
 Open the Blender settings menu and go to **Get Extensions**. Click on **Repositories** in the top right, click on the **+**, select **Add Remote Repository** and use the following url: https://matheinig.github.io/extensions/index.json 
-You should then be able to enable the extension and automatically get updates. The only drawback is that you have to wait until I officially publish a new version.
-Note: there is also a version on the official Blender extensions platform but it hasn't been approved yet and I won't really bother updating it in the meantime.
-## The harder but more up-to-date way
-Download the source code as a zip. Inside the zip, navigate into _GamiFlow-main/addons/_. There will be one folder inside named _Gamiflow_ (and directly inside are all the python files). Take that _Gamiflow_ folder and put inside your Blender addons directory, which is usually _%appdata%/Blender Foundation/Blender/*version*/scripts/addons/_). Then in the Blender settings, if you refresh the addons list, it should show up as being disabled. Just enabled it and it should show up in the viewport side menu.
+You should then be able to see _GamiFlow (Full)_ in the list and install it.
+## The harder but more up-to-date way (Full version)
+Download the source code as a zip. Inside the zip, navigate into _GamiFlow-main/addons/_. There will be one folder inside named _Gamiflow_ (and directly inside are all the python files). Take that _Gamiflow_ folder and put inside your Blender addons directory, which is usually _%appdata%/Blender Foundation/Blender/*version*/scripts/addons/_). Then in the Blender settings, if you refresh the addons list, it should show up as being disabled. Just enable it and it should show up in the viewport side menu.
 
 # Features
  - One-click low/high poly generation for baking
@@ -88,7 +90,7 @@ Sometimes a simple edge dissolve won't do it and you do need two very different 
 
 The workflow assumed with this plugin is as follows: you make your object, you add seams to it, and you check that it unwrapped nicely. Make note of which unwrapping method worked best (angle based, or conformal). Go to the object properties and set which unwrapping method worked best for you. You can also tweak the amount of UV smoothing you want. If you were not satisfied with the Blender unwrapper and had to do a lot of manual tweaking, you can save the current UV by unticking *Unwrap*. If you are working with multiple UDIMs in your scene, assign the relevant one to the object.
 You can now return to the side panel and click on *Unwrap*. This will unwrap and pack your entire scene. 
->When using the highest packing quality with the standard Blender packer, this operation can take a while and I recommend installing the free [UV-Packer](https://www.uv-packer.com/download/) plugin which is incredibly good and fast, and can be set as the packing method used by Gamiflow in the settings.
+>When using the highest packing quality with the standard Blender packer, this operation can take a while and I recommend installing the free [UV-Packer](https://www.uv-packer.com/download/) plugin which is incredibly good and fast, and can be set as the packing method used by Gamiflow in the settings (only possible in the Full version of GamiFlow, not the one found on the official Blender website).
 
 All objects sharing a UDIM will be packed together in the same [0,1[ UV square. Each UDIM will essentially become a distinct material in the game engine with its own set of textures. The UDIM name is what Substance Painter will use as name for its texture set.
 
