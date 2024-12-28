@@ -23,6 +23,8 @@ gCachedPainterDetailBatch = None
 
 @persistent
 def mesh_change_listener(scene, depsgraph):
+    if bpy.context.mode != "EDIT_MESH": return
+
     # check if we need to iterate through updates at all
     if not depsgraph.id_type_updated('MESH'):
         return

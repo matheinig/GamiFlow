@@ -9,38 +9,36 @@ def backwardCompatibility(scene):
     currentVersion = 1
     if scene.gflow.version == currentVersion: return
     
-    print("Scene "+scene.name + " was saved in different version ("+str(scene.gflow.version)+")")
-    
-    if scene.gflow.version == 0:
+    print("[GamiFlow] Scene "+scene.name + " was saved in different version ("+str(scene.gflow.version)+")")
+    # The 'scene' is an evaluated copy of the scene rather than the scene itself so we need to retrieve the original first
+    realScene = bpy.data.scenes[scene.name]
+    if realScene.gflow.version == 0:
         # Add at least one UDIM
-        if len(scene.gflow.udims) == 0:
-            scene.gflow.udims.add()
-            scene.gflow.udims[0].name = "UDIM_0"
+        if len(realScene.gflow.udims) == 0:
+            realScene.gflow.udims.add()
+            realScene.gflow.udims[0].name = "UDIM_0"
         # After version 1, we have a flag that says if the object is already known by gflow
-        for o in bpy.context.scene.objects:
+        for o in realScene.objects:
             o.gflow.registered = True
             
-    bpy.data.scenes[scene.name].gflow.version = currentVersion 
+    realScene.gflow.version = currentVersion 
 
+registeredScenesCount = 0
 @bpy.app.handlers.persistent
 def onLoad(dummy):
     # Backward compatibility check
     for s in bpy.data.scenes: backwardCompatibility(s)
 
 @bpy.app.handlers.persistent  
-def checkForNewObjects(scene, depsgraph):
-    for u in depsgraph.updates:
-        data = u.id
-
-        # We unfortunately still have to check here because there is no callback when a new scene is created
-        if type(data) is bpy.types.Scene:
-            backwardCompatibility(scene)
-        
-        if type(data) is bpy.types.Object:  
-            if not data.gflow.registered:
-                # Weirdness: modifying the 'data' object directly does nothing, so we have to fetch the object from the scene itself
-                onNewObject(scene.objects[data.name], scene)   
-                
+def checkForNewObjectsAndScenes(scene, depsgraph):
+    # If the scene version is 0, it's a newly-created scene and we need to fix some things first
+    if scene.gflow.version == 0:
+        backwardCompatibility(scene)   
+    # Check the currently selected object and register it if needed
+    currentObj = bpy.context.object
+    if currentObj:
+        if not currentObj.gflow.registered:
+            onNewObject(currentObj, scene)      
     return
 
 def onNewObject(o, scene):
@@ -390,7 +388,6 @@ class GFLOW_OT_SelectHighPoly(bpy.types.Operator):
     name: bpy.props.StringProperty(name="Name", default="")
 
     def execute(self, context):
-        print(self.name)
         if len(self.name)==0: return
         #try:
         obj = context.scene.objects[self.name]
@@ -458,12 +455,12 @@ classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
 def register():
     for c in classes: 
         bpy.utils.register_class(c)
-    bpy.app.handlers.depsgraph_update_post.append(checkForNewObjects)
+    bpy.app.handlers.depsgraph_update_post.append(checkForNewObjectsAndScenes)
     bpy.app.handlers.load_post.append(onLoad)
 
     return
 def unregister():
-    bpy.app.handlers.depsgraph_update_post.remove(checkForNewObjects)
+    bpy.app.handlers.depsgraph_update_post.remove(checkForNewObjectsAndScenes)
     bpy.app.handlers.load_post.remove(onLoad)
     for c in reversed(classes): 
         bpy.utils.unregister_class(c)
