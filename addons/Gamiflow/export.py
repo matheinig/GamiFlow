@@ -65,6 +65,10 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         exportCollection(context, sets_high.getCollection(context), baseName+"_high")
         return {'FINISHED'}
 
+def findRoots(objectsList):
+    roots = [o for o in objectsList if o.parent is None]
+    return roots
+
 class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
     bl_idname = "gflow.export_final" 
     bl_label = "Export"
@@ -98,9 +102,12 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
             exportCollection(context, context.scene.gflow.exportCollection, baseName)
         # Kit export: each root object gets exported separately
         if context.scene.gflow.exportMethod == 'KIT':
-            for o in context.scene.gflow.exportCollection.objects:
+            roots = findRoots(context.scene.gflow.exportCollection.objects)
+            for o in roots:
                 filename = os.path.join(folder, o.name)
-                exportObjects(context, o.children_recursive, filename)
+                objects = list(o.children_recursive)
+                objects.append(o)
+                exportObjects(context, objects, filename)
 
         return {'FINISHED'}
   
