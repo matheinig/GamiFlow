@@ -5,6 +5,7 @@ from . import sets_low
 from . import sets_high
 from . import sets
 from . import helpers
+from . import settings
 
 def exportCollection(context, collection, filename):
     exportObjects(context, collection.all_objects, filename)
@@ -91,7 +92,7 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
     def execute(self, context):
         name = sets.getSetName(context)
         folder = os.path.dirname(self.filepath)
-        
+        stgs = settings.getSettings()
 
         collection = context.scene.gflow.exportCollection
         sets.setCollectionVisibility(context, collection, True)
@@ -104,7 +105,8 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
         if context.scene.gflow.exportMethod == 'KIT':
             roots = findRoots(context.scene.gflow.exportCollection.objects)
             for o in roots:
-                filename = os.path.join(folder, o.name)
+                cleanname = o.name.strip(stgs.exportsuffix)
+                filename = os.path.join(folder, cleanname)
                 objects = list(o.children_recursive)
                 objects.append(o)
                 exportObjects(context, objects, filename)
