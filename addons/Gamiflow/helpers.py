@@ -2,6 +2,12 @@ import bpy
 import bmesh
 import contextlib
 
+def findActive3dView(context):
+    for area in context.screen.areas:
+        if area.type == 'VIEW_3D':
+            return area.spaces.active
+    return None
+
 def convertToMesh(context, obj):
     if obj.type == 'MESH': return
     setSelected(context, obj)

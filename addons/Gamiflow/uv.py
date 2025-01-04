@@ -251,6 +251,10 @@ def lightmapUnwrap(context, objects):
 
 def unwrap(context, objects):
     bpy.ops.object.select_all(action='DESELECT')
+    
+    # Make sure we're not in local view
+    view = helpers.findActive3dView(context)
+    if view and view.local_view: bpy.ops.view3d.localview()
 
     for o in objects:
         if not o.gflow.unwrap: continue
