@@ -104,7 +104,7 @@ def bakeUdim(context, udimId):
     material = setup[0]
     aoNode = setup[1]
     normalNode = setup[2]
-    
+    sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, False)
     sets.setCollectionVisibility(context, lowCollection, True)
     sets.setCollectionVisibility(context, highCollection, True)
     
@@ -117,7 +117,7 @@ def bakeUdim(context, udimId):
     bakeSettings.margin_type = 'EXTEND'
     bakeSettings.use_selected_to_active = True
     
-    margin = int(context.scene.gflow.uvMargin)
+    margin = int(context.scene.gflow.uvMargin)//2
     
     start = time.time()
     
@@ -158,7 +158,7 @@ def bakeUdim(context, udimId):
 class GFLOW_OT_Bake(bpy.types.Operator):
     bl_idname      = "gflow.bake"
     bl_label       = "Bake"
-    bl_description = ""
+    bl_description = "Bake the normal map and AO onto the low poly set.\n⚠️This process will be very slow, make sure you set your resolution as low as possible."
     bl_options = {"REGISTER", "UNDO"}
 
 
