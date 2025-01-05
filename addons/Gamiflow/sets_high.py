@@ -98,7 +98,7 @@ def generatePainterHigh(context):
 
             # Collection instancing
             if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
-                newobj = sets.duplicateObject(o, suffix, highCollection)
+                newobj = sets.duplicateObject(o, highCollection, suffix=suffix)
                 newobj.name = namePrefix + newobj.name
                 newobj.instance_type = 'NONE'
                 gen.register(newobj, o)
@@ -119,7 +119,7 @@ def generatePainterHigh(context):
             # Standard case: we just duplicate the working object and make minor adjustments
             if o.gflow.includeSelf:
                 if o.gflow.singleSided: suffix += decalsuffix
-                newobj = sets.duplicateObject(o, suffix, highCollection)
+                newobj = sets.duplicateObject(o, highCollection, suffix=suffix)
                 newobj.name = namePrefix + newobj.name
                 
                 # Convert the 'mesh-adjacent' objects into actual meshes
@@ -140,12 +140,12 @@ def generatePainterHigh(context):
                         
             # But we can also have manually-linked high-polys that we have to add and parent
             for hp in o.gflow.highpolys:
-                newhp = sets.duplicateObject(hp.obj, "_TEMP_", highCollection)
+                newhp = sets.duplicateObject(hp.obj, highCollection, suffix="_TEMP_")
                 helpers.convertToMesh(context, newhp)
                 hpsuffix = suffix
                 if hp.obj.gflow.objType == 'DECAL' or hp.obj.gflow.singleSided: 
                     hpsuffix = hpsuffix + decalsuffix
-                newhp.name = namePrefix+sets.getNewName(o, hpsuffix) + "_" + hp.obj.name
+                newhp.name = namePrefix+sets.getNewName(o, "", hpsuffix) + "_" + hp.obj.name
                 processNewObject(context, newhp, stgs)
                 gen.register(newhp, hp.obj)
                 localgen.register(newhp, hp.obj)
@@ -178,7 +178,7 @@ def generatePainterHigh(context):
         if o.gflow.bakeAnchor:
             # Leave a ghost behind if need be
             ## TODO: maybe the children should also be ghosted
-            ghost = sets.duplicateObject(o, "_ghost", highCollection)
+            ghost = sets.duplicateObject(o, highCollection, suffix="_ghost")
             # Teleport
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
 

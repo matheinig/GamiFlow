@@ -152,11 +152,11 @@ def findRoots(collection):
         if o.parent is None: roots.append(o)
     return roots
 
-def getNewName(sourceObj, suffix):
-    return sourceObj.name + suffix
-def duplicateObject(sourceObj, suffix, collection):
+def getNewName(sourceObj, prefix, suffix):
+    return prefix + sourceObj.name + suffix
+def duplicateObject(sourceObj, collection, prefix="", suffix=""):
     new_obj = sourceObj.copy()
-    new_obj.name = getNewName(sourceObj, suffix)
+    new_obj.name = getNewName(sourceObj, prefix, suffix)
     if sourceObj.data: new_obj.data = sourceObj.data.copy()
     collection.objects.link(new_obj)
     return new_obj

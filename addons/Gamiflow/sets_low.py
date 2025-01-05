@@ -58,7 +58,7 @@ def generatePainterLow(context):
             if o.gflow.objType != 'STANDARD': continue
             
             # Make a copy the object
-            newobj = sets.duplicateObject(o, lpsuffix, lowCollection)
+            newobj = sets.duplicateObject(o, lowCollection, suffix=lpsuffix)
             newobj.name = namePrefix+newobj.name
             gen.register(newobj, o)
             localGen.register(newobj, o)

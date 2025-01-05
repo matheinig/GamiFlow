@@ -86,7 +86,7 @@ def generateExport(context):
             
             # Make a copy the object
 
-            newobj = sets.duplicateObject(o, exportSuffix, collection)
+            newobj = sets.duplicateObject(o, collection, suffix=exportSuffix)
             newobj.name = namePrefix+newobj.name
             gen.register(newobj, o)
             localgen.register(newobj, o)
