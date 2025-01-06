@@ -22,6 +22,9 @@ class GFLOW_PT_Panel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         row = layout.row()
         op = row.operator("gflow.toggle_set_visibility", text="Working", depress=sets.getCollectionVisibility(context, context.scene.gflow.workingCollection))
         op.collectionId = 0
+        if context.scene.gflow.useCage:
+            op = row.operator("gflow.toggle_set_visibility", text="Cage", depress=sets.getCollectionVisibility(context, context.scene.gflow.painterCageCollection))
+            op.collectionId = 4        
         op = row.operator("gflow.toggle_set_visibility", text="Low", depress=sets.getCollectionVisibility(context, context.scene.gflow.painterLowCollection))
         op.collectionId = 1
         op = row.operator("gflow.toggle_set_visibility", text="High", depress=sets.getCollectionVisibility(context, context.scene.gflow.painterHighCollection))
@@ -54,7 +57,14 @@ class GFLOW_PT_PainterPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
     bl_parent_id = "GFLOW_PT_PANEL"
     def draw(self, context):
         layout = self.layout
-
+        # Cage settings
+        row = layout.row()
+        row.prop(context.scene.gflow, "useCage")
+        col = row.column()
+        col.enabled = context.scene.gflow.useCage
+        col.prop(context.scene.gflow, "cageOffset", text="Offset")
+        layout.separator()
+        # Bake sets buttons
         row = layout.row()
         row.operator("gflow.make_low")
         row.operator("gflow.make_high")
@@ -202,6 +212,15 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row = self.layout.row()
             row.enabled = gflow.bakeAnchor is not None
             row.prop(gflow, "bakeGhost")
+            
+            # Cage
+            row = self.layout.row()
+            row.enabled = context.scene.gflow.useCage
+            row.prop(gflow, "cage")
+            row = self.layout.row()
+            row.enabled = gflow.cage is None and context.scene.gflow.useCage
+            row.prop(gflow, "cageOffset")            
+            
         elif obj.type == 'EMPTY':
             row = self.layout.row()
             validInstancer = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))

@@ -4,6 +4,7 @@ from . import settings
 from . import helpers
 from . import uv
 from . import geotags
+from . import sets_cage
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterLowCollection
@@ -133,6 +134,9 @@ def generatePainterLow(context):
     for o in gen.generated:
         if o.gflow.bakeAnchor:
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
+
+    if context.scene.gflow.useCage:
+        sets_cage.generatePainterCage(context)
 
     return
 

@@ -73,6 +73,7 @@ def generatePainterHigh(context):
     sets.setCollectionVisibility(context, highCollection, True)
     sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, False)
+    sets.setCollectionVisibility(context, context.scene.gflow.painterCageCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.exportCollection, False)
 
     stgs = settings.getSettings()

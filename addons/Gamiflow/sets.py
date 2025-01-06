@@ -405,6 +405,7 @@ class GFLOW_OT_ClearGeneratedSets(bpy.types.Operator):
     def execute(self, context):
         if context.scene.gflow.painterLowCollection: clearCollection(context.scene.gflow.painterLowCollection)
         if context.scene.gflow.painterHighCollection: clearCollection(context.scene.gflow.painterHighCollection)
+        if context.scene.gflow.painterCageCollection: clearCollection(context.scene.gflow.painterCageCollection)
         if context.scene.gflow.exportTarget != 'BLENDER_LIB': # The export set must not be deleted if we are exporting for the blender library (as this is the actual final output)
             if context.scene.gflow.exportCollection: clearCollection(context.scene.gflow.exportCollection)
         return {"FINISHED"}  
@@ -431,7 +432,8 @@ class GFLOW_OT_ToggleSetVisibility(bpy.types.Operator):
             context.scene.gflow.workingCollection,
             context.scene.gflow.painterLowCollection, 
             context.scene.gflow.painterHighCollection,
-            context.scene.gflow.exportCollection]
+            context.scene.gflow.exportCollection,
+            context.scene.gflow.painterCageCollection]
         if isolate:
             for i in range(0, len(collections)):
                 setCollectionVisibility(context, collections[i], i==self.collectionId)

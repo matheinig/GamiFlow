@@ -15,7 +15,6 @@ bl_info = {
 
 # Trick to properly reload other files
 if "bpy" in locals():
-    print("Doing a proper reload")
     import importlib
     importlib.reload(data)
     importlib.reload(settings)
@@ -27,6 +26,7 @@ if "bpy" in locals():
     importlib.reload(sets)
     importlib.reload(sets_low)
     importlib.reload(sets_high)
+    importlib.reload(sets_cage)
     importlib.reload(sets_export)
     importlib.reload(export)
     importlib.reload(baker)
@@ -42,6 +42,7 @@ from . import uv
 from . import sets
 from . import sets_low
 from . import sets_high
+from . import sets_cage
 from . import sets_export
 from . import export
 from . import baker
@@ -51,7 +52,7 @@ modules = [
     data, settings, ui, display, helpers,
     geotags,
     uv, 
-    sets, sets_low, sets_high, sets_export,
+    sets, sets_low, sets_high, sets_cage, sets_export,
     export, baker]
     
 def register():

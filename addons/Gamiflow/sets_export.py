@@ -64,6 +64,7 @@ def generateExport(context):
     sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, False)
     sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, False)
+    sets.setCollectionVisibility(context, context.scene.gflow.painterCageCollection, False)
     
     stgs = settings.getSettings()
     exportSuffix = stgs.exportsuffix

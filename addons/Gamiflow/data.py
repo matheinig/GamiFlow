@@ -91,6 +91,9 @@ class GFlowObject(bpy.types.PropertyGroup):
     includeSelf: bpy.props.BoolProperty(name="Include self", default=True, description="If the object should bake onto itself")
     highpolys: bpy.props.CollectionProperty(type=GFlowHighPolyItem)
     ui_selectedHighPoly : bpy.props.IntProperty(name="[UI] HP Index", default=0, description="Internal")
+    
+    cage : bpy.props.PointerProperty(type=bpy.types.Object, name="Cage", description="Optional cage mesh")
+    cageOffset : bpy.props.FloatProperty(name="Cage offset", default=0.0, min=0.0, soft_max=0.1, description="How much the cage mesh will be inflated")
 
     # Export
     instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)
@@ -117,13 +120,20 @@ class GFlowScene(bpy.types.PropertyGroup):
     workingCollection : bpy.props.PointerProperty(type=bpy.types.Collection, name="Working set", update=onCollectionChanged)
     painterLowCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
     painterHighCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
+    painterCageCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
     exportCollection : bpy.props.PointerProperty(type=bpy.types.Collection)
+    
+    # Cage
+    useCage : bpy.props.BoolProperty(name="Generate cage", default=False, description="If enabled, cage objects will generated")    
+    cageOffset : bpy.props.FloatProperty(name="Default offset", default=0.01, min=0.0, soft_max=0.1, description="How much the cage mesh will be inflated")
+    
     # UVs
     uvResolution : bpy.props.EnumProperty(name="Resolution", default='2048', items=gUV_RESOLUTION, description="Default resolution in pixels")
     uvMargin : bpy.props.EnumProperty(name="Margin", default='8', items=gUV_MARGIN, description="Margin between UV islands (in pixels)")
     uvSnap : bpy.props.BoolProperty(name="Snap", default=True, description="If enabled, UVs will be snapped to pixels")
     uvPackSettings :  bpy.props.EnumProperty(name="Packer", default='FAST', items=gUV_PACK_METHODS)
     uvScaleFactor: bpy.props.FloatProperty(name="Scale", subtype='FACTOR', default=1.0,  precision=2, step=0.1, min=0.0, soft_max=2.0, description="Island scale factor")
+    
     # Udims
     udims: bpy.props.CollectionProperty(type=GFlowUdim)
     ui_selectedUdim : bpy.props.IntProperty(name="[UI] UDIM Index", default=0, description="Internal")

@@ -11,6 +11,11 @@ def exportCollection(context, collection, filename):
     exportObjects(context, collection.all_objects, filename)
     return
     
+def exportTextureSets(context, collection, baseFilename):
+    for (i, texset) in enumerate(context.scene.gflow.udims):
+        objs = [o for o in collection.all_objects if o.gflow.textureSet == i]
+        exportObjects(context, objs, baseFilename+"_"+texset.name)
+    
 def exportObjects(context, objects, filename):
     # select all relevant objects
     bpy.ops.object.select_all(action='DESELECT')
@@ -61,9 +66,15 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         baseName = os.path.join(folder,name)
 
         sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, True)
-        exportCollection(context, sets_low.getCollection(context), baseName+"_low")
+        exportCollection(context, context.scene.gflow.painterLowCollection, baseName+"_low")
+        
         sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, True)
-        exportCollection(context, sets_high.getCollection(context), baseName+"_high")
+        exportCollection(context, context.scene.gflow.painterHighCollection, baseName+"_high")
+        
+        if context.scene.gflow.painterCageCollection and len(context.scene.gflow.painterCageCollection.objects)>0:
+            # Because of the way painter matches the geometry, we have to export one cageper texture set
+            exportTextureSets(context, context.scene.gflow.painterCageCollection, baseName+"_cage")
+        
         return {'FINISHED'}
 
 def findRoots(objectsList):
