@@ -220,7 +220,8 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row = self.layout.row()
             row.enabled = cageUsed
             row.prop(gflow, "cageOffset")  
-            #TODO: button to add distance factor map
+            if geotags.getCageDisplacementMap(obj, forceCreation=False) is None:
+                row.operator("gflow.add_cage_displacement_map")
             
             row = self.layout.row()            
             row.enabled = cageUsed

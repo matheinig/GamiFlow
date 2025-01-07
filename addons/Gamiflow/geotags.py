@@ -37,6 +37,8 @@ GEO_FACE_MIRROR_Z = 4
 
 # Cage hardness and displacement
 GEO_LOOP_CAGE_HARDNESS_NAME = "gflow_cage_hardness"
+GEO_LOOP_CAGE_OFFSET_NAME = "gflow_cage_tightness"
+
 
 def removeObjectLayers(o):
     with helpers.objectModeBmesh(o) as bm:
@@ -48,6 +50,7 @@ def removeObjectLayers(o):
 def removeObjectCageLayers(o):
     with helpers.objectModeBmesh(o) as bm:
         removeCageHardnessLayer(bm)
+    removeCageDisplacementMap(o)
 
 # Cage
 def getCageHardnessLayer(bm, forceCreation=False):
@@ -63,9 +66,23 @@ def getCageHardnessLayer(bm, forceCreation=False):
     return layer
 def removeCageHardnessLayer(bm):
     try:
-         bm.loops.layers.color.remove( bm.loops.layers.color[GEO_LOOP_CAGE_HARDNESS_NAME])
+         bm.loops.layers.color.remove(bm.loops.layers.color[GEO_LOOP_CAGE_HARDNESS_NAME])
     except:
         pass    
+
+def getCageDisplacementMap(obj, forceCreation=False):
+    vmap = None
+    try:
+        vmap = obj.vertex_groups[GEO_LOOP_CAGE_OFFSET_NAME]
+    except:
+        if forceCreation: 
+            vmap = obj.vertex_groups.new( name = GEO_LOOP_CAGE_OFFSET_NAME )
+    return vmap
+def removeCageDisplacementMap(obj):
+    try:
+         obj.vertex_groups.remove(obj.vertex_groups[GEO_LOOP_CAGE_OFFSET_NAME])
+    except:
+        pass 
 
 # Mirrors
 def getMirrorLayer(bm, forceCreation=False):

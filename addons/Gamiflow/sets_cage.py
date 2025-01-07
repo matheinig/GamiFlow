@@ -47,13 +47,13 @@ def processCageMesh(context, obj):
     bpy.ops.object.mode_set(mode='OBJECT')
 
     #Displace the verts
-    offset = obj.gflow.cageOffset
-    if offset==0.0: offset = context.scene.gflow.cageOffset
+    baseOffset = obj.gflow.cageOffset
+    if baseOffset==0.0: baseOffset = context.scene.gflow.cageOffset
     with helpers.objectModeBmesh(obj) as bm:
         smoothNormalLayer = bm.verts.layers.float_vector.get(smoothNormalLayerName)  
         colorLayer = geotags.getCageHardnessLayer(bm, forceCreation=False)
+        displacementMap = geotags.getCageDisplacementMap(obj, forceCreation=False)
 
-        # colorLayer = bm.loops.layers.color.get('gflow_cage_hardness')
         for v in bm.verts:
             factor = defaultSmoothnessFactor
             if colorLayer and obj.gflow.cageHardness == 'CUSTOM': 
@@ -62,6 +62,15 @@ def processCageMesh(context, obj):
             hardNormal = v.normal
             smoothNormal = v[smoothNormalLayer]
             interpolatedNormal = hardNormal.lerp(smoothNormal, factor)
+            offset = baseOffset
+            # Modulate the offset based on the weight map if available
+            if displacementMap:
+                try:
+                    weight = 1.0-displacementMap.weight(v.index)
+                    offset = offset * weight
+                except:
+                    pass
+            
             v.co += interpolatedNormal * offset
     helpers.setDeselected(obj)
     return
@@ -130,8 +139,24 @@ class GFLOW_OT_AddCageSharpnessMap(bpy.types.Operator):
         
         return {"FINISHED"} 
 
+class GFLOW_OT_AddCageDisplacementMap(bpy.types.Operator):
+    bl_idname      = "gflow.add_cage_displacement_map"
+    bl_label       = "Add map"
+    bl_description = "Add a weightmap to define the cage tightness: a value of 1 means the cage vertex will not be displaced. a value of 0 means the vertex will be fully displaced."
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        if not context.object: return False
+        return True
+    def execute(self, context):
+        vmap = geotags.getCageDisplacementMap(context.object, forceCreation=True)
+        context.object.vertex_groups.active = vmap
+        return {"FINISHED"} 
+
+
+
 classes = [GFLOW_OT_MakeCage, 
-    GFLOW_OT_AddCageSharpnessMap
+    GFLOW_OT_AddCageSharpnessMap, GFLOW_OT_AddCageDisplacementMap,
 ]
 
 
