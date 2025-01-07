@@ -92,7 +92,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     highpolys: bpy.props.CollectionProperty(type=GFlowHighPolyItem)
     ui_selectedHighPoly : bpy.props.IntProperty(name="[UI] HP Index", default=0, description="Internal")
     
-    cageOffset : bpy.props.FloatProperty(name="Cage offset", default=0.0, min=0.0, soft_max=0.1, description="Per-object cage offset override. Leave at 0 to use the scene value instead.")
+    cageOffset : bpy.props.FloatProperty(name="Cage offset", subtype='DISTANCE', default=0.0, min=0.0, soft_max=0.1, description="Per-object cage offset override. Leave at 0 to use the scene value instead.")
     cageHardness: bpy.props.EnumProperty(name="Hardness", default='SMOOTH', items=[
         ("SMOOTH", "Smooth", "No splitting of edges, the whole mesh will be balloon up", 0),
         ("HARD", "Sharp", "Sharp edges are split", 1),
@@ -129,7 +129,7 @@ class GFlowScene(bpy.types.PropertyGroup):
     
     # Cage
     useCage : bpy.props.BoolProperty(name="Generate cage", default=False, description="If enabled, cage objects will generated")    
-    cageOffset : bpy.props.FloatProperty(name="Default offset", default=0.01, min=0.0, soft_max=0.1, description="How much the cage mesh will be inflated")
+    cageOffset : bpy.props.FloatProperty(name="Default offset", subtype='DISTANCE', default=0.01, min=0.0, soft_max=0.1, description="How much the cage mesh will be inflated")
     
     # UVs
     uvResolution : bpy.props.EnumProperty(name="Resolution", default='2048', items=gUV_RESOLUTION, description="Default resolution in pixels")
