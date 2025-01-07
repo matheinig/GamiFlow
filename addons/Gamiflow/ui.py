@@ -214,12 +214,21 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row.prop(gflow, "bakeGhost")
             
             # Cage
+            self.layout.separator()
+            cageUsed = context.scene.gflow.useCage
+
             row = self.layout.row()
-            row.enabled = context.scene.gflow.useCage
-            row.prop(gflow, "cage")
-            row = self.layout.row()
-            row.enabled = gflow.cage is None and context.scene.gflow.useCage
-            row.prop(gflow, "cageOffset")            
+            row.enabled = cageUsed
+            row.prop(gflow, "cageOffset")  
+            #TODO: button to add distance factor map
+            
+            row = self.layout.row()            
+            row.enabled = cageUsed
+            row.prop(gflow, "cageHardness")
+            if gflow.cageHardness == "CUSTOM":
+                if obj.data.vertex_colors.get(geotags.GEO_LOOP_CAGE_HARDNESS_NAME) is None:
+                    row.operator("gflow.add_cage_sharpness_map")
+
             
         elif obj.type == 'EMPTY':
             row = self.layout.row()

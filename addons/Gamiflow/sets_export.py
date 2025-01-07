@@ -86,11 +86,13 @@ def generateExport(context):
             if helpers.isObjectCollectionInstancer(o): generateCopy = False
             
             # Make a copy the object
-
             newobj = sets.duplicateObject(o, collection, suffix=exportSuffix)
             newobj.name = namePrefix+newobj.name
             gen.register(newobj, o)
             localgen.register(newobj, o)
+            
+            # remove cage control data
+            geotags.removeObjectCageLayers(newobj)
                 
             # Unparenting for now as the new parent might not yet exist
             if o.parent != None:

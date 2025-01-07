@@ -72,6 +72,7 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         exportCollection(context, context.scene.gflow.painterHighCollection, baseName+"_high")
         
         if context.scene.gflow.painterCageCollection and len(context.scene.gflow.painterCageCollection.objects)>0:
+            sets.setCollectionVisibility(context, context.scene.gflow.painterCageCollection, True)
             # Because of the way painter matches the geometry, we have to export one cageper texture set
             exportTextureSets(context, context.scene.gflow.painterCageCollection, baseName+"_cage")
         

@@ -1,5 +1,6 @@
 import bpy
 import bmesh
+import mathutils
 from . import helpers
 
 # Per-face gridification. 0: no straightening, 1=straighten island, -1=subset of faces that cannot be straighten
@@ -34,6 +35,9 @@ GEO_FACE_MIRROR_X = 1
 GEO_FACE_MIRROR_Y = 2
 GEO_FACE_MIRROR_Z = 4
 
+# Cage hardness and displacement
+GEO_LOOP_CAGE_HARDNESS_NAME = "gflow_cage_hardness"
+
 def removeObjectLayers(o):
     with helpers.objectModeBmesh(o) as bm:
         removeMirrorLayer(bm)
@@ -41,7 +45,29 @@ def removeObjectLayers(o):
         removeUvScaleLayer(bm)
         removeDetailFaceLayer(bm)
         removeDetailEdgeLayer(bm)
+def removeObjectCageLayers(o):
+    with helpers.objectModeBmesh(o) as bm:
+        removeCageHardnessLayer(bm)
 
+# Cage
+def getCageHardnessLayer(bm, forceCreation=False):
+    layer = None
+    try:
+        layer = bm.loops.layers.color[GEO_LOOP_CAGE_HARDNESS_NAME]
+    except:
+        if forceCreation: 
+            layer = bm.loops.layers.color.new(GEO_LOOP_CAGE_HARDNESS_NAME)
+            for face in bm.faces: 
+                for loop in face.loops:
+                    loop[layer] = mathutils.Vector((0.0, 0.0, 0.0, 1.0))
+    return layer
+def removeCageHardnessLayer(bm):
+    try:
+         bm.loops.layers.color.remove( bm.loops.layers.color[GEO_LOOP_CAGE_HARDNESS_NAME])
+    except:
+        pass    
+
+# Mirrors
 def getMirrorLayer(bm, forceCreation=False):
     layer = None
     try:
@@ -55,6 +81,7 @@ def removeMirrorLayer(bm):
     except:
         pass
 
+# UV grid
 def getGridifyLayer(bm, forceCreation=False):
     layer = None
     try:
@@ -67,14 +94,16 @@ def removeGridifyLayer(bm):
         bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_GRIDIFY_NAME])
     except:
         pass
-    
+        
+# UV orientation
 def getUvOrientationLayer(bm, forceCreation=False):
     layer = bm.edges.layers.int.get(GEO_EDGE_UV_ROTATION_NAME)
     if forceCreation and not layer: layer = bm.edges.layers.int.new(GEO_EDGE_UV_ROTATION_NAME)
     return layer
 def removeUvOrientationLayer(bm):
     bm.edges.layers.int.remove(bm.edges.layers.int.get(GEO_EDGE_UV_ROTATION_NAME))
-    
+
+# UV scale
 def getUvScaleLayer(bm, forceCreation=False):
     layer = bm.faces.layers.float.get(GEO_FACE_UV_SCALE_NAME)
     if forceCreation and not layer: layer = bm.faces.layers.float.new(GEO_FACE_UV_SCALE_NAME)
@@ -89,6 +118,7 @@ def removeUvScaleLayer(bm):
     except:
         pass   
     
+# Face detail
 def getDetailFacesLayer(bm, forceCreation=False):
     layer = bm.faces.layers.int.get(GEO_FACE_LEVEL_NAME)
     if forceCreation and not layer: layer = bm.faces.layers.int.new(GEO_FACE_LEVEL_NAME)
@@ -98,7 +128,8 @@ def removeDetailFaceLayer(bm):
         bm.faces.layers.int.remove(bm.faces.layers.int[GEO_FACE_LEVEL_NAME])
     except:
         pass   
-        
+
+# Edge detail  
 def getDetailEdgesLayer(bm, forceCreation=False):
     layer = bm.edges.layers.int.get(GEO_EDGE_LEVEL_NAME)
     if forceCreation and not layer: layer = bm.edges.layers.int.new(GEO_EDGE_LEVEL_NAME)
