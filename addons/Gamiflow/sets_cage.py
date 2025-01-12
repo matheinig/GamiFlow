@@ -95,8 +95,17 @@ def generatePainterCage(context):
         # Duplicate the lowpoly unless it has a user-defined cage already
         newobj = sets.duplicateObject(o, cageCollection, prefix=namePrefix) # TODO: should we also remove the _low suffix?
         newobj.display_type = 'WIRE'
+        helpers.setSelected(context, newobj)
 
         # Apply modifiers? (unless it's armature?)
+        for m in list(newobj.modifiers):
+            # remove some unwanted modifiers
+            if m.type == 'TRIANGULATE' or m.type == 'ARMATURE':
+                newobj.modifiers.remove(m)
+                continue
+            # Apply the rest (particularly important for mirror seams)
+            bpy.ops.object.modifier_apply(modifier=m.name)
+        
         
         # Generate the cage
         processCageMesh(context, newobj)
