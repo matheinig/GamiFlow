@@ -93,6 +93,7 @@ def generateExport(context):
             
             # remove cage control data
             geotags.removeObjectCageLayers(newobj)
+            sets.removeCageEdges(newobj)
                 
             # Unparenting for now as the new parent might not yet exist
             if o.parent != None:

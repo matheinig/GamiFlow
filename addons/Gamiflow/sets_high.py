@@ -183,7 +183,10 @@ def generatePainterHigh(context):
             ghost = sets.duplicateObject(o, highCollection, suffix="_ghost")
             # Teleport
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
-
+            
+    for o in gen.generated:
+        sets.removeCageEdges(o)
+        
     return
 
 
