@@ -21,6 +21,7 @@ GEO_EDGE_UV_ROTATION_HORIZONTAL = 2
 # Flag for edges that should be dissolved. 0=keep, 1=removed for baking and lod0, 2=removed in lod1, 3=removed in lod2, etc
 GEO_EDGE_LEVEL_NAME = "gflow_edge_lowpoly" 
 GEO_EDGE_LEVEL_DEFAULT = 0
+GEO_EDGE_LEVEL_CAGE = -1
 GEO_EDGE_LEVEL_PAINTER = 1  # edge removed for lod0 but is kept in painter
 GEO_EDGE_LEVEL_LOD0 = 2 # here we start removing the tagged edges for lod0, at GEO_EDGE_LEVEL_LOD0+1 we remove them at lod1
 # Flag for faces that should be deleted. These faces will be not show up in the UVs and will instead have their own 0-sized UV island in the working set.
@@ -36,7 +37,6 @@ GEO_FACE_MIRROR_Y = 2
 GEO_FACE_MIRROR_Z = 4
 
 # Cage hardness and displacement
-GEO_LOOP_CAGE_HARDNESS_NAME = "gflow_cage_hardness"
 GEO_LOOP_CAGE_OFFSET_NAME = "gflow_cage_tightness"
 
 
@@ -48,28 +48,9 @@ def removeObjectLayers(o):
         removeDetailFaceLayer(bm)
         removeDetailEdgeLayer(bm)
 def removeObjectCageLayers(o):
-    with helpers.objectModeBmesh(o) as bm:
-        removeCageHardnessLayer(bm)
     removeCageDisplacementMap(o)
 
 # Cage
-def getCageHardnessLayer(bm, forceCreation=False):
-    layer = None
-    try:
-        layer = bm.loops.layers.color[GEO_LOOP_CAGE_HARDNESS_NAME]
-    except:
-        if forceCreation: 
-            layer = bm.loops.layers.color.new(GEO_LOOP_CAGE_HARDNESS_NAME)
-            for face in bm.faces: 
-                for loop in face.loops:
-                    loop[layer] = mathutils.Vector((0.0, 0.0, 0.0, 1.0))
-    return layer
-def removeCageHardnessLayer(bm):
-    try:
-         bm.loops.layers.color.remove(bm.loops.layers.color[GEO_LOOP_CAGE_HARDNESS_NAME])
-    except:
-        pass    
-
 def getCageDisplacementMap(obj, forceCreation=False):
     vmap = None
     try:
@@ -163,7 +144,7 @@ class GFLOW_OT_SetEdgeLevel(bpy.types.Operator):
     bl_description = "Set the detail level of the edges"
     bl_options = {"REGISTER", "UNDO"}
 
-    level : bpy.props.IntProperty(name="Level", default=2, min=0, soft_max=4, description="Edge level", options={'HIDDEN'})
+    level : bpy.props.IntProperty(name="Level", default=2, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
 
     @classmethod
     def poll(cls, context):

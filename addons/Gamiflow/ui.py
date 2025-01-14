@@ -222,13 +222,6 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row.prop(gflow, "cageOffset")  
             if geotags.getCageDisplacementMap(obj, forceCreation=False) is None:
                 row.operator("gflow.add_cage_displacement_map")
-            
-            row = self.layout.row()            
-            row.enabled = cageUsed
-            row.prop(gflow, "cageHardness")
-            if gflow.cageHardness == "CUSTOM":
-                if obj.data.vertex_colors.get(geotags.GEO_LOOP_CAGE_HARDNESS_NAME) is None:
-                    row.operator("gflow.add_cage_sharpness_map")
 
             
         elif obj.type == 'EMPTY':
@@ -368,7 +361,7 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
         elif context.mode == "EDIT_MESH":
             if bpy.context.tool_settings.mesh_select_mode[1]:
                 # Edge mode
-                pie.separator() # Empty W
+                pie.operator("gflow.set_edge_level", text="Mark Cage Detail").level = geotags.GEO_EDGE_LEVEL_CAGE # W
                 pie.separator() # Empty E
                 pie.operator("gflow.set_edge_level", text="Mark Painter Detail").level = geotags.GEO_EDGE_LEVEL_PAINTER
                 pie.operator("gflow.add_soft_seam")

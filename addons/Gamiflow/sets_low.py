@@ -103,11 +103,11 @@ def generatePainterLow(context):
                 material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
                 sets.setMaterial(newobj, material)
                 
-                # Process modifiers, clean up metadata, etc
+                # Process modifiers
                 sets.removeLowModifiers(context, newobj)
                 processModifiers(context, newobj)
                 sets.triangulate(context, newobj)
-                geotags.removeObjectLayers(newobj)
+                
                 
             else:
                 newobj.instance_type = 'NONE'
@@ -135,9 +135,15 @@ def generatePainterLow(context):
         if o.gflow.bakeAnchor:
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
 
+    # Generate the cage
     if context.scene.gflow.useCage:
         sets_cage.generatePainterCage(context)
 
+    # Clean up metadata and dissolve geo used to generate the cage
+    for o in gen.generated:
+        sets.removeCageEdges(o)
+        geotags.removeObjectLayers(o)
+        
     return
 
 

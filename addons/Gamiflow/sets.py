@@ -231,6 +231,16 @@ def removeEdgesForLevel(context, obj, level, keepPainter=False):
         
         if len(relevantEdges)>0: 
             bmesh.ops.dissolve_edges(bm, edges=relevantEdges, use_verts=True, use_face_split=False)
+def removeCageEdges(obj):
+    with helpers.objectModeBmesh(obj) as bm:
+        layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
+        if not layer: return
+        relevantEdges = []
+        for e in bm.edges:
+            if e[layer] == geotags.GEO_EDGE_LEVEL_CAGE: relevantEdges.append(e)        
+        if len(relevantEdges)>0: 
+            bmesh.ops.dissolve_edges(bm, edges=relevantEdges, use_verts=True, use_face_split=False)
+
 
 def deleteDetailFaces(context, obj):
     with helpers.objectModeBmesh(obj) as bm:

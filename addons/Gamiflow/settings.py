@@ -49,6 +49,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     edgeWidth : bpy.props.FloatProperty(name="Edge overlay width", default=2.5, min=0.1, max=4.0, description="Thickness of the edge overlay")
     detailEdgeColor : bpy.props.FloatVectorProperty(name='Detail edge', description='', default=(1, 1, 0, 0.85), subtype='COLOR', size=4)
     painterEdgeColor : bpy.props.FloatVectorProperty(name='Painter edge', description='', default=(0.5, 1, 0.2, 0.85), subtype='COLOR', size=4)
+    cageEdgeColor : bpy.props.FloatVectorProperty(name='Cage edge', description='', default=(0.8, 0.7, 0.2, 0.85), subtype='COLOR', size=4)
     
     def draw(self, context):
         layout = self.layout
@@ -68,6 +69,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "edgeWidth")
         layout.prop(self, "detailEdgeColor")
         layout.prop(self, "painterEdgeColor")
+        layout.prop(self, "cageEdgeColor")
         
         layout.label(text="Baking sets")
         layout.prop(self, "baker")

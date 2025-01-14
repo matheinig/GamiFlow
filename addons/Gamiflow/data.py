@@ -93,11 +93,6 @@ class GFlowObject(bpy.types.PropertyGroup):
     ui_selectedHighPoly : bpy.props.IntProperty(name="[UI] HP Index", default=0, description="Internal")
     
     cageOffset : bpy.props.FloatProperty(name="Cage offset", subtype='DISTANCE', default=0.0, min=0.0, soft_max=0.1, description="Per-object cage offset override. Leave at 0 to use the scene value instead.")
-    cageHardness: bpy.props.EnumProperty(name="Hardness", default='SMOOTH', items=[
-        ("SMOOTH", "Smooth", "No splitting of edges, the whole mesh will be balloon up", 0),
-        ("HARD", "Sharp", "Sharp edges are split", 1),
-        ("CUSTOM", "Custom", "You can decide it yourself by painting the mesh", 2),
-    ]) 
 
     # Export
     instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)

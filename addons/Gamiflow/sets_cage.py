@@ -21,57 +21,20 @@ def getCollection(context, createIfNeeded=False):
 def processCageMesh(context, obj):
     helpers.setSelected(context, obj)
    
-
-    smoothNormalLayerName = "GFLOW_NORMAL"
-    defaultSmoothnessFactor = 0.0
-    if obj.gflow.cageHardness == 'SMOOTH':
-        defaultSmoothnessFactor = 1.0
-   
-    # First split the edges that we want sharp
-    # The standard hard mode will split on all sharp edges, the custom mode will split every single edge
-    bpy.ops.object.mode_set(mode='EDIT')
-    with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
-        smoothNormalLayer = bm.verts.layers.float_vector.new(smoothNormalLayerName)
-        for v in bm.verts:
-            v[smoothNormalLayer] = v.normal
-        
-        if obj.gflow.cageHardness == 'HARD':
-            for e in bm.edges:
-                e.select_set(not e.smooth)
-                print("YEP")
-        elif obj.gflow.cageHardness == 'CUSTOM':
-            for e in bm.edges:
-                e.select_set(True)
-    if obj.gflow.cageHardness != 'SMOOTH':
-        bpy.ops.mesh.edge_split()
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    #Displace the verts
+    # Displace the verts
     baseOffset = obj.gflow.cageOffset
     if baseOffset==0.0: baseOffset = context.scene.gflow.cageOffset
     with helpers.objectModeBmesh(obj) as bm:
-        smoothNormalLayer = bm.verts.layers.float_vector.get(smoothNormalLayerName)  
-        colorLayer = geotags.getCageHardnessLayer(bm, forceCreation=False)
         displacementMap = geotags.getCageDisplacementMap(obj, forceCreation=False)
-
         for v in bm.verts:
-            factor = defaultSmoothnessFactor
-            if colorLayer and obj.gflow.cageHardness == 'CUSTOM': 
-                loop = v.link_loops[0] # assume that at this point, all relevant edges have been split so loop 0 is fine
-                factor = 1.0-loop[colorLayer][0] # only read red, rest currently irrelevant
-            hardNormal = v.normal
-            smoothNormal = v[smoothNormalLayer]
-            interpolatedNormal = hardNormal.lerp(smoothNormal, factor)
             offset = baseOffset
-            # Modulate the offset based on the weight map if available
             if displacementMap:
                 try:
                     weight = 1.0-displacementMap.weight(v.index)
                     offset = offset * weight
-                except:
-                    pass
-            
-            v.co += interpolatedNormal * offset
+                except: pass 
+            v.co += v.normal * offset
+     
     helpers.setDeselected(obj)
     return
 
@@ -131,22 +94,6 @@ class GFLOW_OT_MakeCage(bpy.types.Operator):
         
         return {"FINISHED"} 
 
-class GFLOW_OT_AddCageSharpnessMap(bpy.types.Operator):
-    bl_idname      = "gflow.add_cage_sharpness_map"
-    bl_label       = "Add map"
-    bl_description = "Add a vertex color map to define cage sharpness"
-    bl_options = {"REGISTER", "UNDO"}
-    @classmethod
-    def poll(cls, context):
-        if not context.object: return False
-        return True
-    def execute(self, context):
-        with helpers.objectModeBmesh(context.object) as bm:
-            layer = geotags.getCageHardnessLayer(bm, forceCreation = True)
-        context.object.data.attributes.active_color_name = geotags.GEO_LOOP_CAGE_HARDNESS_NAME
-        context.object.data.attributes.render_color_index = context.object.data.attributes.active_color_index 
-        
-        return {"FINISHED"} 
 
 class GFLOW_OT_AddCageDisplacementMap(bpy.types.Operator):
     bl_idname      = "gflow.add_cage_displacement_map"
@@ -165,7 +112,7 @@ class GFLOW_OT_AddCageDisplacementMap(bpy.types.Operator):
 
 
 classes = [GFLOW_OT_MakeCage, 
-    GFLOW_OT_AddCageSharpnessMap, GFLOW_OT_AddCageDisplacementMap,
+    GFLOW_OT_AddCageDisplacementMap,
 ]
 
 
