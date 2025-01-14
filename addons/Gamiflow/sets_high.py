@@ -141,6 +141,7 @@ def generatePainterHigh(context):
                         
             # But we can also have manually-linked high-polys that we have to add and parent
             for hp in o.gflow.highpolys:
+                if hp.obj is None: continue
                 newhp = sets.duplicateObject(hp.obj, highCollection, suffix="_TEMP_")
                 helpers.convertToMesh(context, newhp)
                 hpsuffix = suffix
