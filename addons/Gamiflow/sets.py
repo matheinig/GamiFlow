@@ -158,6 +158,7 @@ def duplicateObject(sourceObj, collection, prefix="", suffix=""):
     new_obj = sourceObj.copy()
     new_obj.name = getNewName(sourceObj, prefix, suffix)
     if sourceObj.data: new_obj.data = sourceObj.data.copy()
+    new_obj.hide_select = False
     collection.objects.link(new_obj)
     return new_obj
     
