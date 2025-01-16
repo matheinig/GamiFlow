@@ -49,15 +49,25 @@ def bakeVertexColours(obj):
                 loop[layer] = colour
     return
 
+def bakeObjectsNeedsProcessing(obj):
+    if len(obj.modifiers) != 0: return False
+    if stgs.idMap == 'VERTEX' and len(obj.data.color_attributes)==0: return False
+    with helpers.objectModeBmesh(obj) as bm:
+        mirrorLayer = geotags.getMirrorLayer(bm)
+        if mirrorLayer: return False
+    return True
+
 def generateIdMap(stgs, obj):
     if stgs.idMap == 'VERTEX': bakeVertexColours(obj)
 
-def processNewObject(context, o, stgs):
+def processNewObject(context, o, stgs, isBakeObject=False):
     generateIdMap(stgs, o)
     sets.generatePartialSymmetryIfNeeded(context, o)
-    if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
-    sets.triangulate(context, o)
-    geotags.removeObjectLayers(o)
+    # We don't need to do this for bake objects,and it means that we don't always need to modify the mesh
+    if (not isBakeObject):
+        if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
+        triangulate: sets.triangulate(context, o)
+        geotags.removeObjectLayers(o)
     
     # When using the blender baker we actually *need* the hp-only modifiers to have their visibility set back to render mode
     if stgs.baker == 'BLENDER':
@@ -142,13 +152,14 @@ def generatePainterHigh(context):
             # But we can also have manually-linked high-polys that we have to add and parent
             for hp in o.gflow.highpolys:
                 if hp.obj is None: continue
-                newhp = sets.duplicateObject(hp.obj, highCollection, suffix="_TEMP_")
+                canUseLinkedInstance = not bakeObjectsNeedsProcessing(o)
+                newhp = sets.duplicateObject(hp.obj, highCollection, suffix="_TEMP_", link=canUseLinkedInstance)
                 helpers.convertToMesh(context, newhp)
                 hpsuffix = suffix
                 if hp.obj.gflow.objType == 'DECAL' or hp.obj.gflow.singleSided: 
                     hpsuffix = hpsuffix + decalsuffix
                 newhp.name = namePrefix+sets.getNewName(o, "", hpsuffix) + "_" + hp.obj.name
-                processNewObject(context, newhp, stgs)
+                processNewObject(context, newhp, stgs, isBakeObject=True)
                 gen.register(newhp, hp.obj)
                 localgen.register(newhp, hp.obj)
                 if newobj: 
@@ -183,10 +194,7 @@ def generatePainterHigh(context):
             ghost = sets.duplicateObject(o, highCollection, suffix="_ghost")
             # Teleport
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
-            
-    for o in gen.generated:
-        sets.removeCageEdges(o)
-        
+              
     return
 
 

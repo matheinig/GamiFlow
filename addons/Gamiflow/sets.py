@@ -154,10 +154,11 @@ def findRoots(collection):
 
 def getNewName(sourceObj, prefix, suffix):
     return prefix + sourceObj.name + suffix
-def duplicateObject(sourceObj, collection, prefix="", suffix=""):
+def duplicateObject(sourceObj, collection, prefix="", suffix="", link=False):
     new_obj = sourceObj.copy()
     new_obj.name = getNewName(sourceObj, prefix, suffix)
-    if sourceObj.data: new_obj.data = sourceObj.data.copy()
+    if sourceObj.data: 
+        if not link: new_obj.data = sourceObj.data.copy()
     new_obj.hide_select = False
     collection.objects.link(new_obj)
     return new_obj
