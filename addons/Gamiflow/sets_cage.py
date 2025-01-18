@@ -52,7 +52,7 @@ def generatePainterCage(context):
     namePrefix = settings.getSettings().cageprefix
  
     # Go through all meshes of the low poly set
-    for o in lowCollection.all_objects:
+    for o in list(lowCollection.all_objects):
         if not (o.type == 'MESH'): continue
         
         # Duplicate the lowpoly unless it has a user-defined cage already

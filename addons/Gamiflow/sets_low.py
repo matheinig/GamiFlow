@@ -128,7 +128,7 @@ def generatePainterLow(context):
                 
         return roots
                 
-    populateLowList(context.scene.gflow.workingCollection.all_objects)
+    populateLowList(list(context.scene.gflow.workingCollection.all_objects))
      
     # Deal with anchors
     for o in gen.generated:

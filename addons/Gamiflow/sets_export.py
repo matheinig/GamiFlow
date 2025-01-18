@@ -149,7 +149,7 @@ def generateExport(context):
         
         return roots
     
-    populateExportList(context.scene.gflow.workingCollection.all_objects)
+    populateExportList(list(context.scene.gflow.workingCollection.all_objects))
 
     # Deal with the anchors
     for o in gen.generated:

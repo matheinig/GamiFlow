@@ -183,7 +183,7 @@ def generatePainterHigh(context):
 
 
         
-    populateHighList(context.scene.gflow.workingCollection.all_objects)
+    populateHighList(list(context.scene.gflow.workingCollection.all_objects))
         
 
     # Deal with anchors
