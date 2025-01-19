@@ -25,8 +25,6 @@ def onCollectionChanged(self, context):
     if len(context.scene.gflow.udims) == 0:
         context.scene.gflow.udims.add()
         context.scene.gflow.udims[0].name = "UDIM_0"
-    # Make sure that we are aware of what already exists in the new working set so that we can detect changes later
-    sets.registerCurrentObjects()
     
 gUV_UNWRAP_METHODS = [
         ("ANGLE_BASED", "Angle Based", "", 1),
