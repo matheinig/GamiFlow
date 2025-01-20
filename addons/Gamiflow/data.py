@@ -2,6 +2,7 @@ import bpy
 from . import uv
 from . import sets
 from . import display
+from . import sets_cage
 
 # Per object
 class GFlowHighPolyItem(bpy.types.PropertyGroup):
@@ -25,6 +26,14 @@ def onCollectionChanged(self, context):
     if len(context.scene.gflow.udims) == 0:
         context.scene.gflow.udims.add()
         context.scene.gflow.udims[0].name = "UDIM_0"
+def onCageOffsetChanged(self, context):
+    cageModifier = sets_cage.getCageModifier(context.object)
+    if cageModifier:
+        value = self.cageOffset
+        if value == 0.0: value = context.scene.gflow.cageOffset
+        id = cageModifier.node_group.interface.items_tree["Offset"].identifier
+        cageModifier[id] = value
+    return    
     
 gUV_UNWRAP_METHODS = [
         ("ANGLE_BASED", "Angle Based", "", 1),
@@ -90,7 +99,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     highpolys: bpy.props.CollectionProperty(type=GFlowHighPolyItem)
     ui_selectedHighPoly : bpy.props.IntProperty(name="[UI] HP Index", default=0, description="Internal")
     
-    cageOffset : bpy.props.FloatProperty(name="Cage offset", subtype='DISTANCE', default=0.0, min=0.0, soft_max=0.1, description="Per-object cage offset override. Leave at 0 to use the scene value instead.")
+    cageOffset : bpy.props.FloatProperty(name="Cage offset", subtype='DISTANCE', default=0.0, min=0.0, soft_max=0.5, description="Per-object cage offset override. Leave at 0 to use the scene value instead.", update=onCageOffsetChanged)
 
     # Export
     instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)
@@ -122,7 +131,7 @@ class GFlowScene(bpy.types.PropertyGroup):
     
     # Cage
     useCage : bpy.props.BoolProperty(name="Generate cage", default=False, description="If enabled, cage objects will generated")    
-    cageOffset : bpy.props.FloatProperty(name="Default offset", subtype='DISTANCE', default=0.01, min=0.0, soft_max=0.1, description="How much the cage mesh will be inflated")
+    cageOffset : bpy.props.FloatProperty(name="Default offset", subtype='DISTANCE', default=0.01, min=0.0, soft_max=0.5, description="How much the cage mesh will be inflated")
     
     # UVs
     uvResolution : bpy.props.EnumProperty(name="Resolution", default='2048', items=gUV_RESOLUTION, description="Default resolution in pixels")
