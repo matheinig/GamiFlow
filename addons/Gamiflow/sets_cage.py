@@ -60,7 +60,6 @@ def setCagePreview(obj, enabled):
 def checkWeightPaintMode(context):
     obj = context.object
     if not obj: return
-    print("CHECKY")
     changed = False
     global GFLOW_WasInWeightPaintMode
     if GFLOW_WasInWeightPaintMode:
@@ -117,6 +116,10 @@ def addCageModifier(context, obj):
     id = modifier.node_group.interface.items_tree["Offset"].identifier
     modifier[id] = offset    
     return modifier
+def removeCageModifier(context, obj):
+    modifier = getCageModifier(obj)
+    if modifier:
+        obj.modifiers.remove(modifier)
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterCageCollection
@@ -205,10 +208,24 @@ class GFLOW_OT_AddCageDisplacementMap(bpy.types.Operator):
         addCageModifier(context, context.object)
         return {"FINISHED"} 
 
+class GFLOW_OT_RemoveCageDisplacementMap(bpy.types.Operator):
+    bl_idname      = "gflow.remove_cage_displacement_map"
+    bl_label       = "Remove map"
+    bl_description = "Remove the cage tightness weightmap."
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        if not context.object: return False
+        return True
+    def execute(self, context):
+        vmap = geotags.getCageDisplacementMap(context.object, forceCreation=False)
+        context.object.vertex_groups.remove(vmap)
+        removeCageModifier(context, context.object)
+        return {"FINISHED"}
 
 
 classes = [GFLOW_OT_MakeCage, 
-    GFLOW_OT_AddCageDisplacementMap,
+    GFLOW_OT_AddCageDisplacementMap, GFLOW_OT_RemoveCageDisplacementMap,
 ]
 
 

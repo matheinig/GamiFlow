@@ -221,7 +221,9 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row.enabled = cageUsed
             row.prop(gflow, "cageOffset")  
             if geotags.getCageDisplacementMap(obj, forceCreation=False) is None:
-                row.operator("gflow.add_cage_displacement_map")
+                row.operator("gflow.add_cage_displacement_map", icon="GROUP_VERTEX", text="Add tightness map")
+            else:
+                row.operator("gflow.remove_cage_displacement_map", icon="GROUP_VERTEX", text="Clear")
 
             
         elif obj.type == 'EMPTY':
