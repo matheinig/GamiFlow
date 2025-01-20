@@ -3,6 +3,7 @@ from . import sets
 from . import settings
 from . import helpers
 from . import geotags
+from . import sets_cage
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterHighCollection
@@ -194,7 +195,11 @@ def generatePainterHigh(context):
             ghost = sets.duplicateObject(o, highCollection, suffix="_ghost")
             # Teleport
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
-              
+           
+    # Remove cage modifiers in case the user played with them
+    for o in gen.generated:
+        sets_cage.removeCageModifier(context, o)
+           
     return
 
 

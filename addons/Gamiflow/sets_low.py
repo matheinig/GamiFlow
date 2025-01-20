@@ -143,6 +143,7 @@ def generatePainterLow(context):
     for o in gen.generated:
         sets.removeCageEdges(o)
         geotags.removeObjectLayers(o)
+        sets_cage.removeCageModifier(context, o)
         
     return
 

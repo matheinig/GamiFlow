@@ -28,6 +28,7 @@ def processModifiers(context, obj):
     for m in list(obj.modifiers):
         if m.type == 'ARMATURE': continue # Armature modifiers should not be collapsed
         bpy.ops.object.modifier_apply(modifier=m.name)
+    sets_cage.removeCageModifier(context, obj)
 
 
 # Hierarchy optimiser

@@ -13,12 +13,15 @@ CAGE_NODE_NAME = "Cage (GFlow)"
 
 GFLOW_WasInWeightPaintMode = False
 GFLOW_LastObject = None
-msgSubscriber = object()
+msgSubscriber = None
 
 @persistent
 def load_handler(dummy):
-    # We have to subscribe at load time because the context doesn't exist during the plugin load time
-    subscribeWeightPaintWatcher(msgSubscriber)
+    global msgSubscriber
+    if msgSubscriber is None:
+        msgSubscriber = object()
+        # We have to subscribe at load time because the context doesn't exist during the plugin load time
+        subscribeWeightPaintWatcher(msgSubscriber)
     
 def subscribeWeightPaintWatcher(owner):
     #sub = bpy.types.Context, "mode" # doesn't seem to exist
@@ -111,6 +114,7 @@ def addCageModifier(context, obj):
             
     # Add the modifier to the object
     modifier = obj.modifiers.new(CAGE_NODE_NAME, "NODES")
+    modifier.use_pin_to_last = True
     modifier.node_group = bpy.data.node_groups[CAGE_NODE_NAME]
     offset = getObjectCageOffset(context, obj)
     id = modifier.node_group.interface.items_tree["Offset"].identifier
