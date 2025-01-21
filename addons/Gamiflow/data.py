@@ -33,7 +33,20 @@ def onCageOffsetChanged(self, context):
         if value == 0.0: value = context.scene.gflow.cageOffset
         id = cageModifier.node_group.interface.items_tree["Offset"].identifier
         cageModifier[id] = value
-    return    
+        cageModifier.node_group.interface_update(context)
+    return
+def onDefaultCageOffsetChanged(self, context):
+    if context.scene.gflow.workingCollection is None: return
+    for o in context.scene.gflow.workingCollection.all_objects:
+        if o.gflow.cageOffset == 0:
+            cageModifier = sets_cage.getCageModifier(o)
+            if cageModifier: 
+                id = cageModifier.node_group.interface.items_tree["Offset"].identifier
+                if cageModifier[id] != self.cageOffset:
+                    cageModifier[id] = self.cageOffset
+                    cageModifier.node_group.interface_update(context)
+                
+        
     
 gUV_UNWRAP_METHODS = [
         ("ANGLE_BASED", "Angle Based", "", 1),
@@ -131,7 +144,7 @@ class GFlowScene(bpy.types.PropertyGroup):
     
     # Cage
     useCage : bpy.props.BoolProperty(name="Generate cage", default=False, description="If enabled, cage objects will generated")    
-    cageOffset : bpy.props.FloatProperty(name="Default offset", subtype='DISTANCE', default=0.01, min=0.0, soft_max=0.5, description="How much the cage mesh will be inflated")
+    cageOffset : bpy.props.FloatProperty(name="Default offset", subtype='DISTANCE', default=0.01, min=0.0, soft_max=0.5, update=onDefaultCageOffsetChanged, description="How much the cage mesh will be inflated")
     
     # UVs
     uvResolution : bpy.props.EnumProperty(name="Resolution", default='2048', items=gUV_RESOLUTION, description="Default resolution in pixels")
