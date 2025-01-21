@@ -4,6 +4,7 @@ from . import helpers
 from . import settings
 from . import uv
 from . import geotags
+from . import sets_cage
 
 # Find or create the Export Set
 def getCollection(context, createIfNeeded=False):
