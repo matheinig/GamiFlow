@@ -50,7 +50,7 @@ def bakeVertexColours(obj):
                 loop[layer] = colour
     return
 
-def bakeObjectsNeedsProcessing(obj):
+def bakeObjectsNeedsProcessing(obj, stgs):
     if len(obj.modifiers) != 0: return False
     if stgs.idMap == 'VERTEX' and len(obj.data.color_attributes)==0: return False
     with helpers.objectModeBmesh(obj) as bm:
@@ -153,7 +153,7 @@ def generatePainterHigh(context):
             # But we can also have manually-linked high-polys that we have to add and parent
             for hp in o.gflow.highpolys:
                 if hp.obj is None: continue
-                canUseLinkedInstance = not bakeObjectsNeedsProcessing(o)
+                canUseLinkedInstance = not bakeObjectsNeedsProcessing(o, stgs)
                 newhp = sets.duplicateObject(hp.obj, highCollection, suffix="_TEMP_", link=canUseLinkedInstance)
                 helpers.convertToMesh(context, newhp)
                 hpsuffix = suffix
