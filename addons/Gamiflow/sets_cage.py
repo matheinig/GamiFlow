@@ -13,15 +13,12 @@ CAGE_NODE_NAME = "Cage (GFlow)"
 
 GFLOW_WasInWeightPaintMode = False
 GFLOW_LastObject = None
-msgSubscriber = None
+msgSubscriber = object()
 
 @persistent
 def load_handler(dummy):
-    global msgSubscriber
-    if msgSubscriber is None:
-        msgSubscriber = object()
-        # We have to subscribe at load time because the context doesn't exist during the plugin load time
-        subscribeWeightPaintWatcher(msgSubscriber)
+    # We have to subscribe at load time because the context doesn't exist during the plugin load time
+    subscribeWeightPaintWatcher(msgSubscriber)
     
 def subscribeWeightPaintWatcher(owner):
     #sub = bpy.types.Context, "mode" # doesn't seem to exist
