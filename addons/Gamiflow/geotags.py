@@ -138,6 +138,13 @@ def removeDetailEdgeLayer(bm):
     except:
         pass   
         
+def setObjectSelectedEdgeLevel(obj, level=2):
+    with helpers.editModeBmesh(obj) as bm:
+        layer = getDetailEdgesLayer(bm, forceCreation=True)
+        for edge in bm.edges:
+            if edge.select: 
+                edge[layer] = level
+        
 class GFLOW_OT_SetEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.set_edge_level"
     bl_label       = "Set level"
@@ -155,14 +162,30 @@ class GFLOW_OT_SetEdgeLevel(bpy.types.Operator):
         return context.edit_object is not None
 
     def execute(self, context):
-        obj = context.edit_object
-       
-        with helpers.editModeBmesh(obj) as bm:
-            layer = getDetailEdgesLayer(bm, forceCreation=True)
-            for edge in bm.edges:
-                if edge.select: 
-                    edge[layer] = self.level
-
+        setObjectSelectedEdgeLevel(context.edit_object, self.level)
+        return {"FINISHED"}
+        
+class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
+    bl_idname      = "gflow.set_checkered_ring_edge_level"
+    bl_label       = "Set checkered level"
+    bl_description = "Set the edge level for every other edge in the ring"
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[1]: 
+            cls.poll_message_set("Must be in edge mode")
+            return False
+        return context.edit_object is not None
+    def execute(self, context):
+        # Select the entire ring
+        bpy.ops.mesh.loop_multi_select(ring=True)
+        # Remove one in two edges
+        bpy.ops.mesh.select_nth(offset=1) # TODO: add support for num selected/unselected (must figure out offset first)
+        # Extend the selection to the entire loop
+        bpy.ops.mesh.loop_multi_select(ring=False)
+        # Mark as high level
+        setObjectSelectedEdgeLevel(context.edit_object)
         return {"FINISHED"}
 class GFLOW_OT_SelectEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.select_edge_level"
@@ -305,7 +328,7 @@ class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
         return {"FINISHED"}    
     
     
-classes = [GFLOW_OT_SetEdgeLevel, GFLOW_OT_SelectEdgeLevel, GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
+classes = [GFLOW_OT_SetEdgeLevel, GFLOW_OT_SetCheckeredEdgeLevel, GFLOW_OT_SelectEdgeLevel, GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
 
 
 def register():

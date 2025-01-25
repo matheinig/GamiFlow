@@ -320,6 +320,19 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         op.detail = False        
         op = row.operator("gflow.select_face_level", text="Select detail")
           
+# Context menus
+class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
+    bl_label = "GamiFlow"
+    bl_idname = "MESH_MT_gflow_mesh_menu"
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator("gflow.set_checkered_ring_edge_level", text="Set checkered level")
+
+def draw_mesh_menu(self, context):
+    self.layout.separator(factor=1.0)
+    self.layout.menu(GFLOW_MT_MESH_CONTEXT.bl_idname)
 
 # Overlay
 class GFLOW_PT_Overlays(bpy.types.Panel):
@@ -401,6 +414,7 @@ classes = [
     GFLOW_PT_OBJ_PANEL, GamiflowObjPanel_UV, GamiflowObjPanel_Bake, GamiflowObjPanel_Export,
     GFLOW_PT_OBJ_EDIT_PANEL,
     GFLOW_PT_Overlays,
+    GFLOW_MT_MESH_CONTEXT,
     GFLOW_MT_PIE_Object, VIEW3D_OT_PIE_Obj_call]
 
 addon_keymaps  = []
@@ -422,7 +436,11 @@ def register():
     # edit Mode
     km = kc.keymaps.new(name='Mesh', space_type='EMPTY')
     kmi = km.keymap_items.new(VIEW3D_OT_PIE_Obj_call.bl_idname, 'V', 'PRESS', ctrl=False, shift=True)    
-    addon_keymaps.append((km, kmi))    
+    addon_keymaps.append((km, kmi))   
+
+    # Context menus
+    bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(draw_mesh_menu)
+
         
     pass
 def unregister():
@@ -430,6 +448,10 @@ def unregister():
     for km, kmi in addon_keymaps:
         km.keymap_items.remove(kmi)
     addon_keymaps.clear()
+    
+    # Context menus
+    bpy.types.VIEW3D_MT_edit_mesh_context_menu.remove(draw_mesh_menu)
+
     
     for c in reversed(classes): 
         bpy.utils.unregister_class(c)
