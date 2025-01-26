@@ -111,6 +111,7 @@ def generateExport(context):
             
                 # Remove all detail edges
                 bpy.ops.object.select_all(action='DESELECT')  
+                sets.collapseEdges(context, newobj)
                 sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)
                 sets.deleteDetailFaces(context, newobj)
                 

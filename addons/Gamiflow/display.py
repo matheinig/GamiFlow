@@ -21,6 +21,7 @@ gCachedUvScaleBatch = None
 gCachedDetailBatch = None
 gCachedPainterDetailBatch = None
 gCachedCageDetailBatch = None
+gCachedCollapseBatch = None
 
 @persistent
 def mesh_change_listener(scene, depsgraph):
@@ -300,41 +301,76 @@ def drawMirrored():
     
 def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001):
     layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
-    if layer is None: return None, None, None
-    
-    coords = [v.co+v.normal*offset for v in bm.verts]
-    
-    # Could probably cache all the vertices if all we do is play with the indices
+    collapseLayer = geotags.getCollapseEdgesLayer(bm, forceCreation=False)
     solidBatch = None
-    indicesSolid = [[v.index for v in edge.verts]
-                for edge in bm.edges if edge[layer] >= geotags.GEO_EDGE_LEVEL_LOD0]
-    if len(indicesSolid) > 0:
-        solidBatch = batch_for_shader(solidShader, 
-            'LINES',
-            {"pos": coords},
-            indices=indicesSolid)   
-        
-    # Maybe dotted line
     painterBatch = None
-    indicesPainter = [[v.index for v in edge.verts]
-                for edge in bm.edges if edge[layer] == geotags.GEO_EDGE_LEVEL_PAINTER]
-    if len(indicesPainter) > 0:
-        painterBatch = batch_for_shader(solidShader, 
-            'LINES',
-            {"pos": coords},
-            indices=indicesPainter)
-            
-    # Definitely should be a dotted line
     cageBatch = None
-    indicesCage = [[v.index for v in edge.verts]
-                for edge in bm.edges if edge[layer] == geotags.GEO_EDGE_LEVEL_CAGE]
-    if len(indicesCage) > 0:
-        cageBatch = batch_for_shader(solidShader, 
-            'LINES',
-            {"pos": coords},
-            indices=indicesCage)   
-                  
-    return solidBatch, painterBatch, cageBatch
+    collapseBatch = None
+    
+    if layer:
+        coords = [v.co+v.normal*offset for v in bm.verts]
+    
+        indicesSolid = [[v.index for v in edge.verts]
+                    for edge in bm.edges if edge[layer] >= geotags.GEO_EDGE_LEVEL_LOD0]
+        if len(indicesSolid) > 0:
+            solidBatch = batch_for_shader(solidShader, 
+                'LINES',
+                {"pos": coords},
+                indices=indicesSolid)   
+            
+        # Maybe dotted line
+        indicesPainter = [[v.index for v in edge.verts]
+                    for edge in bm.edges if edge[layer] == geotags.GEO_EDGE_LEVEL_PAINTER]
+        if len(indicesPainter) > 0:
+            painterBatch = batch_for_shader(solidShader, 
+                'LINES',
+                {"pos": coords},
+                indices=indicesPainter)
+                
+        # Definitely should be a dotted line
+        indicesCage = [[v.index for v in edge.verts]
+                    for edge in bm.edges if edge[layer] == geotags.GEO_EDGE_LEVEL_CAGE]
+        if len(indicesCage) > 0:
+            cageBatch = batch_for_shader(solidShader, 
+                'LINES',
+                {"pos": coords},
+                indices=indicesCage) 
+
+    # Collapsed edges need their own vertex buffer because we're creating verts
+    if collapseLayer: 
+        verts = []
+        crossSize = 0.05       
+        for edge in bm.edges:
+            if edge[collapseLayer] >= geotags.GEO_EDGE_LEVEL_LOD0:
+                centre = (edge.verts[0].co + edge.verts[1].co)*0.5
+                length = (edge.verts[0].co - edge.verts[1].co).length
+                direction = (edge.verts[0].co - edge.verts[1].co).normalized()
+                # TODO: doesn't work nicely on ngons where the resulting vectors are no tangent to the face
+                if len(edge.link_loops) > 0:
+                    tangent = edge.link_loops[0].calc_tangent()
+                    # draw half of the cross
+                    v1 = centre+length*tangent*crossSize
+                    v2 = centre+length*tangent.reflect(direction)*crossSize
+                    verts.append(centre)
+                    verts.append(v1)
+                    verts.append(centre)
+                    verts.append(v2)
+                if len(edge.link_loops) > 1:
+                    tangent = edge.link_loops[1].calc_tangent()
+                    # draw half of the cross
+                    v1 = centre+length*tangent*crossSize
+                    v2 = centre+length*tangent.reflect(direction)*crossSize                    
+                    verts.append(centre)
+                    verts.append(v1)
+                    verts.append(centre)
+                    verts.append(v2)
+        if len(verts)>0:
+            collapseBatch = batch_for_shader(solidShader, 
+                'LINES',
+                {"pos": verts},
+                indices=None)       
+        
+    return solidBatch, painterBatch, cageBatch, collapseBatch
     
 def drawDetailEdges():
     if not bpy.context.scene.gflow.overlays.detailEdges: return
@@ -343,13 +379,13 @@ def drawDetailEdges():
     if obj is None: return
     if bpy.context.tool_settings.mesh_select_mode[1] == False: return
     
-    global gWireShader, gCachedObject, gCachedDetailBatch, gCachedPainterDetailBatch, gCachedCageDetailBatch
+    global gWireShader, gCachedObject, gCachedDetailBatch, gCachedPainterDetailBatch, gCachedCageDetailBatch, gCachedCollapseBatch
     
     if not gWireShader: gWireShader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')    
     if obj != gCachedObject:
         gCachedObject = obj
         with helpers.editModeObserverBmesh(obj) as bm: 
-            gCachedDetailBatch, gCachedPainterDetailBatch, gCachedCageDetailBatch = makeEdgeDetailDrawBuffer(bm, 
+            gCachedDetailBatch, gCachedPainterDetailBatch, gCachedCageDetailBatch, gCachedCollapseBatch = makeEdgeDetailDrawBuffer(bm, 
                     gWireShader, 
                     bpy.context.scene.gflow.overlays.edgeOffset*0.01)
    
@@ -358,7 +394,7 @@ def drawDetailEdges():
     viewproj = bpy.context.region_data.perspective_matrix    
     mvp = viewproj@model
    
-    if gCachedDetailBatch or gCachedPainterDetailBatch or gCachedCageDetailBatch:
+    if gCachedDetailBatch or gCachedPainterDetailBatch or gCachedCageDetailBatch or gCachedCollapseBatch:
     
         stg = settings.getSettings()
     
@@ -378,6 +414,12 @@ def drawDetailEdges():
             gWireShader.uniform_float("color", stg.painterEdgeColor)
             gCachedPainterDetailBatch.draw(gWireShader)
             gpu.state.line_width_set(w)
+        if gCachedCollapseBatch:
+            w = gpu.state.line_width_get()
+            gpu.state.line_width_set(stg.edgeWidth)
+            gWireShader.uniform_float("color", stg.detailEdgeColor)
+            gCachedCollapseBatch.draw(gWireShader)
+            gpu.state.line_width_set(w)        
         if gCachedCageDetailBatch:
             w = gpu.state.line_width_get()
             gpu.state.line_width_set(stg.edgeWidth)

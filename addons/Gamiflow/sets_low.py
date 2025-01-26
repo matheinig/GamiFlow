@@ -95,6 +95,7 @@ def generatePainterLow(context):
                     knownObjectsWithMeshInUvSquare[o.data]= newobj
             
                 bpy.ops.object.select_all(action='DESELECT')  
+                sets.collapseEdges(context, newobj)
                 sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
                 sets.deleteDetailFaces(context, newobj)
                 sets.generatePartialSymmetryIfNeeded(context, newobj, offsetUvs=True)

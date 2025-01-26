@@ -24,6 +24,11 @@ GEO_EDGE_LEVEL_DEFAULT = 0
 GEO_EDGE_LEVEL_CAGE = -1
 GEO_EDGE_LEVEL_PAINTER = 1  # edge removed for lod0 but is kept in painter
 GEO_EDGE_LEVEL_LOD0 = 2 # here we start removing the tagged edges for lod0, at GEO_EDGE_LEVEL_LOD0+1 we remove them at lod1
+# Flag for edges that should be collapsed: 0: keep
+GEO_EDGE_COLLAPSE_NAME = "gflow_edge_collapse" 
+GEO_EDGE_COLLAPSE_DEFAULT = 0
+GEO_EDGE_COLLAPSE_LOD0 = 2
+
 # Flag for faces that should be deleted. These faces will be not show up in the UVs and will instead have their own 0-sized UV island in the working set.
 GEO_FACE_LEVEL_NAME = "gflow_face_lowpoly" 
 GEO_FACE_LEVEL_DEFAULT = 0
@@ -137,8 +142,7 @@ def removeDetailEdgeLayer(bm):
         bm.edges.layers.int.remove(bm.edges.layers.int[GEO_EDGE_LEVEL_NAME])
     except:
         pass   
-        
-def setObjectSelectedEdgeLevel(obj, level=2):
+def setObjectSelectedEdgeLevel(obj, level=GEO_EDGE_LEVEL_LOD0):
     with helpers.editModeBmesh(obj) as bm:
         layer = getDetailEdgesLayer(bm, forceCreation=True)
         for edge in bm.edges:
@@ -218,6 +222,67 @@ class GFLOW_OT_SelectEdgeLevel(bpy.types.Operator):
                     if relevant: e.select = True
         return {"FINISHED"}
     
+# Edge collapse    
+def getCollapseEdgesLayer(bm, forceCreation=False):
+    layer = bm.edges.layers.int.get(GEO_EDGE_COLLAPSE_NAME)
+    if forceCreation and not layer: layer = bm.edges.layers.int.new(GEO_EDGE_COLLAPSE_NAME)
+    return layer   
+def removeCollapseEdgesLayer(bm):
+    try:
+        bm.edges.layers.int.remove(bm.edges.layers.int[GEO_EDGE_COLLAPSE_NAME])
+    except:
+        pass   
+def setObjectSelectedEdgeCollapse(obj, level=GEO_EDGE_COLLAPSE_LOD0):
+    with helpers.editModeBmesh(obj) as bm:
+        layer = getCollapseEdgesLayer(bm, forceCreation=True)
+        for edge in bm.edges:
+            if edge.select: 
+                edge[layer] = level
+class GFLOW_OT_SetEdgeCollapseLevel(bpy.types.Operator):
+    bl_idname      = "gflow.set_edge_collapse_level"
+    bl_label       = "Collapse"
+    bl_description = "Set the collapse level of the edges"
+    bl_options = {"REGISTER", "UNDO"}
+
+    level : bpy.props.IntProperty(name="Level", default=2, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[1]: 
+            cls.poll_message_set("Must be in edge mode")
+            return False
+        return context.edit_object is not None
+
+    def execute(self, context):
+        setObjectSelectedEdgeCollapse(context.edit_object, self.level)
+        return {"FINISHED"}
+
+class GFLOW_OT_UnmarkEdge(bpy.types.Operator):
+    bl_idname      = "gflow.unmark_edge"
+    bl_label       = "Unmark edge"
+    bl_description = "Edge will no longer be dissolved or collapsed"
+    bl_options = {"REGISTER", "UNDO"}
+  
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[1]: 
+            cls.poll_message_set("Must be in edge mode")
+            return False
+        return context.edit_object is not None
+
+    def execute(self, context):
+        with helpers.editModeBmesh(context.edit_object) as bm:
+            dissolveLayer = getDetailEdgesLayer(bm, forceCreation=False)
+            collapseLayer = getCollapseEdgesLayer(bm, forceCreation=False)
+            if dissolveLayer or collapseLayer: 
+                for edge in bm.edges:
+                    if edge.select:
+                        if dissolveLayer: edge[dissolveLayer] = GEO_EDGE_LEVEL_DEFAULT
+                        if collapseLayer: edge[collapseLayer] = GEO_EDGE_COLLAPSE_DEFAULT
+
+        return {"FINISHED"}
     
 class GFLOW_OT_SetFaceMirror(bpy.types.Operator):
     bl_idname      = "gflow.set_face_mirror"
@@ -328,7 +393,11 @@ class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
         return {"FINISHED"}    
     
     
-classes = [GFLOW_OT_SetEdgeLevel, GFLOW_OT_SetCheckeredEdgeLevel, GFLOW_OT_SelectEdgeLevel, GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
+classes = [
+    GFLOW_OT_SetEdgeLevel, GFLOW_OT_SetCheckeredEdgeLevel, GFLOW_OT_SelectEdgeLevel, 
+    GFLOW_OT_SetEdgeCollapseLevel,
+    GFLOW_OT_UnmarkEdge,
+    GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
 
 
 def register():

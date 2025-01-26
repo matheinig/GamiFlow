@@ -270,8 +270,7 @@ class GFLOW_UL_highpolies(bpy.types.UIList):
             c = split.row()
             c.prop(item.obj.gflow, "objType", text="")
         
-
-# Object settings
+# Edit mesh side panel
 class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
     bl_category = "Gamiflow"
     bl_label = "Gamiflow"
@@ -303,10 +302,10 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
 
         
         self.layout.separator()
-        self.layout.label(text="Detail level")
+        self.layout.label(text="Geo Dissolve")
         # Detail edges
         row = self.layout.row()
-        op = row.operator("gflow.set_edge_level", text="Mark as detail", icon='EDGESEL')
+        op = row.operator("gflow.set_edge_level", text="Dissolve", icon='EDGESEL')
         op.level = geotags.GEO_EDGE_LEVEL_LOD0
         op = row.operator("gflow.set_edge_level", text="Clear")
         op.level = geotags.GEO_EDGE_LEVEL_DEFAULT        
@@ -314,7 +313,7 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         op.level = 0
         # Detail Faces
         row = self.layout.row()
-        op = row.operator("gflow.set_face_level", text="Mark as detail", icon='FACESEL')
+        op = row.operator("gflow.set_face_level", text="Dissolve", icon='FACESEL')
         op.detail = True
         op = row.operator("gflow.set_face_level", text="Clear")
         op.detail = False        
@@ -378,12 +377,12 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 # Edge mode
                 pie.operator("gflow.set_edge_level", text="Mark Cage Detail").level = geotags.GEO_EDGE_LEVEL_CAGE # W
                 pie.separator() # Empty E
-                pie.operator("gflow.set_edge_level", text="Mark Painter Detail").level = geotags.GEO_EDGE_LEVEL_PAINTER
+                pie.operator("gflow.set_edge_collapse_level", text="Mark Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0
                 pie.operator("gflow.add_soft_seam")
                 pie.operator("gflow.add_hard_seam")
                 pie.operator("gflow.clear_seam")
-                pie.operator("gflow.set_edge_level", text="Mark High Detail").level = geotags.GEO_EDGE_LEVEL_LOD0
-                pie.operator("gflow.set_edge_level", text="Mark Regular Detail").level = geotags.GEO_EDGE_LEVEL_DEFAULT
+                pie.operator("gflow.set_edge_level", text="Mark Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0
+                pie.operator("gflow.unmark_edge", text="Unmark")
             if bpy.context.tool_settings.mesh_select_mode[2] and not bpy.context.tool_settings.mesh_select_mode[1]:
                 pie.operator("gflow.set_face_mirror", text="Mirror", icon='MOD_MIRROR').mirror = "X"        # W
                 pie.operator("gflow.set_face_mirror", text="Unmirror", icon='MOD_MIRROR').mirror = "NONE"   # E
