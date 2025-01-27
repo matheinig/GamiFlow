@@ -257,6 +257,139 @@ class GFLOW_OT_SetEdgeCollapseLevel(bpy.types.Operator):
     def execute(self, context):
         setObjectSelectedEdgeCollapse(context.edit_object, self.level)
         return {"FINISHED"}
+        
+# Based on the following answer (itself based on the internal blender C code)
+# https://blender.stackexchange.com/questions/79988/bmesh-get-edge-loop/79995#79995        
+def BM_edge_other_loop(edge, loop):
+    if loop.edge == edge:
+        l_other = loop
+    else:
+        l_other = loop.link_loop_prev
+    l_other = l_other.link_loop_radial_next
+    if l_other.vert == loop.vert:
+        l_other = l_other.link_loop_prev
+    elif l_other.link_loop_next.vert == loop.vert:
+        l_other = l_other.link_loop_next
+    else:
+        print( "GamiFlow: Edge loop walk failure A")
+        return None
+    return l_other
+    
+def BM_vert_step_fan_loop(loop, e_step, quadOnly=True):
+    e_prev = e_step
+
+    if quadOnly:
+        if len(loop.vert.link_edges) != 4: return None, True
+
+    if loop.edge == e_prev:
+        e_next = loop.link_loop_prev.edge
+    elif loop.link_loop_prev.edge == e_prev:
+        e_next = loop.edge
+    else:
+        print( "GamiFlow: Edge loop walk failure B")
+        return None, False
+
+    if e_next.is_manifold:
+        return BM_edge_other_loop(e_next, loop), False
+    # if we reached this place, we probably reached the end of the geometry
+    return None, True
+
+def walkEdgeLoop(bm, startEdge, reverse=False):
+    edges = []
+
+    loop = startEdge.link_loops[0]
+    if reverse: loop = loop.link_loop_next
+    edge = startEdge
+    pcv = loop.vert  # Previous Current Vert (loop's vert)
+    pov = loop.edge.other_vert(loop.vert)  # Previous Other Vert 
+    startLoop = loop            
+       
+    iteration = 0
+    blocked = False
+    while True:
+        new_loop, blocked = BM_vert_step_fan_loop(loop, edge)
+        if not new_loop: break
+        edge = new_loop.edge
+        if edge == startEdge: break
+        #if iteration > 1000: break
+
+        edges.append(new_loop.edge)
+        iteration = iteration+1
+        
+        cur_vert = new_loop.vert
+        oth_vert = new_loop.edge.other_vert(new_loop.vert)
+        rad_vert = new_loop.link_loop_radial_next.vert
+        if cur_vert == rad_vert and oth_vert != pcv:
+            loop = new_loop.link_loop_next
+            pcv = oth_vert
+            pov = cur_vert
+        elif oth_vert == pcv:
+            loop = new_loop
+            pcv = cur_vert
+            pov = oth_vert
+        elif cur_vert ==  pcv:
+            loop = new_loop.link_loop_radial_next
+            pcv = oth_vert
+            pov = cur_vert  
+    return edges, blocked
+def getEdgeLoop(bm, startEdge):
+    edges = [startEdge]
+    forwardEdges, blocked = walkEdgeLoop(bm, startEdge, reverse=False)
+    edges += forwardEdges
+    if blocked:
+        backwardEdges, blocked = walkEdgeLoop(bm, startEdge, reverse=True)
+        # need to merge the two lists in the right order
+        backInds = [backwardEdges[0].verts[0].index, backwardEdges[0].verts[1].index]
+        if edges[0].verts[0].index in backInds or edges[0].verts[1].index in backInds:
+            edges = list(reversed(backwardEdges)) + edges
+        else:
+            edges += reversed(backwardEdges)
+    return edges
+class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
+    bl_idname      = "gflow.set_checkered_edge_collapse"
+    bl_label       = "Mark checkered collapse"
+    bl_description = "Collapse every other edge on the loop"
+    bl_options = {"REGISTER", "UNDO"}
+    
+    selected : bpy.props.IntProperty(name="Selected", default=1, min=0, soft_max=4, description="How many edges in a row will be selected")    
+    
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[1]: 
+            cls.poll_message_set("Must be in edge mode")
+            return False
+        return context.edit_object is not None
+    def execute(self, context):
+        startEdge = None
+        
+        with helpers.editModeBmesh(context.edit_object) as bm:
+            
+            # Get a full edge loop
+            startEdge = bm.select_history.active
+            if not startEdge: return {"CANCELLED"}
+            
+            edges = getEdgeLoop(bm, startEdge)
+            
+ 
+            # We need to make sure that the original edge is at index "0" even though it's not
+            startIndex = 0
+            for index, edge in enumerate(edges):
+                if edge == startEdge:
+                    startIndex=index
+                    break
+            
+            # Mark the edges
+            layer = getCollapseEdgesLayer(bm, forceCreation=True)
+            for index, edge in enumerate(edges):
+                id = index-startIndex
+                wrapped = (id) % (self.selected + 1)
+                if wrapped < self.selected:
+                    edge[layer] = GEO_EDGE_COLLAPSE_LOD0
+                else:
+                    edge[layer] = GEO_EDGE_COLLAPSE_DEFAULT
+        
+        return {"FINISHED"}
 
 class GFLOW_OT_UnmarkEdge(bpy.types.Operator):
     bl_idname      = "gflow.unmark_edge"
@@ -395,7 +528,7 @@ class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
     
 classes = [
     GFLOW_OT_SetEdgeLevel, GFLOW_OT_SetCheckeredEdgeLevel, GFLOW_OT_SelectEdgeLevel, 
-    GFLOW_OT_SetEdgeCollapseLevel,
+    GFLOW_OT_SetEdgeCollapseLevel, GFLOW_OT_SetCheckeredEdgeCollapse,
     GFLOW_OT_UnmarkEdge,
     GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
 

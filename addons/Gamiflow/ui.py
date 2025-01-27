@@ -327,7 +327,8 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator("gflow.set_checkered_ring_edge_level", text="Set checkered level")
+        layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve")
+        layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse")
 
 def draw_mesh_menu(self, context):
     self.layout.separator(factor=1.0)
