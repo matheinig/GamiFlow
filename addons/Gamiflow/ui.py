@@ -326,9 +326,28 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-
-        layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve")
-        layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse")
+        layout.separator()
+        
+        # Edge mode
+        if context.tool_settings.mesh_select_mode[1]: 
+            layout.label(text="Edge Detail", icon="EDGESEL")
+            layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve")
+            layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse")
+            layout.separator()
+            layout.operator("gflow.set_edge_level", text="Mark for Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0
+            layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0
+            layout.operator("gflow.set_edge_level", text="Mark as Cage").level = geotags.GEO_EDGE_LEVEL_CAGE
+            layout.operator("gflow.unmark_edge", text="Clear")
+        # Face mode
+        if context.tool_settings.mesh_select_mode[2]: 
+            layout.label(text="Face Detail", icon="FACESEL")
+            layout.operator("gflow.set_face_level", text="Mark for Deletion").detail = True
+            layout.operator("gflow.set_face_level", text="Clear").detail = False               
+            layout.separator()
+            layout.label(text="Face Mirroring", icon="MOD_MIRROR")
+            layout.operator("gflow.set_face_mirror", text="Mirror").mirror = "X"   
+            layout.operator("gflow.set_face_mirror", text="Unmirror").mirror = "NONE" 
+        
 
 def draw_mesh_menu(self, context):
     self.layout.separator(factor=1.0)
@@ -391,8 +410,8 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 pie.separator() # Empty N          
                 pie.operator("gflow.uv_gridify", text="Gridify", icon='VIEW_ORTHO')
                 pie.operator("gflow.uv_degridify", text="Ungridify", icon='CANCEL')       
-                pie.operator("gflow.set_face_level", text="Mark High Detail").detail = True
-                pie.operator("gflow.set_face_level", text="Mark Regular Detail").detail = True                   
+                pie.operator("gflow.set_face_level", text="Mark for Deletion").detail = True
+                pie.operator("gflow.set_face_level", text="Unmark deletion").detail = False               
 
                              
                 
