@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 id = "gamiflow_full"
 name = "GamiFlow (Full)"
-version = "1.4.1"
+version = "1.5.0"
 tagline = "Easier game asset creation"
 maintainer = "Mathieu Einig"
 type = "add-on"
