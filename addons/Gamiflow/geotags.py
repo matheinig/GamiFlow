@@ -332,12 +332,12 @@ def walkEdgeLoop(bm, startEdge, reverse=False):
             pcv = oth_vert
             pov = cur_vert  
     return edges, blocked
-def getEdgeLoop(bm, startEdge):
+def getEdgeLoop(bm, startEdge, reverse=False):
     edges = [startEdge]
-    forwardEdges, blocked = walkEdgeLoop(bm, startEdge, reverse=False)
+    forwardEdges, blocked = walkEdgeLoop(bm, startEdge, reverse=reverse)
     edges += forwardEdges
     if blocked:
-        backwardEdges, blocked = walkEdgeLoop(bm, startEdge, reverse=True)
+        backwardEdges, blocked = walkEdgeLoop(bm, startEdge, reverse=not reverse)
         # need to merge the two lists in the right order
         backInds = [backwardEdges[0].verts[0].index, backwardEdges[0].verts[1].index]
         if edges[0].verts[0].index in backInds or edges[0].verts[1].index in backInds:
@@ -352,6 +352,7 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
     
     selected : bpy.props.IntProperty(name="Selected", default=1, min=0, soft_max=4, description="How many edges in a row will be selected")    
+    reverse : bpy.props.BoolProperty(name="Reverse", default=False)
     
     @classmethod
     def poll(cls, context):
@@ -361,17 +362,14 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
             return False
         return context.edit_object is not None
     def execute(self, context):
-        startEdge = None
-        
         with helpers.editModeBmesh(context.edit_object) as bm:
-            
             # Get a full edge loop
             startEdge = bm.select_history.active
             if not startEdge: return {"CANCELLED"}
             
-            edges = getEdgeLoop(bm, startEdge)
-            
- 
+            layer = getCollapseEdgesLayer(bm, forceCreation=True) # Layer must be created first to avoid it invalidating the edges list
+            startEdge = bm.select_history.active
+            edges = getEdgeLoop(bm, startEdge, reverse=self.reverse)
             # We need to make sure that the original edge is at index "0" even though it's not
             startIndex = 0
             for index, edge in enumerate(edges):
@@ -380,7 +378,6 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
                     break
             
             # Mark the edges
-            layer = getCollapseEdgesLayer(bm, forceCreation=True)
             for index, edge in enumerate(edges):
                 id = index-startIndex
                 wrapped = (id) % (self.selected + 1)
