@@ -155,7 +155,7 @@ class GFLOW_OT_SetEdgeLevel(bpy.types.Operator):
     bl_description = "Set the detail level of the edges"
     bl_options = {"REGISTER", "UNDO"}
 
-    level : bpy.props.IntProperty(name="Level", default=2, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+    level : bpy.props.IntProperty(name="Level", default=GEO_EDGE_LEVEL_LOD0, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
 
     @classmethod
     def poll(cls, context):
@@ -244,7 +244,7 @@ class GFLOW_OT_SetEdgeCollapseLevel(bpy.types.Operator):
     bl_description = "Set the collapse level of the edges"
     bl_options = {"REGISTER", "UNDO"}
 
-    level : bpy.props.IntProperty(name="Level", default=2, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+    level : bpy.props.IntProperty(name="Level", default=GEO_EDGE_COLLAPSE_LOD0, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
 
     @classmethod
     def poll(cls, context):
@@ -448,12 +448,6 @@ class GFLOW_OT_SetFaceMirror(bpy.types.Operator):
 def markSelectedFacesAsDetail(context, isDetail):
     obj = context.edit_object
 
-    # Select the bounding edges and mark them as seams
-    if isDetail:
-        bpy.ops.mesh.region_to_loop()
-        bpy.ops.mesh.mark_seam(clear=False)
-
-    
     # Set the UV size to 0 and set the poly flag
     with helpers.editModeBmesh(obj) as bm:
         uv_layer = bm.loops.layers.uv.active
@@ -471,6 +465,13 @@ def markSelectedFacesAsDetail(context, isDetail):
             if face.select: 
                 face[uvScaleLayer] = scaleCode
                 face[faceDetailLayer] = detailCode
+                
+    # Select the bounding edges and mark them as seams
+    if isDetail:
+        bpy.ops.mesh.region_to_loop()
+        bpy.ops.mesh.mark_seam(clear=False)
+        bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='FACE')
+                
     
 class GFLOW_OT_SetFaceLevel(bpy.types.Operator):
     bl_idname      = "gflow.set_face_level"
