@@ -94,8 +94,9 @@ def generateExport(context):
             localgen.register(newobj, o)
             
             # remove cage control data
-            geotags.removeObjectCageLayers(newobj)
-            sets.removeCageEdges(newobj)
+            if o.type == 'MESH': 
+                sets.removeCageEdges(newobj)
+                geotags.removeObjectCageLayers(newobj)
                 
             # Unparenting for now as the new parent might not yet exist
             if o.parent != None:

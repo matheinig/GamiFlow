@@ -142,9 +142,10 @@ def generatePainterLow(context):
 
     # Clean up metadata and dissolve geo used to generate the cage
     for o in gen.generated:
-        sets.removeCageEdges(o)
-        geotags.removeObjectLayers(o)
-        sets_cage.removeCageModifier(context, o)
+        if o.type == 'MESH': 
+            sets.removeCageEdges(o)
+            geotags.removeObjectLayers(o)
+            sets_cage.removeCageModifier(context, o)
         
     return
 
