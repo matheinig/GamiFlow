@@ -7,8 +7,19 @@ from . import sets
 from . import helpers
 from . import settings
 
-def exportCollection(context, collection, filename):
-    exportObjects(context, collection.all_objects, filename)
+def getAxis(baseAxis, flipped):
+    if flipped:
+        dic = {  "X": "-X", 
+                "-X":  "X",
+                 "Y": "-Y",
+                "-Y":  "Y",
+                 "Z": "-Z",
+                "-Z":  "Z"}
+        return dic[baseAxis]
+    return baseAxis
+
+def exportCollection(context, collection, filename, exportTarget = "UNITY", flip=False):
+    exportObjects(context, collection.all_objects, filename, exportTarget, flip)
     return
     
 def exportTextureSets(context, collection, baseFilename):
@@ -16,25 +27,42 @@ def exportTextureSets(context, collection, baseFilename):
         objs = [o for o in collection.all_objects if o.gflow.textureSet == i]
         exportObjects(context, objs, baseFilename+"_"+texset.name)
     
-def exportObjects(context, objects, filename):
+def exportObjects(context, objects, filename, exportTarget = "UNITY", flip=False):
     # select all relevant objects
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
         helpers.setSelected(context, o)
        
-    # old unity: bake space transform, up=Y, forward=-Z
+    # Defaults for modern Unity
+    axisForward = getAxis('Y', flip)
+    axisUp = 'Z'
        
+    # old unity: bake space transform, up=Y, forward=-Z
+    
+    
+    # Unreal: X is forward
+    if exportTarget == "UNREAL":
+        axisForward= getAxis('X', flip)
+    
     # Export
     bpy.ops.export_scene.fbx(
         filepath=filename+".fbx",
         use_selection=True,
-        global_scale  = 1.0, apply_scale_options = 'FBX_SCALE_ALL',
-        bake_space_transform  = False, axis_up = 'Z', axis_forward = 'Y',
+        # Transforms
+        global_scale = 1.0, apply_scale_options = 'FBX_SCALE_ALL', # Prevents 100x scale in Unity/Unreal
+        bake_space_transform = False, axis_up = axisUp, axis_forward = axisForward,
+        # Mesh data
         use_mesh_modifiers = True,
         use_tspace = True,
-        armature_nodetype  = 'NULL',
         colors_type = 'LINEAR',
-        bake_anim = context.scene.gflow.exportAnimations
+        # Armatures and animation
+        armature_nodetype = 'NULL',
+        use_armature_deform_only = True,
+        bake_anim = context.scene.gflow.exportAnimations,
+        bake_anim_use_all_bones = True, # Maybe not necessary, but probably safer. Will make fbx larger
+        bake_anim_use_all_actions = False,
+        bake_anim_simplify_factor = 0.0,
+        
         )
     return
     
@@ -106,22 +134,24 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
         folder = os.path.dirname(self.filepath)
         stgs = settings.getSettings()
 
-        collection = context.scene.gflow.exportCollection
+        gflow = context.scene.gflow
+
+        collection = gflow.exportCollection
         sets.setCollectionVisibility(context, collection, True)
         
         # Simple export
-        if context.scene.gflow.exportMethod == 'SINGLE':
+        if gflow.exportMethod == 'SINGLE':
             baseName = os.path.join(folder,name)
-            exportCollection(context, context.scene.gflow.exportCollection, baseName)
+            exportCollection(context, gflow.exportCollection, baseName, exportTarget=gflow.exportTarget, flip=gflow.exportFlip)
         # Kit export: each root object gets exported separately
-        if context.scene.gflow.exportMethod == 'KIT':
-            roots = findRoots(context.scene.gflow.exportCollection.objects)
+        if gflow.exportMethod == 'KIT':
+            roots = findRoots(gflow.exportCollection.objects)
             for o in roots:
                 cleanname = o.name.strip(stgs.exportsuffix)
                 filename = os.path.join(folder, cleanname)
                 objects = list(o.children_recursive)
                 objects.append(o)
-                exportObjects(context, objects, filename)
+                exportObjects(context, objects, filename, exportTarget=gflow.exportTarget, flip=gflow.exportFlip)
 
         return {'FINISHED'}
   

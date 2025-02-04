@@ -161,9 +161,11 @@ class GFlowScene(bpy.types.PropertyGroup):
     # export
     exportTarget: bpy.props.EnumProperty(name="Target", default='UNITY', items=[
         ("UNITY", "FBX - Unity", "", 0),
+        ("UNREAL", "FBX - Unreal", "", 3),
         ("BLENDER", "FBX - Blender", "", 1),
         ("BLENDER_LIB", "Blender library", "Blender's asset library", 2),
-    ])    
+    ])
+    exportFlip: bpy.props.BoolProperty(name="Reversed", default=False, description="Reverse the front and back directions") 
     exportAnimations: bpy.props.BoolProperty(name="Animation", default=True) 
     lightmapUvs: bpy.props.BoolProperty(name="Lightmap", default=False, description="Generate lightmap UVs for the export meshes") 
     exportMethod: bpy.props.EnumProperty(name="Method", default='SINGLE', items=[

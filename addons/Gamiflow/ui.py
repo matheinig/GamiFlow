@@ -81,10 +81,12 @@ class GFLOW_PT_ExportPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         layout = self.layout
         layout.prop(context.scene.gflow, "exportTarget")
         row = layout.row()
-        row.prop(context.scene.gflow, "exportAnimations")
         row.prop(context.scene.gflow, "lightmapUvs")
         layout.operator("gflow.make_export")
-        
+        layout.separator()
+        row = layout.row()
+        row.prop(context.scene.gflow, "exportFlip")
+        row.prop(context.scene.gflow, "exportAnimations")
         row = layout.row()
         row.prop(context.scene.gflow, "exportMethod", text="")
         row.operator("gflow.export_final")
