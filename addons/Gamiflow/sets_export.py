@@ -81,7 +81,7 @@ def generateExport(context):
         instanceRootsTransforms = {}
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type=='EMPTY'): continue # We could potentially allow more types (.e.g lights)
-            if o.gflow.objType != 'STANDARD': continue
+            if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'TRIM'): continue
             
 
             generateCopy = True
@@ -117,8 +117,9 @@ def generateExport(context):
                 sets.deleteDetailFaces(context, newobj)
                 
                 # Set the material
-                material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
-                sets.setMaterial(newobj, material)
+                if o.gflow.objType != 'TRIM':
+                    material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
+                    sets.setMaterial(newobj, material)
                 
                 # Process modifiers, clean up metadata, etc
                 sets.removeLowModifiers(context, newobj)
