@@ -184,12 +184,13 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
         self.layout.use_property_decorate = False           
         if obj.type == 'MESH':
             isStandard = gflow.objType == "STANDARD"
+            isTrim = gflow.objType == "TRIM"
      
             self.layout.prop(gflow, "objType")
             
             row = self.layout.row()
             row.prop(gflow, "includeSelf")
-            row.enabled = isStandard
+            row.enabled = isStandard or isTrim
             row = self.layout.row()
             row.enabled = gflow.includeSelf and isStandard
             row.prop(gflow, "removeHardEdges")
