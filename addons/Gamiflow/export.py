@@ -18,8 +18,8 @@ def getAxis(baseAxis, flipped):
         return dic[baseAxis]
     return baseAxis
 
-def exportCollection(context, collection, filename, exportTarget = "UNITY", flip=False):
-    exportObjects(context, collection.all_objects, filename, exportTarget, flip)
+def exportCollection(context, collection, filename, exportTarget = "UNITY", flip=False, isHighPoly=False):
+    exportObjects(context, collection.all_objects, filename, exportTarget, flip, isHighPoly=isHighPoly)
     return
     
 def exportTextureSets(context, collection, baseFilename):
@@ -27,7 +27,7 @@ def exportTextureSets(context, collection, baseFilename):
         objs = [o for o in collection.all_objects if o.gflow.textureSet == i]
         exportObjects(context, objs, baseFilename+"_"+texset.name)
     
-def exportObjects(context, objects, filename, exportTarget = "UNITY", flip=False):
+def exportObjects(context, objects, filename, exportTarget = "UNITY", flip=False, isHighPoly=False):
     # select all relevant objects
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
@@ -53,7 +53,7 @@ def exportObjects(context, objects, filename, exportTarget = "UNITY", flip=False
         bake_space_transform = False, axis_up = axisUp, axis_forward = axisForward,
         # Mesh data
         use_mesh_modifiers = True,
-        use_tspace = True,
+        use_tspace = not isHighPoly,
         colors_type = 'LINEAR',
         # Armatures and animation
         armature_nodetype = 'NULL',
@@ -97,7 +97,7 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         exportCollection(context, context.scene.gflow.painterLowCollection, baseName+"_low")
         
         sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, True)
-        exportCollection(context, context.scene.gflow.painterHighCollection, baseName+"_high")
+        exportCollection(context, context.scene.gflow.painterHighCollection, baseName+"_high", isHighPoly=True)
         
         if context.scene.gflow.painterCageCollection and len(context.scene.gflow.painterCageCollection.objects)>0:
             sets.setCollectionVisibility(context, context.scene.gflow.painterCageCollection, True)
