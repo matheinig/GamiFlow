@@ -97,7 +97,6 @@ def generatePainterHigh(context):
         localgen = sets.GeneratorData()
         roots = []
         parented = []
-        instanceRootsTransforms = {}
     
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type == 'FONT' or o.type == 'CURVE' or o.type=='EMPTY'): continue
@@ -115,6 +114,14 @@ def generatePainterHigh(context):
                 newobj.instance_type = 'NONE'
                 gen.register(newobj, o)
                 localgen.register(newobj, o)
+            
+                if o.parent != None: 
+                    parented.append(newobj)
+                    # Unparent for now
+                    newobj.parent = None
+                    newobj.matrix_world = o.matrix_world.copy()
+                else:
+                    roots.append(newobj)            
             
                 if o.gflow.instanceBake == "LOW_HIGH" or o.gflow.instanceBake == "HIGH":
                     instanced = o.instance_collection.all_objects
@@ -172,14 +179,13 @@ def generatePainterHigh(context):
                     if o.parent != None: 
                         newhp.parent = None
                         newhp.matrix_world = hp.obj.matrix_world.copy()
-                        parented.append(newhp)                    
+                        parented.append(newhp)
+            #endfor custom highpolys
+        #endfor object duplication
 
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:
             localgen.reparent(newobj)
-        # Put the realised instances back in their right place
-        for instanceRoot, xform in instanceRootsTransforms.items():
-            instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
         return roots
 
 
