@@ -18,13 +18,13 @@ def getCollection(context, createIfNeeded=False):
     
     return c
 
-def processModifiers(context, obj):
+def processModifiers(context, generatorData, obj):
     for m in obj.modifiers:
         # These modifiers need to offset their UV outside of the [0,1] range to avoid bade bakes in Substance Painter
         if m.type == "MIRROR" or m.type == "ARRAY":
             m.offset_u = 1.0
             m.offset_v = 1.0
-    # TODO: apply all modifiers here
+    sets.updateModifierDependencies(generatorData, obj)
             
 
 def generatePainterLow(context):
@@ -64,15 +64,6 @@ def generatePainterLow(context):
             gen.register(newobj, o)
             localGen.register(newobj, o)
 
-            if o.parent != None: 
-                parented.append(newobj)
-                # Unparent for now
-                newobj.parent = None
-                newobj.matrix_world = o.matrix_world.copy()
-            else:
-                roots.append(newobj)
-                
-            
             if not o.type=='EMPTY':
                 # Special handling of instanced meshes
                 # Painter doesn't like overlapping UVs when baking so we offset the UVs by 1
@@ -94,24 +85,21 @@ def generatePainterLow(context):
                     knownMeshes.append(o.data)
                     knownObjectsWithMeshInUvSquare[o.data]= newobj
             
-                bpy.ops.object.select_all(action='DESELECT')  
-                sets.collapseEdges(context, newobj)
-                sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
-                sets.deleteDetailFaces(context, newobj)
-                sets.generatePartialSymmetryIfNeeded(context, newobj, offsetUvs=True)
-                
                 # Set the material
                 material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
                 sets.setMaterial(newobj, material)
                 
-                # Process modifiers
-                sets.removeLowModifiers(context, newobj)
-                processModifiers(context, newobj)
-                sets.triangulate(context, newobj)
                 
-                
-            else:
+            else: # o.type != 'EMPTY'
                 newobj.instance_type = 'NONE'
+
+            if o.parent != None: 
+                parented.append(newobj)
+                # Unparent for now
+                newobj.parent = None
+                newobj.matrix_world = o.matrix_world.copy()
+            else:
+                roots.append(newobj)
 
             # Realise the instance
             if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
@@ -123,12 +111,29 @@ def generatePainterLow(context):
                         r.matrix_world = o.matrix_world @ r.matrix_world  # we also need to move the instances into world space
         #endfor object duplication
   
+        # Now go back through all the objects and deal with their mesh data and modifiers
+        # It is crucial to wait until the other objects have been created so that we can e.g. change what object is referenced in mirror or array modifiers
+        for newobj in localGen.generated:
+            if newobj.type != 'EMPTY':
+                helpers.setSelected(context, newobj)
+                sets.collapseEdges(context, newobj)
+                sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
+                sets.deleteDetailFaces(context, newobj)
+                sets.generatePartialSymmetryIfNeeded(context, newobj, offsetUvs=True)
+                
+                # Process modifiers
+                sets.removeLowModifiers(context, newobj)
+                processModifiers(context, localGen, newobj)
+                sets.triangulate(context, newobj)
+                helpers.setDeselected(newobj)            
+  
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:
             localGen.reparent(newobj)
                 
         return roots
                 
+    bpy.ops.object.select_all(action='DESELECT')  
     populateLowList(list(context.scene.gflow.workingCollection.all_objects))
      
     # Deal with anchors

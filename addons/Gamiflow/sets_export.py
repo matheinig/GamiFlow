@@ -19,17 +19,20 @@ def getCollection(context, createIfNeeded=False):
     return c
 
 # Handle modifiers for a clean export
-def processModifiers(context, obj):
+def processModifiers(context, generatorData, obj):
     helpers.setSelected(context, obj)
+    
+    sets.updateModifierDependencies(generatorData, obj)
     
     # Deal with special cases for special modifiers
     # NOTE: Currently no special cases for the Export Set :)
     
-    # Collapse all other 'standard' modifiers
+    # Collapse all other 'standard' modifiers (incredibly slow but important if we start merging objects)
     for m in list(obj.modifiers):
         if m.type == 'ARMATURE': continue # Armature modifiers should not be collapsed
         bpy.ops.object.modifier_apply(modifier=m.name)
     sets_cage.removeCageModifier(context, obj)
+    helpers.setDeselected(obj) 
 
 
 # Hierarchy optimiser
@@ -52,7 +55,10 @@ def findFirstNonCollapsedParent(obj, mergeUdims):
     if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent, mergeUdims)
     return obj
 
-
+class InstancedCollection:
+    def __init__(self):
+        self.generated = None
+        self.spawnPoint = None
 
 def generateExport(context):
     # Make sure we don't already have a filled export set
@@ -74,18 +80,19 @@ def generateExport(context):
     # Go through all the objects of the working set and generate the export set
     gen = sets.GeneratorData()
 
+    bpy.ops.object.select_all(action='DESELECT')
+
+    knownInstancedCollections = {}#TODO remove
+    
+    instancedCollections = []
+
     def populateExportList(objectsToDuplicate, namePrefix=""):
         localgen = sets.GeneratorData()
         roots = []
         parented = []
-        instanceRootsTransforms = {}
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type=='EMPTY'): continue # We could potentially allow more types (.e.g lights)
             if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'TRIM'): continue
-            
-
-            generateCopy = True
-            if helpers.isObjectCollectionInstancer(o): generateCopy = False
             
             # Make a copy the object
             newobj = sets.duplicateObject(o, collection, suffix=exportSuffix)
@@ -111,7 +118,7 @@ def generateExport(context):
                 sets.generatePartialSymmetryIfNeeded(context, newobj)
             
                 # Remove all detail edges
-                bpy.ops.object.select_all(action='DESELECT')  
+                helpers.setSelected(context, newobj)
                 sets.collapseEdges(context, newobj)
                 sets.removeEdgesForLevel(context, newobj, 0, keepPainter=False)
                 sets.deleteDetailFaces(context, newobj)
@@ -125,36 +132,73 @@ def generateExport(context):
                 sets.removeLowModifiers(context, newobj)
                 sets.triangulate(context, newobj)  
                 geotags.removeObjectLayers(newobj)
+                helpers.setDeselected(newobj) 
             else:
                 newobj.instance_type = 'NONE'
                 # Realise the instance
                 if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
                     if o.gflow.instanceAllowExport:
-                        instanced = o.instance_collection.all_objects
-                        instanceRoots = populateExportList(instanced, o.name+"_",)
-                        # Keep track of where the instances should be located
-                        for r in instanceRoots: 
-                            helpers.setParent(r, newobj) # we can parent everything to the new empty
-                            r.matrix_world = o.matrix_world @ r.matrix_world  # we also need to move the instances into world space
-            #endif empty
-            
+                        generatedInstance = None
+                        # If the instanced collection is unknwon, we duplicate and process all the objects inside
+                        if o.instance_collection not in knownInstancedCollections:
+                            instanced = o.instance_collection.all_objects
+                            generatedInstance = populateExportList(instanced, o.name+"_",)
+                            knownInstancedCollections[o.instance_collection] = generatedInstance
+                            
+                            instColl = InstancedCollection()
+                            instColl.generated = generatedInstance
+                            instColl.spawnPoint = newobj
+                            instancedCollections.append( instColl )                            
+                            
+                            print("GamiFlow:   - Instantiated "+str(len(generatedInstance.generated))+" objects from '"+o.instance_collection.name+ "' for the first time")
+                        # if we've already seen it, we can just duplicate the previously-generated version
+                        else:
+                            existingInstance = knownInstancedCollections[o.instance_collection]
+                            # TODO: issue with recursive???
+                            instgen = sets.GeneratorData()
+                            for io in existingInstance.generated:
+                                i = sets.duplicateObject(io, collection, suffix="_TMP_")
+                                instgen.register(i, io)
+                            for i in instgen.parented:
+                                instgen.reparent(i)
+                                
+                            instColl = InstancedCollection()
+                            instColl.generated = instgen
+                            instColl.spawnPoint = newobj
+                            instancedCollections.append( instColl )
 
+                            print("GamiFlow:   - Instantiated "+str(len(instgen.generated))+" objects from '"+o.instance_collection.name+"'")
+
+                            pass
+             #endif empty
+            
+        print("GamiFlow:   - Added "+str(len(localgen.generated))+" objects")
         #endfor (original objects)
 
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:
             localgen.reparent(newobj)
-        # Put the realised instances back in their right place
-        #for instanceRoot, xform in instanceRootsTransforms.items():
-        #    instanceRoot.matrix_world = xform @ instanceRoot.matrix_world
+            
+        # Now we can apply all the modifiers
+        for newobj in localgen.generated:
+            processModifiers(context, localgen, newobj)            
+            
         # Do another pass to check that we are not parenting to something that will end up getting merged
         for newobj in parented: 
             safeParent = findFirstNonCollapsedParent(newobj.parent, context.scene.gflow.mergeUdims)
             if safeParent != newobj.parent: helpers.setParent(newobj, safeParent)        
         
-        return roots
+        return localgen
     
+    print("GamiFlow: Populate Export Set")
     populateExportList(list(context.scene.gflow.workingCollection.all_objects))
+
+    # Put all the instanced collections in the right place and parent them properly
+    for ic in (instancedCollections):
+        for root in ic.generated.roots: 
+            safeParent = findFirstNonCollapsedParent(ic.spawnPoint, context.scene.gflow.mergeUdims)
+            helpers.setParent(root, safeParent) 
+            root.matrix_world = ic.spawnPoint.matrix_world @ root.matrix_world  # we also need to move the instances into world space
 
     # Deal with the anchors
     for o in gen.generated:
@@ -165,52 +209,88 @@ def generateExport(context):
     if context.scene.gflow.lightmapUvs:
         uv.lightmapUnwrap(context, gen.generated)
         
-    # Now we can apply all the modifiers
-    for newobj in gen.generated:
-        processModifiers(context, newobj)
+    class Chunk:
+        def __init__(self):
+            self.objects = []
+            self.merged = None
+        def merge(self):
+            root = self.objects[-1]
+            gizmoRoot = root.type == 'EMPTY'
+            
+            # First, watch out for objects that might get orphaned after the merge
+            orphans = []
+            if gizmoRoot: # Roots of Empty type will be removed so we need to make sure that we won't lose the hierarchy of their children
+                for o in root.children:
+                    if o not in self.objects: 
+                        orphans.append(o)
+                        helpers.setParent(o, None)
+
+            # Also keep track of the actual pivot of the root object
+            originalRootTransform = root.matrix_world.copy()
+            originalRootName = root.name
+            originalRootParent = root.parent
+        
+            # Do the merge
+            oldEmpties = []
+            for m in self.objects:
+                if m.type == 'MESH': helpers.setSelected(context, m)
+                if m.type == 'EMPTY': oldEmpties.append(m)
+            bpy.ops.object.join()
+            self.mergedObject = context.object
+            
+            if self.mergedObject is None:
+                print("GamiFlow Warning: Nothing merged")
+            
+            # If the root was not a proper mesh we have to make changes to the new merged mesh to match some of the root settings
+            if gizmoRoot:
+                # Match the pivot point
+                offsetMatrix = (originalRootTransform.inverted() @ self.mergedObject.matrix_world)
+                self.mergedObject.data.transform(offsetMatrix)                
+                self.mergedObject.matrix_world = originalRootTransform
+                # Reparent
+                if originalRootParent:
+                    self.mergedObject.parent = None
+                    helpers.setParent(self.mergedObject, originalRootParent)
+                # Temporary swap the names until the root gets deleted
+                root.name = self.mergedObject.name
+                # Match the root name
+                self.mergedObject.name = originalRootName
+                # TODO: there could be other objects with constraints pointing to the original root
+            helpers.setDeselected(self.mergedObject)
+            
+            # Re parent the orphans to the new parent
+            for o in orphans: helpers.setParent(o, self.mergedObject)            
+            
+            for oe in oldEmpties: bpy.data.objects.remove(oe)    
+
+            self.objects = None            
+
         
     # Merge all possible objects
     if stgs.mergeExportMeshes:
+        print("GamiFlow: Find mergeable meshes")
         todo = sets.findRoots(collection)
-        while len(todo)>0:
-            bpy.ops.object.select_all(action='DESELECT')
-            
+        bpy.ops.object.select_all(action='DESELECT')
+        
+        # Build a list of 'chunks' that can be merged together
+        chunks = []
+        while(len(todo)>0):
             # Pick one object in the todo list and decide what to do with its children
             root = todo[0]
             todo.remove(root)
             merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
-            
-            if len(merge) == 0: continue
-            
-            # Do the merge
-            merge.append(root) # root object must be last in the list for Blender to merge the others into it
-            oldEmpties = []
-            for m in merge:
-                if m.type == 'MESH': helpers.setSelected(context, m)
-                if m.type == 'EMPTY': oldEmpties.append(m)
-            bpy.ops.object.join()
-            mergedObject = context.object
-            
-            # If the root was not a proper mesh we have to make changes to the new merged mesh to match some of the root settings
-            if root.type != 'MESH':
-                originalRootName = root.name
-                # Match the root transform and pivot
-                rootTransform = mergedObject.parent.matrix_world
-                offsetMatrix = (mergedObject.matrix_world.inverted() @ rootTransform).inverted()
-                mergedObject.data.transform(offsetMatrix)
-                mergedObject.parent = None
-                mergedObject.matrix_world = rootTransform
-                mergedObject.parent = root.parent
-                # Temporary swap the names until the root gets deleted
-                root.name = mergedObject.name
-                # Match the root name
-                mergedObject.name = originalRootName
-                # TODO: there could be other objects with constraints pointing to the original root
-                
-            for oe in oldEmpties: bpy.data.objects.remove(oe)
-        #endwhile (merge todolist) 
+            if len(merge)>0:
+                chunk = Chunk()
+                chunk.objects = merge+[root]
+                chunks.append(chunk)
+        # Actually do the merge
+        print("GamiFlow: Merge into "+str(len(chunks))+" groups")
+        for chunk in chunks:
+            chunk.merge()
+    
     
     if stgs.renameExportMeshes:
+        print("GamiFlow: Rename export meshes")
         meshes = []
         for o in collection.all_objects:
             if o.type == 'MESH' and o.data not in meshes:

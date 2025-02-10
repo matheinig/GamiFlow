@@ -51,11 +51,17 @@ class GeneratorData:
         self.generated = []    
         self.generatedToOriginal = {} 
         self.originalToGenerated = {}
+        self.parented = []
+        self.roots = []
     def register(self, generatedObj, sourceObj):
         self.generated.append(generatedObj)
         self.generatedToOriginal[generatedObj] = sourceObj
         if sourceObj not in self.originalToGenerated.keys(): self.originalToGenerated[sourceObj] = []
         self.originalToGenerated[sourceObj].append(generatedObj)
+        if sourceObj.parent: 
+            self.parented.append(generatedObj)
+        else: 
+            self.roots.append(generatedObj)
 
     def findSource(self, generatedObj):
         try:
@@ -86,6 +92,22 @@ def findBestMatch(generatedObjects, source):
         if c.matrix_world == source.matrix_world: return c
     return bestCandidate
 
+def updateModifierDependencies(generatorData, obj):
+    for m in obj.modifiers:
+        if m.type == "ARRAY":
+            # Find the local version of the array object if possible
+            if m.offset_object:
+                generated = generatorData.findGenerated(m.offset_object)
+                if generated and len(generated)>0: m.offset_object = generated[0]
+        elif m.type == "DATA_TRANSFER":
+            if m.object:
+                generated = generatorData.findGenerated(m.object)
+                if generated and len(generated)>0: m.object = generated[0]
+        elif m.type == "MIRROR":
+            if m.mirror_object:
+                generated = generatorData.findGenerated(m.mirror_object)
+                if generated and len(generated)>0: m.mirror_object = generated[0] 
+                
 def _findLayerCollRec(layerCol, targetCol):
     for c in layerCol.children:
         if c.collection == targetCol: return c

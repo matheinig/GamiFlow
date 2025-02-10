@@ -183,6 +183,10 @@ def generatePainterHigh(context):
             #endfor custom highpolys
         #endfor object duplication
 
+        # Now go back through all the objects and deal with their mesh data and modifiers
+        # It is crucial to wait until the other objects have been created so that we can e.g. change what object is referenced in mirror or array modifiers
+        for newobj in localgen.generated:
+            sets.updateModifierDependencies(localgen, newobj)
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:
             localgen.reparent(newobj)
