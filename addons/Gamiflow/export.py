@@ -93,11 +93,12 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         folder = os.path.dirname(self.filepath)
         baseName = os.path.join(folder,name)
 
-        sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, True)
-        exportCollection(context, context.scene.gflow.painterLowCollection, baseName+"_low")
-        
-        sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, True)
-        exportCollection(context, context.scene.gflow.painterHighCollection, baseName+"_high", isHighPoly=True)
+        if len(context.scene.gflow.painterLowCollection.all_objects)>0:
+            sets.setCollectionVisibility(context, context.scene.gflow.painterLowCollection, True)
+            exportCollection(context, context.scene.gflow.painterLowCollection, baseName+"_low")
+        if len(context.scene.gflow.painterHighCollection.all_objects)>0:
+            sets.setCollectionVisibility(context, context.scene.gflow.painterHighCollection, True)
+            exportCollection(context, context.scene.gflow.painterHighCollection, baseName+"_high", isHighPoly=True)
         
         if context.scene.gflow.painterCageCollection and len(context.scene.gflow.painterCageCollection.objects)>0:
             sets.setCollectionVisibility(context, context.scene.gflow.painterCageCollection, True)
