@@ -6,7 +6,7 @@ from . import helpers
 from . import geotags
   
 def backwardCompatibility(scene):
-    currentVersion = 1
+    currentVersion = 2
     if scene.gflow.version == currentVersion: return
     
     print("[GamiFlow] Scene "+scene.name + " was saved in different version ("+str(scene.gflow.version)+")")
@@ -20,6 +20,12 @@ def backwardCompatibility(scene):
         # After version 1, we have a flag that says if the object is already known by gflow
         for o in realScene.objects:
             o.gflow.registered = True
+    # In version two, the old DECAL projeciton type has been removed and replaced by PROJECTED + single-faced
+    if realScene.gflow.version < 2:
+        for o in realScene.objects:
+            if o.gflow.objType == "DECAL":
+                o.gflow.objType = "PROJECTED"
+                o.gflow.singleSided = True
             
     realScene.gflow.version = currentVersion 
 

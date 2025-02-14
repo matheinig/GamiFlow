@@ -93,7 +93,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     objType: bpy.props.EnumProperty(name="Type", default='STANDARD', items=[
         ("STANDARD", "Standard", "", 0),
         ("PROJECTED", "Projected", "An object used exclusively for baking, for example a sculpt", 1),
-        ("DECAL", "Decal", "An object used exclusively for baking but without backfaces", 2),
+        ("DECAL", "Decal (Deprecated ⚠️)", "Use Projected with single-sided faces instead.", 2),
         ("TRIM", "Trim", "A pre-made decal or trim sheet. This object is not processed by GamiFlow but will get exported.", 5),
         ("OCCLUDER", "Occluder", "An object used exclusively for baking, but only as a shadow caster", 3),
         ("IGNORED", "Ignored", "This object will be completely ignored", 4),
