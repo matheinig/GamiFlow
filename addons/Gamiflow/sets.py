@@ -54,20 +54,28 @@ def onNewObject(o, scene):
 
 class GeneratorData:
     def __init__(self):
-        self.generated = []    
+        self.generated = []
         self.generatedToOriginal = {} 
         self.originalToGenerated = {}
         self.parented = []
         self.roots = []
     def register(self, generatedObj, sourceObj):
         self.generated.append(generatedObj)
-        self.generatedToOriginal[generatedObj] = sourceObj
-        if sourceObj not in self.originalToGenerated.keys(): self.originalToGenerated[sourceObj] = []
-        self.originalToGenerated[sourceObj].append(generatedObj)
-        if sourceObj.parent: 
-            self.parented.append(generatedObj)
-        else: 
-            self.roots.append(generatedObj)
+        if sourceObj:
+            self.generatedToOriginal[generatedObj] = sourceObj
+            if sourceObj not in self.originalToGenerated.keys(): self.originalToGenerated[sourceObj] = []
+            self.originalToGenerated[sourceObj].append(generatedObj)
+            if sourceObj.parent: 
+                self.parented.append(generatedObj)
+            else: 
+                self.roots.append(generatedObj)
+    def add(self, other):
+        self.generated += other.generated
+        self.parented += other.parented
+        self.roots += other.roots
+        self.generatedToOriginal.update(other.generatedToOriginal)
+        self.originalToGenerated.update(other.originalToGenerated)
+    
 
     def findSource(self, generatedObj):
         try:
@@ -146,18 +154,21 @@ def toggleCollectionVisibility(context, coll):
     layer = findLayerCollection(context, coll)
     if layer: setLayerCollectionVisibility(layer, layer.exclude  , recursive=True)
     
+def deleteObject(o):
+    mustDeleteObject = True
+    # Make sure we absolutely nuke the meshes too
+    # This avoids 'leaking' an increasingly large amout of orphaned meshes into the file
+    if o.type == 'MESH': 
+        if o.data.users == 1: 
+            bpy.data.meshes.remove(o.data)
+            mustDeleteObject = False
+            
+    if mustDeleteObject:
+        bpy.data.objects.remove(o, do_unlink=True)
+    
 def _clearCollection(coll):
     for o in list(coll.objects):
-        mustDeleteObject = True
-        # Make sure we absolutely nuke the meshes too
-        # This avoids 'leaking' an increasingly large amout of orphaned meshes into the file
-        if o.type == 'MESH': 
-            if o.data.users == 1: 
-                bpy.data.meshes.remove(o.data)
-                mustDeleteObject = False
-                
-        if mustDeleteObject:
-            bpy.data.objects.remove(o, do_unlink=True)
+        deleteObject(o)
 def deleteCollection(coll):
     for c in coll.children:
         deleteCollection(c)
