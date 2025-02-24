@@ -33,9 +33,9 @@ def exportObjects(context, objects, filename, fFormat, exportTarget = "UNITY", f
     for o in objects:
         helpers.setSelected(context, o)
     if fFormat == "FBX":
-        exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=flip, isHighPoly=isHighPoly)
+        exportselectedFbx(context, objects, filename, exportTarget = exportTarget, flip=flip, isHighPoly=isHighPoly)
     else:
-        exportSelectedGltf(context, objects, filename, exportTarget = "UNITY", flip=flip, isHighPoly=isHighPoly)
+        exportSelectedGltf(context, objects, filename, exportTarget = exportTarget, flip=flip, isHighPoly=isHighPoly)
     
 def exportSelectedGltf(context, objects, filename, exportTarget = "UNITY", flip=False, isHighPoly=False):
     bpy.ops.export_scene.gltf(
@@ -62,6 +62,10 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
     # Unreal: X is forward
     if exportTarget == "UNREAL":
         axisForward= getAxis('X', flip)
+
+    if exportTarget == "SKETCHFAB":
+        axisForward = getAxis('-Z', flip)
+        axisUp = 'Y'
     
     # Export
     bpy.ops.export_scene.fbx(
