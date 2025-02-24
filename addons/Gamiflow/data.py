@@ -160,10 +160,15 @@ class GFlowScene(bpy.types.PropertyGroup):
     mergeUdims: bpy.props.BoolProperty(name="Merge UDIMs", default=False, description="All objects will be treated as if part of the first UDIM.\nUseful if you want to experiment and check if you could get away with only one UDIM.") 
     
     # export
+    exportFormat: bpy.props.EnumProperty(name="Format", default='FBX', items=[
+        ("FBX", "FBX", "", 0),
+        ("GLTF", "GLTF", "", 1),
+    ])
     exportTarget: bpy.props.EnumProperty(name="Target", default='UNITY', items=[
-        ("UNITY", "FBX - Unity", "", 0),
-        ("UNREAL", "FBX - Unreal", "", 3),
-        ("BLENDER", "FBX - Blender", "", 1),
+        ("UNITY", "Unity", "", 0),
+        ("UNREAL", "Unreal", "", 3),
+        ("SKETCHFAB", "Sketchfab", "", 4),
+        ("BLENDER", "Blender", "", 1),
         ("BLENDER_LIB", "Blender library", "Blender's asset library", 2),
     ])
     exportFlip: bpy.props.BoolProperty(name="Reversed", default=False, description="Reverse the front and back directions") 

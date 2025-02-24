@@ -19,6 +19,14 @@ def isUvPackerAvailable():
 def hardenSeams(context, obj):
     return
 
+def flipUVs(obj):
+    with helpers.objectModeBmesh(obj) as bm:
+        for face in bm.faces:
+            for loop in face.loops:
+                for layer in bm.loops.layers.uv:
+                    loop[layer].uv[1] = 1.0-loop[layer].uv[1]
+        
+
 def areUVsProbablyInside(obj):
     with helpers.objectModeBmesh(obj) as bm:
         uv_layer = bm.loops.layers.uv.active

@@ -337,6 +337,10 @@ def generateExport(context):
         for chunk in chunks:
             chunk.merge(context, False)
     
+    if context.scene.gflow.exportFormat == "GLTF" and context.scene.gflow.exportTarget == "SKETCHFAB":
+        for o in collection.all_objects:
+            if o.type == 'MESH': uv.flipUVs(o)
+                
     
     if stgs.renameExportMeshes:
         print("GamiFlow: Rename export meshes")

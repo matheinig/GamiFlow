@@ -58,6 +58,7 @@ def setCagePreview(obj, enabled):
         else: modifier[id] = 0  # passthrough
 
 def checkWeightPaintMode(context):
+    print("CHECK")
     obj = context.object
     if not obj: return
     changed = False

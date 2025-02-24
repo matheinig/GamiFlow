@@ -79,13 +79,19 @@ class GFLOW_PT_ExportPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
     bl_parent_id = "GFLOW_PT_PANEL"
     def draw(self, context):
         layout = self.layout
-        layout.prop(context.scene.gflow, "exportTarget")
+        row = layout.row()
+        row.prop(context.scene.gflow, "exportTarget", text='')
+        if context.scene.gflow.exportTarget != 'BLENDER_LIB':
+            row.prop(context.scene.gflow, "exportFormat", text='')
         row = layout.row()
         row.prop(context.scene.gflow, "lightmapUvs")
         layout.operator("gflow.make_export")
         layout.separator()
         row = layout.row()
-        row.prop(context.scene.gflow, "exportFlip")
+        
+        col = row.column()
+        col.active = context.scene.gflow.exportFormat == 'FBX'
+        col.prop(context.scene.gflow, "exportFlip")
         row.prop(context.scene.gflow, "exportAnimations")
         row = layout.row()
         row.prop(context.scene.gflow, "exportMethod", text="")
