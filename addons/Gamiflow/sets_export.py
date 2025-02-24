@@ -5,6 +5,7 @@ from . import settings
 from . import uv
 from . import geotags
 from . import sets_cage
+import mathutils
 
 # Find or create the Export Set
 def getCollection(context, createIfNeeded=False):
@@ -78,10 +79,13 @@ class Chunk:
     # Called when there is only one mesh left but it still has an empty object as root
     @staticmethod
     def removeGizmoRoot(gizmo, obj):
-        # Match the pivot point
-        offsetMatrix = (gizmo.matrix_world.inverted() @ obj.matrix_world)
-        obj.data.transform(offsetMatrix)                
-        obj.matrix_world = gizmo.matrix_world
+        # Match the pivot point if the object wasn't centred
+        localPosition = obj.matrix_local.col[3].xyz
+        if abs(localPosition.dot(localPosition))>0.0001:
+            if obj.data.users>1: obj.data = obj.data.copy() # Make sure that the mesh is unique to avoid side effects
+            offsetMatrix = (gizmo.matrix_world.inverted() @ obj.matrix_world)
+            obj.data.transform(offsetMatrix)             
+            obj.matrix_world = gizmo.matrix_world
         # Reparent
         if gizmo.parent:
             helpers.setParent(obj, gizmo.parent)
@@ -114,6 +118,10 @@ class Chunk:
         # Do the merge
         if len(meshobjs)>1:
             print(" Merge of "+root.name + " from "+str(len(meshobjs))+" objects")
+            # Make sure we do not have a shared mesh on the target object
+            if meshobjs[-1].data.users>1:
+                meshobjs[-1].data = meshobjs[-1].data.copy()
+            # Select everything in the right order and join
             for m in meshobjs:
                 helpers.setSelected(context, m)
             bpy.ops.object.join()
@@ -125,13 +133,15 @@ class Chunk:
             print("GamiFlow Warning: Nothing merged")
         
         # If the root was not a proper mesh we have to make changes to the new merged mesh to match some of the root settings
-        if gizmoRoot and not allowGizmoRoot: Chunk.removeGizmoRoot(root, self.mergedObject)
+        if gizmoRoot and not allowGizmoRoot: 
+            Chunk.removeGizmoRoot(root, self.mergedObject)
         
         helpers.setDeselected(self.mergedObject)
         
         # Re parent the orphans to the new parent
         for o in orphans: helpers.setParent(o, self.mergedObject)            
         
+        # Cleanup
         for oe in oldEmpties: bpy.data.objects.remove(oe)   # TODO: maybe make sure we don't delete the root if empty roots are allowed 
 
         self.objects = None
@@ -153,7 +163,6 @@ def mergeObjects(context, objects):
     while(len(todo)>0):
         # Pick one object in the todo list and decide what to do with its children
         root = todo[0]
-        print("Checking "+root.name)
         todo.remove(root)
         merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
         #if len(merge)>0:
@@ -203,6 +212,11 @@ def generateExport(context):
         processedInstance = sets.GeneratorData()
         for o in mergedObjects:
             processedInstance.register(o, None)
+        # Put the pivot on 0 to make instantiating it easier later
+        for o in mergedObjects:
+            offsetMatrix = (o.matrix_world)
+            o.data.transform(offsetMatrix)
+            o.matrix_world = mathutils.Matrix.Identity(4)
 
         collectionInstanceTemplate[collection] = processedInstance
                                     
@@ -265,7 +279,7 @@ def generateExport(context):
                         template = collectionInstanceTemplate[o.instance_collection]
                         instgen = sets.GeneratorData()
                         for io in template.generated:
-                            i = sets.duplicateObject(io, collection, suffix="_TMP_", link=False) # Should ideally use linked but causes issues when merging later
+                            i = sets.duplicateObject(io, collection, suffix="_TMP_", link=True) # Should ideally use linked but causes issues when merging later
                             instgen.register(i, io)
                         for i in instgen.parented:
                             instgen.reparent(i)
