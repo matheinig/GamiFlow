@@ -112,7 +112,7 @@ class GFLOW_PT_UdimsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         col = row.column(align=True)
         col.operator("gflow.add_udim", icon='ADD', text="")
         col.operator("gflow.remove_udim", icon='REMOVE', text="")
-        if bpy.app.version <= (4, 3, 0):
+        if bpy.app.version < (4, 3, 0):
             col.prop(gflow, "mergeUdims", icon='MOD_OPACITY', text="")
         else:
             col.prop(gflow, "mergeUdims", icon='AREA_JOIN_DOWN', text="")
