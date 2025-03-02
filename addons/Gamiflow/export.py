@@ -172,7 +172,9 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
         if gflow.exportMethod == 'KIT':
             roots = findRoots(gflow.exportCollection.objects)
             for o in roots:
-                cleanname = o.name.strip(stgs.exportsuffix)
+                cleanname = o.name
+                if cleanname.endswith(stgs.exportsuffix):
+                    cleanname = cleanname[:-len(stgs.exportsuffix)]
                 filename = os.path.join(folder, cleanname)
                 objects = list(o.children_recursive)
                 objects.append(o)
