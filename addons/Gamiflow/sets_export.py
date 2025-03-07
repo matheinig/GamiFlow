@@ -42,6 +42,7 @@ def areMergeCompatible(p, c, mergeUdims=False):
     
     needToCheckUdims = (not mergeUdims)
     if (p.type=='EMPTY' or c.type=='EMPTY'): needToCheckUdims = False
+    if (p.type == 'ARMATURE'): return False
     if needToCheckUdims and (p.gflow.textureSet != c.gflow.textureSet): return False
     
     #if c.gflow.objType == 'TRIM' and p.gflow.objType != 'TRIM': return False
@@ -226,7 +227,7 @@ def generateExport(context):
         roots = []
         parented = []
         for o in objectsToDuplicate:
-            if not (o.type == 'MESH' or o.type=='EMPTY'): continue # We could potentially allow more types (.e.g lights)
+            if not (o.type == 'MESH' or o.type=='EMPTY' or o.type == 'ARMATURE'): continue # We could potentially allow more types (.e.g lights)
             if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'TRIM'): continue
             
             # Make a copy the object
@@ -247,7 +248,7 @@ def generateExport(context):
             else:
                 roots.append(newobj)
                 
-            if not o.type=='EMPTY':
+            if o.type=='MESH':
                 sets.generatePartialSymmetryIfNeeded(context, newobj)
             
                 # Remove all detail edges
@@ -266,7 +267,7 @@ def generateExport(context):
                 sets.triangulate(context, newobj)  
                 geotags.removeObjectLayers(newobj)
                 helpers.setDeselected(newobj) 
-            else:
+            elif o.type == 'EMPTY':
                 newobj.instance_type = 'NONE'
                 # Realise the instance
                 if helpers.isObjectCollectionInstancer(o) and o.instance_collection:

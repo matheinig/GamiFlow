@@ -121,6 +121,10 @@ def updateModifierDependencies(generatorData, obj):
             if m.mirror_object:
                 generated = generatorData.findGenerated(m.mirror_object)
                 if generated and len(generated)>0: m.mirror_object = generated[0] 
+        elif m.type == "ARMATURE":
+            if m.object:
+                generated = generatorData.findGenerated(m.object)
+                if generated and len(generated)>0: m.object = generated[0]             
                 
 def _findLayerCollRec(layerCol, targetCol):
     for c in layerCol.children:
@@ -237,6 +241,9 @@ def triangulate(context, obj):
 def removeLowModifiers(context, obj):
     for m in list(obj.modifiers):
         if not m.show_render:  obj.modifiers.remove(m)
+def removePainterModifiers(context, obj):
+    for m in list(obj.modifiers):
+        if m.type == 'ARMATURE':  obj.modifiers.remove(m)
 
 def getTextureSetName(setNumber, mergeUdims=False):
     if mergeUdims: return bpy.context.scene.gflow.udims[0].name

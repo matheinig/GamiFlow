@@ -64,6 +64,7 @@ def generateIdMap(stgs, obj):
 def processNewObject(context, o, stgs, isBakeObject=False):
     generateIdMap(stgs, o)
     sets.generatePartialSymmetryIfNeeded(context, o)
+    sets.removePainterModifiers(context, o)
     # We don't need to do this for bake objects,and it means that we don't always need to modify the mesh
     if (not isBakeObject):
         if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
