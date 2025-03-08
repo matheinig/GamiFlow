@@ -231,7 +231,7 @@ def generateExport(context):
             if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'TRIM'): continue
             
             # Make a copy the object
-            newobj = sets.duplicateObject(o, collection, suffix=exportSuffix)
+            newobj = sets.duplicateObject(o, collection, suffix=exportSuffix, link=o.type=='ARMATURE')
             newobj.name = namePrefix+newobj.name
             localgen.register(newobj, o)
             
