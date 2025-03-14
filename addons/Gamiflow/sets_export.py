@@ -264,7 +264,6 @@ def generateExport(context):
                 
                 # Process modifiers, clean up metadata, etc
                 sets.removeLowModifiers(context, newobj)
-                sets.triangulate(context, newobj)  
                 geotags.removeObjectLayers(newobj)
                 helpers.setDeselected(newobj) 
             elif o.type == 'EMPTY':
@@ -303,7 +302,13 @@ def generateExport(context):
             
         # Now we can apply all the modifiers
         for newobj in localgen.generated:
-            processModifiers(context, localgen, newobj)            
+            processModifiers(context, localgen, newobj) 
+
+        # Triangulate and apply 
+        # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
+        for newobj in localgen.generated:
+            sets.triangulate(context, newobj)  
+            processModifiers(context, localgen, newobj) 
             
         # Do another pass to check that we are not parenting to something that will end up getting merged
         for newobj in parented: 
