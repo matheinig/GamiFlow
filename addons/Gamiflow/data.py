@@ -73,6 +73,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     registered: bpy.props.BoolProperty(name="Registered (internal)", description="just to track which objects are known", default=False)
 
     # export
+    exportable: bpy.props.BoolProperty(name="Export", default=True)
     instanceType: bpy.props.EnumProperty(name="Instance", default='BOTH', items=[
         ("BAKE", "Bake", "This instance will be used only when baking", 0),
         ("EXPORT", "Export", "This instance will be used only when creating the final export set", 1),

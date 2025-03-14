@@ -261,7 +261,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
         gflow = obj.gflow
         self.layout.use_property_split = True
         self.layout.use_property_decorate = False
-        if obj.type == 'MESH':        
+        if obj.type == 'MESH':
+            self.layout.prop(gflow, "exportable")
             self.layout.prop(gflow, "exportAnchor")        
             self.layout.prop(gflow, "mergeWithParent")
         elif obj.type == 'EMPTY':

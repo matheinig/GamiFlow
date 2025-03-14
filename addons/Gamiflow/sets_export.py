@@ -229,6 +229,7 @@ def generateExport(context):
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type=='EMPTY' or o.type == 'ARMATURE'): continue # We could potentially allow more types (.e.g lights)
             if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'TRIM'): continue
+            if not  o.gflow.exportable: continue
             
             # Make a copy the object
             newobj = sets.duplicateObject(o, collection, suffix=exportSuffix, link=o.type=='ARMATURE')
