@@ -95,7 +95,7 @@ class GFlowObject(bpy.types.PropertyGroup):
         ("STANDARD", "Standard", "", 0),
         ("PROJECTED", "Projected", "An object used exclusively for baking, for example a sculpt", 1),
         ("DECAL", "Decal (Deprecated ⚠️)", "Use Projected with single-sided faces instead.", 2),
-        ("TRIM", "Trim", "A pre-made decal or trim sheet. This object is not processed by GamiFlow but will get exported.", 5),
+        ("NON_BAKED", "Non-Baked", "Object whose material already exists and isn't supposed to get baked (a generic tiled texture, trim sheet). \nThis object is not processed as much by GamiFlow (UVs and materials are not modified) but will get exported.", 5),
         ("OCCLUDER", "Occluder", "An object used exclusively for baking, but only as a shadow caster", 3),
         ("IGNORED", "Ignored", "This object will be completely ignored", 4),
     ])
