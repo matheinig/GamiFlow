@@ -45,7 +45,7 @@ def areMergeCompatible(p, c, mergeUdims=False):
     if (p.type == 'ARMATURE'): return False
     if needToCheckUdims and (p.gflow.textureSet != c.gflow.textureSet): return False
     
-    #if c.gflow.objType == 'TRIM' and p.gflow.objType != 'TRIM': return False
+    #if c.gflow.objType == 'NON_BAKED' and p.gflow.objType != 'NON_BAKED': return False
     # TODO: there are more conditions that should probably be met such as smoothing method
     return True
 def mergeHierarchy(obj, mergeList, todoList, mergeUdims, depth=0):
@@ -228,7 +228,7 @@ def generateExport(context):
         parented = []
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type=='EMPTY' or o.type == 'ARMATURE'): continue # We could potentially allow more types (.e.g lights)
-            if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'TRIM'): continue
+            if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'NON_BAKED'): continue
             if not  o.gflow.exportable: continue
             
             # Make a copy the object
@@ -259,7 +259,7 @@ def generateExport(context):
                 sets.deleteDetailFaces(context, newobj)
                 
                 # Set the material
-                if o.gflow.objType != 'TRIM':
+                if o.gflow.objType != 'NON_BAKED':
                     material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
                     sets.setMaterial(newobj, material)
                 
