@@ -101,7 +101,7 @@ def generatePainterHigh(context):
     
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type == 'FONT' or o.type == 'CURVE' or o.type=='EMPTY'): continue
-            if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER' or o.gflow.objType == 'TRIM'): continue
+            if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER' or o.gflow.objType == 'NON_BAKED'): continue
             
             suffix = stgs.hpsuffix
             if o.gflow.objType == 'OCCLUDER': suffix = "_occluder"                
