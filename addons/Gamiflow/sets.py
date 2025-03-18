@@ -41,7 +41,7 @@ def checkForNewObjectsAndScenes(scene, depsgraph):
     if scene.gflow.version == 0:
         backwardCompatibility(scene)   
     # Check the currently selected object and register it if needed
-    currentObj = bpy.context.object
+    currentObj = bpy.context.view_layer.objects.active
     if currentObj:
         if not currentObj.gflow.registered:
             onNewObject(currentObj, scene)      
