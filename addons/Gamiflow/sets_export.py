@@ -1,3 +1,4 @@
+@ -0,0 +1,483 @@
 import bpy
 from . import sets
 from . import helpers
@@ -6,6 +7,7 @@ from . import uv
 from . import geotags
 from . import sets_cage
 import mathutils
+import random
 
 # Find or create the Export Set
 def getCollection(context, createIfNeeded=False):
@@ -71,6 +73,71 @@ def printHierarchy(obj, indent):
     print(" "*indent+"."+obj.name)
     for o in obj.children:
         printHierarchy(o, indent+1)
+
+def getColorValue(source, aoValue, randomValue):
+    v = 0
+    if source == 'ONE':
+        v=1.0
+    elif source == 'OBJECT_RAND':
+        v = randomValue
+    elif source == 'AO':
+        v = aoValue
+    return v
+                    
+def bakeVertexColor(context, scene, obj):
+    sGflow = scene.gflow
+    helpers.setSelected(context, obj)
+    
+    # Keep track of the originally active color channel
+    
+    
+    # Generate the attribute (it could already exist if the user wanted to be clever)
+    gflowVertexColorName = "GFLOW_VCData"
+    if not gflowVertexColorName in obj.data.color_attributes:
+        obj.data.color_attributes.new(gflowVertexColorName, 'BYTE_COLOR', 'CORNER')
+    
+    
+    # Compute AO if needed
+    aoTarget = None
+    if sGflow.vertexChannelR == 'AO' or sGflow.vertexChannelG == 'AO' or sGflow.vertexChannelB == 'AO':
+        context.scene.render.engine = 'CYCLES'
+        # We must first create a dummy AO color target
+        aoTarget = obj.data.color_attributes.new("GFLOW_AO_TEMP", 'BYTE_COLOR', 'CORNER')
+        obj.data.attributes.active_color = aoTarget
+        # Bake AO
+        
+        bpy.ops.object.bake(type='AO', target='VERTEX_COLORS')
+        
+    
+        
+    # Compute a random color
+    rndColor = (random.random(), random.random(), random.random())
+
+    # Fill in the data
+    with helpers.objectModeBmesh(obj) as bm:
+        outputLayer = bm.loops.layers.color[gflowVertexColorName]
+        vAoLayer = None
+        if aoTarget: vAoLayer = bm.loops.layers.color[aoTarget.name]
+        for f in bm.faces:
+            for l in f.loops:
+                aoValue = 1.0
+                if vAoLayer: aoValue = l[vAoLayer].copy()[0]
+                
+                red = getColorValue(sGflow.vertexChannelR, aoValue, rndColor[0])
+                green = getColorValue(sGflow.vertexChannelG, aoValue, rndColor[1])
+                blue = getColorValue(sGflow.vertexChannelB, aoValue, rndColor[2])
+                
+                l[outputLayer] = (red, green, blue, 1.0)
+                    
+
+    obj.data.attributes.active_color_name = gflowVertexColorName
+    bpy.ops.geometry.color_attribute_render_set(name=gflowVertexColorName)  
+    
+    # Cleanup
+    if aoTarget: obj.data.color_attributes.remove(aoTarget)
+    
+    helpers.setDeselected(obj)
+    
     
 class Chunk:
     def __init__(self):
@@ -305,11 +372,6 @@ def generateExport(context):
         for newobj in localgen.generated:
             processModifiers(context, localgen, newobj) 
 
-        # Triangulate and apply 
-        # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
-        for newobj in localgen.generated:
-            sets.triangulate(context, newobj)  
-            processModifiers(context, localgen, newobj) 
             
         # Do another pass to check that we are not parenting to something that will end up getting merged
         for newobj in parented: 
@@ -334,6 +396,24 @@ def generateExport(context):
     # Lightmap UVs generation
     if context.scene.gflow.lightmapUvs:
         uv.lightmapUnwrap(context, gen.generated)
+        
+    # Vertex color baking
+    if context.scene.gflow.exportVertexColors:
+        bpy.ops.object.select_all(action='DESELECT')
+        random.seed(0)
+        for o in gen.generated:
+            if helpers.isObjectValidMesh(o):
+                bakeVertexColor(context, context.scene, o)
+    # TODO: double sided geometry
+    
+    # Triangulate and apply 
+    # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
+    for o in gen.generated:
+        if helpers.isObjectValidMesh(o):
+            sets.triangulate(context, o)  
+            processModifiers(context, gen, o) 
+                
+    
  
     # Merge all possible objects
     if stgs.mergeExportMeshes:

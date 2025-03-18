@@ -85,6 +85,13 @@ class GFLOW_PT_ExportPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
             row.prop(context.scene.gflow, "exportFormat", text='')
         row = layout.row()
         row.prop(context.scene.gflow, "lightmapUvs")
+        row = layout.row()
+        row.prop(context.scene.gflow, "exportVertexColors")
+        if context.scene.gflow.exportVertexColors:
+            row = layout.row(align=False)
+            row.prop(context.scene.gflow, "vertexChannelR", text="")
+            row.prop(context.scene.gflow, "vertexChannelG", text="")
+            row.prop(context.scene.gflow, "vertexChannelB", text="")
         layout.operator("gflow.make_export")
         layout.separator()
         row = layout.row()

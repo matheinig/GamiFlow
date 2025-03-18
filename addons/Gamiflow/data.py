@@ -67,7 +67,14 @@ gUV_MARGIN = [
         ("16", "16", "", 16),
         ("32", "32", "", 32),
         ("64", "64", "", 64)
-    ]    
+    ]   
+gVERTEX_CHANNEL = [
+        ("ZERO", "0", "Value is set to 0", 0),
+        ("ONE", "1", "Value is set to 1", 1),
+        ("CURRENT", "Current", "Whatever value exists in the currently active vertex color attribute", 2),
+        ("AO", "AO", "Value is set the baked AO", 3),
+        ("OBJECT_RAND", "Random (Object)", "Random value per object", 4),
+    ]        
     
 class GFlowObject(bpy.types.PropertyGroup):
     registered: bpy.props.BoolProperty(name="Registered (internal)", description="just to track which objects are known", default=False)
@@ -178,7 +185,12 @@ class GFlowScene(bpy.types.PropertyGroup):
     exportMethod: bpy.props.EnumProperty(name="Method", default='SINGLE', items=[
         ("SINGLE", "Single file", "One file is exported", 0),
         ("KIT", "Kit", "One file is exported for each root in the export set", 1),
-    ])     
+    ])  
+    exportVertexColors: bpy.props.BoolProperty(name="Vertex Colors", default=False, description="Create vertex colors") 
+    vertexChannelR: bpy.props.EnumProperty(name="Red", default='ONE', items=gVERTEX_CHANNEL)
+    vertexChannelG: bpy.props.EnumProperty(name="Green", default='ONE', items=gVERTEX_CHANNEL)
+    vertexChannelB: bpy.props.EnumProperty(name="Blue", default='ONE', items=gVERTEX_CHANNEL)
+
     
     # Overlays
     overlays : bpy.props.PointerProperty(type=GFlowDisplay, name="Overlays")
