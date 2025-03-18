@@ -193,7 +193,7 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
         self.layout.use_property_decorate = False           
         if obj.type == 'MESH':
             isStandard = gflow.objType == "STANDARD"
-            isTrim = gflow.objType == "TRIM"
+            isTrim = gflow.objType == "NON_BAKED"
      
             self.layout.prop(gflow, "objType")
             
