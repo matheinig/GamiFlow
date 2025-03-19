@@ -72,7 +72,7 @@ gVERTEX_CHANNEL = [
         ("ZERO", "0", "Value is set to 0", 0),
         ("ONE", "1", "Value is set to 1", 1),
         ("CURRENT", "Current", "Whatever value exists in the currently active vertex color attribute", 2),
-        ("AO", "AO", "Value is set the baked AO", 3),
+        ("AO", "AO", "AO is baked into the channel", 3),
         ("OBJECT_RAND", "Random (Object)", "Random value per object", 4),
     ]        
     

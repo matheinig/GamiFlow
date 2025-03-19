@@ -1,4 +1,3 @@
-@ -0,0 +1,483 @@
 import bpy
 from . import sets
 from . import helpers
@@ -74,12 +73,14 @@ def printHierarchy(obj, indent):
     for o in obj.children:
         printHierarchy(o, indent+1)
 
-def getColorValue(source, aoValue, randomValue):
+def getColorValue(source, aoValue, originalColor, randomValue):
     v = 0
     if source == 'ONE':
         v=1.0
     elif source == 'OBJECT_RAND':
         v = randomValue
+    elif source == 'CURRENT':
+        v = originalColor
     elif source == 'AO':
         v = aoValue
     return v
@@ -89,52 +90,51 @@ def bakeVertexColor(context, scene, obj):
     helpers.setSelected(context, obj)
     
     # Keep track of the originally active color channel
-    
+    originalColorAttribute = obj.data.color_attributes.active_color
+    #TODO need to check if this attribute is per corner
     
     # Generate the attribute (it could already exist if the user wanted to be clever)
-    gflowVertexColorName = "GFLOW_VCData"
+    gflowVertexColorName = "GFLOW_Color"
     if not gflowVertexColorName in obj.data.color_attributes:
-        obj.data.color_attributes.new(gflowVertexColorName, 'BYTE_COLOR', 'CORNER')
-    
+        obj.data.color_attributes.new(gflowVertexColorName, type='BYTE_COLOR', domain='CORNER')
     
     # Compute AO if needed
     aoTarget = None
     if sGflow.vertexChannelR == 'AO' or sGflow.vertexChannelG == 'AO' or sGflow.vertexChannelB == 'AO':
         context.scene.render.engine = 'CYCLES'
         # We must first create a dummy AO color target
-        aoTarget = obj.data.color_attributes.new("GFLOW_AO_TEMP", 'BYTE_COLOR', 'CORNER')
-        obj.data.attributes.active_color = aoTarget
+        aoTarget = obj.data.color_attributes.new("GFLOW_AO_TEMP", type='BYTE_COLOR', domain='CORNER')
+        obj.data.color_attributes.active_color = aoTarget
         # Bake AO
-        
         bpy.ops.object.bake(type='AO', target='VERTEX_COLORS')
         
-    
-        
+
     # Compute a random color
     rndColor = (random.random(), random.random(), random.random())
 
     # Fill in the data
-    with helpers.objectModeBmesh(obj) as bm:
-        outputLayer = bm.loops.layers.color[gflowVertexColorName]
-        vAoLayer = None
-        if aoTarget: vAoLayer = bm.loops.layers.color[aoTarget.name]
-        for f in bm.faces:
-            for l in f.loops:
-                aoValue = 1.0
-                if vAoLayer: aoValue = l[vAoLayer].copy()[0]
-                
-                red = getColorValue(sGflow.vertexChannelR, aoValue, rndColor[0])
-                green = getColorValue(sGflow.vertexChannelG, aoValue, rndColor[1])
-                blue = getColorValue(sGflow.vertexChannelB, aoValue, rndColor[2])
-                
-                l[outputLayer] = (red, green, blue, 1.0)
-                    
+    vertexColorAttribute = obj.data.color_attributes[gflowVertexColorName]
+    for index in range(0, len(vertexColorAttribute.data)):
+        aoValue = 1.0
+        originalColor = [0.0,0.0,0.0,1.0] 
 
-    obj.data.attributes.active_color_name = gflowVertexColorName
-    bpy.ops.geometry.color_attribute_render_set(name=gflowVertexColorName)  
+        if aoTarget: aoValue = aoTarget.data[index].color[0]
+        if originalColorAttribute: originalColor = originalColorAttribute.data[index].color
+        
+        red = getColorValue(sGflow.vertexChannelR, aoValue, originalColor[0], rndColor[0])
+        green = getColorValue(sGflow.vertexChannelG, aoValue, originalColor[1], rndColor[1])
+        blue = getColorValue(sGflow.vertexChannelB, aoValue, originalColor[2], rndColor[2])
+        
+        vertexColorAttribute.data[index].color = [red, green, blue, 1.0]
+                        
+    obj.data.color_attributes.active_color_name = gflowVertexColorName
+    #bpy.ops.geometry.color_attribute_render_set(name=gflowVertexColorName)
     
     # Cleanup
-    if aoTarget: obj.data.color_attributes.remove(aoTarget)
+    if aoTarget: 
+        obj.data.color_attributes.remove(aoTarget)
+    if originalColorAttribute and (sGflow.vertexChannelR == 'CURRENT' or sGflow.vertexChannelG == 'CURRENT' or sGflow.vertexChannelB == 'CURRENT'):
+        obj.data.color_attributes.remove(originalColorAttribute)
     
     helpers.setDeselected(obj)
     
