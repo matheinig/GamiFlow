@@ -230,13 +230,15 @@ def addWeightedNormals(context, obj):
     w = obj.modifiers.new(type="WEIGHTED_NORMAL", name="Weighted Normal (GFlow)")
     w.keep_sharp = True
     w.use_face_influence = True
+    return w
     
 def triangulate(context, obj):
     if obj.type != 'MESH': return
     tri = obj.modifiers.new(type="TRIANGULATE", name="Triangulate (GFlow)")
     # keep custom normals was removed in 4.2 but added again in 4.3
     if bpy.app.version != (4, 2, 0):
-        tri.keep_custom_normals = True  
+        tri.keep_custom_normals = True
+    return tri
 
 def removeLowModifiers(context, obj):
     for m in list(obj.modifiers):

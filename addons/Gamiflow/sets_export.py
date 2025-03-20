@@ -249,6 +249,37 @@ def mergeObjects(context, objects):
         result.append(chunk.mergedObject)
     return result
 
+def triangulateObjects(context, objects):
+    todo = list(objects)
+    objectsUsingMesh = {}
+    for o in todo:
+        if not helpers.isObjectValidMesh(o): continue
+        
+        if o.data.users == 1:
+            helpers.setSelected(context, o)
+            tri = sets.triangulate(context, o)
+            bpy.ops.object.modifier_apply(modifier=tri.name)
+            helpers.setDeselected(o)
+        elif o.data.users > 1:
+            if o.data not in objectsUsingMesh:
+                objectsUsingMesh[o.data] = [o]
+            else:
+                objectsUsingMesh[o.data].append(o)
+                
+    # Handle shared meshes separately
+    for (mesh, objs) in objectsUsingMesh.items():
+        # make the first object unique, add triangulate modifier, and apply it
+        helpers.setSelected(context, objs[0])
+        trimesh = mesh.copy()
+        objs[0].data = trimesh
+        tri = sets.triangulate(context, objs[0])
+        bpy.ops.object.modifier_apply(modifier=tri.name)
+        helpers.setDeselected(objs[0])
+        # remove the modifier on the other objects and swap the mesh
+        for o in objs[1:]:
+            o.data = trimesh
+           
+
 def generateExport(context):
     # Make sure we don't already have a filled export set
     collection = getCollection(context, createIfNeeded=False)
@@ -418,10 +449,9 @@ def generateExport(context):
     
     # Triangulate and apply 
     # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
-    for o in gen.generated:
-        if helpers.isObjectValidMesh(o):
-            sets.triangulate(context, o)  
-            processModifiers(context, gen, o) 
+    # But needs special treatment because shared meshes don't like modifiers being applied
+    triangulateObjects(context, gen.generated)
+
                 
     
  
