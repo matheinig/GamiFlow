@@ -84,7 +84,18 @@ def getColorValue(source, aoValue, originalColor, randomValue):
     elif source == 'AO':
         v = aoValue
     return v
-                    
+    
+def bakeVertexAO(scene, obj):
+    sGflow = scene.gflow
+    aoAttribute = None
+    if sGflow.vertexChannelR == 'AO' or sGflow.vertexChannelG == 'AO' or sGflow.vertexChannelB == 'AO':
+        scene.render.engine = 'CYCLES'
+        # We must first create a dummy AO color target
+        aoAttribute = obj.data.color_attributes.new("GFLOW_AO_TEMP", type='BYTE_COLOR', domain='CORNER')
+        obj.data.color_attributes.active_color = aoAttribute
+        # Bake AO
+        bpy.ops.object.bake(type='AO', target='VERTEX_COLORS')
+    return aoAttribute
 def bakeVertexColor(context, scene, obj):
     sGflow = scene.gflow
     helpers.setSelected(context, obj)
@@ -99,14 +110,7 @@ def bakeVertexColor(context, scene, obj):
         obj.data.color_attributes.new(gflowVertexColorName, type='BYTE_COLOR', domain='CORNER')
     
     # Compute AO if needed
-    aoTarget = None
-    if sGflow.vertexChannelR == 'AO' or sGflow.vertexChannelG == 'AO' or sGflow.vertexChannelB == 'AO':
-        context.scene.render.engine = 'CYCLES'
-        # We must first create a dummy AO color target
-        aoTarget = obj.data.color_attributes.new("GFLOW_AO_TEMP", type='BYTE_COLOR', domain='CORNER')
-        obj.data.color_attributes.active_color = aoTarget
-        # Bake AO
-        bpy.ops.object.bake(type='AO', target='VERTEX_COLORS')
+    aoTarget = bakeVertexAO(scene, obj)
         
 
     # Compute a random color
@@ -405,6 +409,12 @@ def generateExport(context):
             if helpers.isObjectValidMesh(o):
                 bakeVertexColor(context, context.scene, o)
     # TODO: double sided geometry
+    # double sided geo with AO idea:
+    # duplicate object and flip normals
+    # then bake AO
+    # maybe push verts that aren't in the "Non manifold" list (but probably shouldn't have to)
+    # then join back with original
+    # CHECK: joining might invalidate the objects stored in gen.generated 
     
     # Triangulate and apply 
     # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
