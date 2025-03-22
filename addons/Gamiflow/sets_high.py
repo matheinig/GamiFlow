@@ -200,10 +200,11 @@ def generatePainterHigh(context):
 
     # Deal with anchors
     for o in gen.generated:
-        if o.gflow.bakeAnchor and o.gflow.bakeGhost:
+        if o.gflow.bakeAnchor:
             # Leave a ghost behind if need be
             ## TODO: maybe the children should also be ghosted
-            ghost = sets.duplicateObject(o, highCollection, suffix="_ghost")
+            if o.gflow.bakeGhost:
+                ghost = sets.duplicateObject(o, highCollection, suffix="_ghost")
             # Teleport
             o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
            
