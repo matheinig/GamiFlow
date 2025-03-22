@@ -200,7 +200,7 @@ def generatePainterHigh(context):
 
     # Deal with anchors
     for o in gen.generated:
-        if o.gflow.bakeAnchor:
+        if o.gflow.bakeAnchor and o.gflow.bakeGhost:
             # Leave a ghost behind if need be
             ## TODO: maybe the children should also be ghosted
             ghost = sets.duplicateObject(o, highCollection, suffix="_ghost")
