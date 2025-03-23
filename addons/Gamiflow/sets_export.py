@@ -108,6 +108,10 @@ def bakeVertexColor(context, scene, obj):
     gflowVertexColorName = "GFLOW_Color"
     if not gflowVertexColorName in obj.data.color_attributes:
         obj.data.color_attributes.new(gflowVertexColorName, type='BYTE_COLOR', domain='CORNER')
+    else:
+        # if we already have the color attribute, we assume it's already been done
+        helpers.setDeselected(obj)
+        return
     
     # Compute AO if needed
     aoTarget = bakeVertexAO(scene, obj)
@@ -445,6 +449,7 @@ def generateExport(context):
     # then bake AO
     # maybe push verts that aren't in the "Non manifold" list (but probably shouldn't have to)
     # then join back with original
+    
     # CHECK: joining might invalidate the objects stored in gen.generated 
     
     # Triangulate and apply 
