@@ -124,6 +124,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     cageOffset : bpy.props.FloatProperty(name="Cage offset", subtype='DISTANCE', default=0.0, min=0.0, soft_max=0.5, description="Per-object cage offset override. Leave at 0 to use the scene value instead.", update=onCageOffsetChanged)
 
     # Export
+    doubleSided: bpy.props.BoolProperty(name="Double-sided", default=False)
     instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)
     mergeWithParent: bpy.props.BoolProperty(name="Merge with parents", default=True)
     exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set")

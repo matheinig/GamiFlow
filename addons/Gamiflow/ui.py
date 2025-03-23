@@ -272,6 +272,7 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             self.layout.prop(gflow, "exportable")
             self.layout.prop(gflow, "exportAnchor")        
             self.layout.prop(gflow, "mergeWithParent")
+            self.layout.prop(gflow, "doubleSided")
         elif obj.type == 'EMPTY':
             row = self.layout.row()
             self.layout.prop(gflow, "mergeWithParent")

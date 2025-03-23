@@ -436,13 +436,37 @@ def generateExport(context):
     if context.scene.gflow.lightmapUvs:
         uv.lightmapUnwrap(context, gen.generated)
         
-    # Vertex color baking
-    if context.scene.gflow.exportVertexColors:
-        bpy.ops.object.select_all(action='DESELECT')
-        random.seed(0)
-        for o in gen.generated:
-            if helpers.isObjectValidMesh(o):
-                bakeVertexColor(context, context.scene, o)
+    # Vertex color baking and double sided geo
+    bpy.ops.object.select_all(action='DESELECT')
+    random.seed(0)
+    for index, o in enumerate(gen.generated):
+        if helpers.isObjectValidMesh(o):
+
+            if o.gflow.doubleSided:
+                # Duplicate and flip normals
+                backface = sets.duplicateObject(o, collection, prefix="backface_")
+                helpers.setSelected(context, backface)
+                bpy.ops.object.editmode_toggle()
+                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.mesh.flip_normals()
+                bpy.ops.transform.push_pull(value=0.001, mirror=False, use_proportional_edit=False)
+                bpy.ops.object.editmode_toggle()
+                helpers.setDeselected(o)
+                # Bake the colours for both sides
+                if context.scene.gflow.exportVertexColors:
+                    bakeVertexColor(context, context.scene, backface)
+                    bakeVertexColor(context, context.scene, o)
+                # Join the two objects together
+                helpers.setSelected(context, backface)
+                helpers.setSelected(context, o)
+                bpy.ops.object.join()
+                gen.generated[index] = context.object
+                helpers.setDeselected(context.object)
+            else:
+                if context.scene.gflow.exportVertexColors:
+                    bakeVertexColor(context, context.scene, o)            
+                
+ 
     # TODO: double sided geometry
     # double sided geo with AO idea:
     # duplicate object and flip normals
