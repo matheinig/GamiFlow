@@ -74,7 +74,16 @@ gVERTEX_CHANNEL = [
         ("CURRENT", "Current", "Whatever value exists in the currently active vertex color attribute", 2),
         ("AO", "AO", "AO is baked into the channel", 3),
         ("OBJECT_RAND", "Random (Object)", "Random value per object", 4),
-    ]        
+    ]
+
+gPROJECTION_MODES = [
+        ("STANDARD", "Standard", "", 0),
+        ("PROJECTED", "Projected", "An object used exclusively for baking, for example a sculpt", 1),
+        ("DECAL", "Decal (Deprecated ⚠️)", "Use Projected with single-sided faces instead.", 2),
+        ("NON_BAKED", "Non-Baked", "Object whose material already exists and isn't supposed to get baked (a generic tiled texture, trim sheet). \nThis object is not processed as much by GamiFlow (UVs and materials are not modified) but will get exported.", 5),
+        ("OCCLUDER", "Occluder", "An object used exclusively for baking, but only as a shadow caster", 3),
+        ("IGNORED", "Ignored", "This object will be completely ignored", 4),
+    ]    
     
 class GFlowObject(bpy.types.PropertyGroup):
     registered: bpy.props.BoolProperty(name="Registered (internal)", description="just to track which objects are known", default=False)
@@ -98,14 +107,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     textureSetEnum : bpy.props.EnumProperty(items = udimItemGenerator, name = 'UDIM', update=onVisualUdimChange)
 
     # Baking
-    objType: bpy.props.EnumProperty(name="Type", default='STANDARD', items=[
-        ("STANDARD", "Standard", "", 0),
-        ("PROJECTED", "Projected", "An object used exclusively for baking, for example a sculpt", 1),
-        ("DECAL", "Decal (Deprecated ⚠️)", "Use Projected with single-sided faces instead.", 2),
-        ("NON_BAKED", "Non-Baked", "Object whose material already exists and isn't supposed to get baked (a generic tiled texture, trim sheet). \nThis object is not processed as much by GamiFlow (UVs and materials are not modified) but will get exported.", 5),
-        ("OCCLUDER", "Occluder", "An object used exclusively for baking, but only as a shadow caster", 3),
-        ("IGNORED", "Ignored", "This object will be completely ignored", 4),
-    ])
+    objType: bpy.props.EnumProperty(name="Type", default='STANDARD', items=gPROJECTION_MODES)
     instanceBake: bpy.props.EnumProperty(name="Instance in", default='LOW_HIGH', items=[
         ("NONE", "None", "", 0),
         ("LOW", "Low", "", 3),

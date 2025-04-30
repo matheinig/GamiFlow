@@ -409,10 +409,10 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
         # Pie order: west, east, south, north, north-west, north-east, south-west, south-east
         
         if context.mode == 'OBJECT':
-            pie.operator("gflow.set_smoothing") # W
-            pie.operator("gflow.add_bevel")     # E
-            pie.operator("gflow.set_udim")      # S
-            # N
+            pie.operator("gflow.set_smoothing")     # W
+            pie.operator("gflow.add_bevel")         # E
+            pie.operator("gflow.set_udim")          # S
+            pie.operator("gflow.project_to_active") # N
         elif context.mode == "EDIT_MESH":
             if bpy.context.tool_settings.mesh_select_mode[1]:
                 # Edge mode

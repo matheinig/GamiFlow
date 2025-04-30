@@ -4,6 +4,7 @@ import math
 import mathutils
 from . import helpers
 from . import geotags
+from . import data
   
 def backwardCompatibility(scene):
     currentVersion = 2
@@ -470,7 +471,27 @@ class GFLOW_OT_SelectHighPoly(bpy.types.Operator):
         #except:
         #    return {"CANCELLED"}
             
-        return {"FINISHED"}            
+        return {"FINISHED"}   
+class GFLOW_OT_ProjectToActive(bpy.types.Operator):
+    bl_idname      = "gflow.project_to_active"
+    bl_label       = "Project to active"
+    bl_description = "Project selected objects to the active object."
+    bl_options = {"REGISTER", "UNDO"}
+
+    projType: bpy.props.EnumProperty(name="Projection type", default="PROJECTED", items=data.gPROJECTION_MODES)
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects)>1
+    def execute(self, context):
+        for o in context.selected_objects:
+            if o == context.active_object: continue
+            o.gflow.objType = self.projType
+            context.active_object.gflow.highpolys.add()
+            context.active_object.gflow.highpolys[-1].obj = o
+            
+ 
+        return {"FINISHED"}              
 
 class GFLOW_OT_ClearGeneratedSets(bpy.types.Operator):
     bl_idname      = "gflow.clear_sets"
@@ -524,7 +545,7 @@ class GFLOW_OT_ToggleSetVisibility(bpy.types.Operator):
         
         
 classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
-    GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly,
+    GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly, GFLOW_OT_ProjectToActive,
     GFLOW_OT_MarkHardSeam, GFLOW_OT_MarkSoftSeam, GFLOW_OT_ClearSeam,
     GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility]
 
