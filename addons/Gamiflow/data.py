@@ -1,8 +1,8 @@
 import bpy
 from . import uv
-from . import sets
 from . import display
 from . import sets_cage
+from . import enums
 
 # Per object
 class GFlowHighPolyItem(bpy.types.PropertyGroup):
@@ -48,42 +48,7 @@ def onDefaultCageOffsetChanged(self, context):
                 
         
     
-gUV_UNWRAP_METHODS = [
-        ("ANGLE_BASED", "Angle Based", "", 1),
-        ("CONFORMAL", "Conformal", "", 2),
-        ("MINIMUM_STRETCH", "Minimum stretch", "", 3),
-    ]
-gUV_RESOLUTION = [        
-        ("512",  "512",  "", 512),
-        ("1024", "1024", "", 1024),
-        ("2048", "2048", "", 2048),
-        ("4096", "4096", "", 4096),
-        ("8192", "8192", "", 8192),
-    ]
-gUV_MARGIN = [        
-        ("2",  "2",  "", 2),
-        ("4",  "4",  "", 4),
-        ("8",  "8",  "", 8),
-        ("16", "16", "", 16),
-        ("32", "32", "", 32),
-        ("64", "64", "", 64)
-    ]   
-gVERTEX_CHANNEL = [
-        ("ZERO", "0", "Value is set to 0", 0),
-        ("ONE", "1", "Value is set to 1", 1),
-        ("CURRENT", "Current", "Whatever value exists in the currently active vertex color attribute", 2),
-        ("AO", "AO", "AO is baked into the channel", 3),
-        ("OBJECT_RAND", "Random (Object)", "Random value per object", 4),
-    ]
 
-gPROJECTION_MODES = [
-        ("STANDARD", "Standard", "", 0),
-        ("PROJECTED", "Projected", "An object used exclusively for baking, for example a sculpt", 1),
-        ("DECAL", "Decal (Deprecated ⚠️)", "Use Projected with single-sided faces instead.", 2),
-        ("NON_BAKED", "Non-Baked", "Object whose material already exists and isn't supposed to get baked (a generic tiled texture, trim sheet). \nThis object is not processed as much by GamiFlow (UVs and materials are not modified) but will get exported.", 5),
-        ("OCCLUDER", "Occluder", "An object used exclusively for baking, but only as a shadow caster", 3),
-        ("IGNORED", "Ignored", "This object will be completely ignored", 4),
-    ]    
     
 class GFlowObject(bpy.types.PropertyGroup):
     registered: bpy.props.BoolProperty(name="Registered (internal)", description="just to track which objects are known", default=False)
@@ -99,7 +64,7 @@ class GFlowObject(bpy.types.PropertyGroup):
 
     # UV mapping
     unwrap: bpy.props.BoolProperty(name="Auto Unwrap", default=True)
-    unwrap_method: bpy.props.EnumProperty(default='ANGLE_BASED', items=gUV_UNWRAP_METHODS)
+    unwrap_method: bpy.props.EnumProperty(default='ANGLE_BASED', items=enums.gUV_UNWRAP_METHODS)
     unwrap_extraParameter: bpy.props.IntProperty(name="Unwrap param", default=10, min=1, soft_max=20, description="Method-specific parameter")
     unwrap_smooth_iterations : bpy.props.IntProperty(name="Smooth iterations", default=0, min=0, soft_max=100, description="How many smoothing iterations to perform")
     unwrap_smooth_strength : bpy.props.FloatProperty(name="Smooth strength", default=0.8, min=0.0, max=1.0, description="How much of the smoothing is applied") # Must be inverted when calling the minimize stretch operator
@@ -107,7 +72,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     textureSetEnum : bpy.props.EnumProperty(items = udimItemGenerator, name = 'UDIM', update=onVisualUdimChange)
 
     # Baking
-    objType: bpy.props.EnumProperty(name="Type", default='STANDARD', items=gPROJECTION_MODES)
+    objType: bpy.props.EnumProperty(name="Type", default='STANDARD', items=enums.gPROJECTION_MODES)
     instanceBake: bpy.props.EnumProperty(name="Instance in", default='LOW_HIGH', items=[
         ("NONE", "None", "", 0),
         ("LOW", "Low", "", 3),
@@ -159,8 +124,8 @@ class GFlowScene(bpy.types.PropertyGroup):
     cageOffset : bpy.props.FloatProperty(name="Default offset", subtype='DISTANCE', default=0.01, min=0.0, soft_max=0.5, update=onDefaultCageOffsetChanged, description="How much the cage mesh will be inflated")
     
     # UVs
-    uvResolution : bpy.props.EnumProperty(name="Resolution", default='2048', items=gUV_RESOLUTION, description="Default resolution in pixels")
-    uvMargin : bpy.props.EnumProperty(name="Margin", default='8', items=gUV_MARGIN, description="Margin between UV islands (in pixels)")
+    uvResolution : bpy.props.EnumProperty(name="Resolution", default='2048', items=enums.gUV_RESOLUTION, description="Default resolution in pixels")
+    uvMargin : bpy.props.EnumProperty(name="Margin", default='8', items=enums.gUV_MARGIN, description="Margin between UV islands (in pixels)")
     uvSnap : bpy.props.BoolProperty(name="Snap", default=True, description="If enabled, UVs will be snapped to pixels")
     uvPackSettings :  bpy.props.EnumProperty(name="Packer", default='FAST', items=gUV_PACK_METHODS)
     uvScaleFactor: bpy.props.FloatProperty(name="Scale", subtype='FACTOR', default=1.0,  precision=2, step=0.1, min=0.0, soft_max=2.0, description="Island scale factor")
@@ -190,9 +155,9 @@ class GFlowScene(bpy.types.PropertyGroup):
         ("KIT", "Kit", "One file is exported for each root in the export set", 1),
     ])  
     exportVertexColors: bpy.props.BoolProperty(name="Vertex Colors", default=False, description="Create vertex colors") 
-    vertexChannelR: bpy.props.EnumProperty(name="Red", default='ONE', items=gVERTEX_CHANNEL)
-    vertexChannelG: bpy.props.EnumProperty(name="Green", default='ONE', items=gVERTEX_CHANNEL)
-    vertexChannelB: bpy.props.EnumProperty(name="Blue", default='ONE', items=gVERTEX_CHANNEL)
+    vertexChannelR: bpy.props.EnumProperty(name="Red", default='ONE', items=enums.gVERTEX_CHANNEL)
+    vertexChannelG: bpy.props.EnumProperty(name="Green", default='ONE', items=enums.gVERTEX_CHANNEL)
+    vertexChannelB: bpy.props.EnumProperty(name="Blue", default='ONE', items=enums.gVERTEX_CHANNEL)
 
     
     # Overlays

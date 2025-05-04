@@ -5,6 +5,7 @@ import mathutils
 from . import helpers
 from . import geotags
 from . import data
+from . import enums
   
 def backwardCompatibility(scene):
     currentVersion = 2
@@ -478,7 +479,7 @@ class GFLOW_OT_ProjectToActive(bpy.types.Operator):
     bl_description = "Project selected objects to the active object."
     bl_options = {"REGISTER", "UNDO"}
 
-    projType: bpy.props.EnumProperty(name="Projection type", default="PROJECTED", items=data.gPROJECTION_MODES)
+    projType: bpy.props.EnumProperty(name="Projection type", default="PROJECTED", items=enums.gPROJECTION_MODES)
 
     @classmethod
     def poll(cls, context):
