@@ -472,7 +472,12 @@ class GFLOW_OT_SelectHighPoly(bpy.types.Operator):
         #except:
         #    return {"CANCELLED"}
             
-        return {"FINISHED"}   
+        return {"FINISHED"} 
+
+def isObjectInHighList(active, potentialObj):
+    for hp in active.gflow.highpolys:
+        if hp.obj == potentialObj: return True
+    return False
 class GFLOW_OT_ProjectToActive(bpy.types.Operator):
     bl_idname      = "gflow.project_to_active"
     bl_label       = "Project to active"
@@ -487,6 +492,7 @@ class GFLOW_OT_ProjectToActive(bpy.types.Operator):
     def execute(self, context):
         for o in context.selected_objects:
             if o == context.active_object: continue
+            if isObjectInHighList(context.active_object, o): continue
             o.gflow.objType = self.projType
             context.active_object.gflow.highpolys.add()
             context.active_object.gflow.highpolys[-1].obj = o
