@@ -31,7 +31,8 @@ def bakeVertexColours(obj):
     materialColours = []
     for ms in obj.material_slots:
         material = ms.material
-        colour = helpers.getMaterialColour(material)
+        colour = (1.0,1.0,1.0,1.0)
+        if material: colour = helpers.getMaterialColour(material)
         sRGB = [linearToGamma(colour[0]), linearToGamma(colour[1]), linearToGamma(colour[2]), 1.0]
         materialColours.append(sRGB)
 
