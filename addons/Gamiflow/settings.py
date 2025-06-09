@@ -23,7 +23,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ],
         default="EXTERNAL"
         )    
-    
+#BEGINTRIM --------------------------------------------------
     uvPacker : bpy.props.EnumProperty(
         name="UV Packer",
         description="Chose which UV packer to use",
@@ -34,7 +34,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ],
         default="BLENDER"
         )
-        
+    useMofUnwrapper : bpy.props.BoolProperty(name = "Use Ministry of Flat (MoF) Auto Uwnrapper", default=False, description="Enable the Ministry of Flat integration.")
+    setMofAsDefault : bpy.props.BoolProperty(name = "Make default method", default=False, description="Will set the MoF uwnrap method on all newly created objects.")
+    mofPath : bpy.props.StringProperty(name = "MoF path", default = "", subtype="FILE_PATH", description="Path to the folder containing UnWrapConsole3.exe")
+#ENDTRIM -----------------------------------------------------           
     idMap : bpy.props.EnumProperty(
         name="ID Map",
         description="Where the ID is supposed to come from",
@@ -64,7 +67,26 @@ class AddonPreferences(bpy.types.AddonPreferences):
         
         layout.label(text="Working set")
 #BEGINTRIM --------------------------------------------------     
+        
+        layout.prop(self, "useMofUnwrapper")
+        row = layout.row()
+        row.active = self.useMofUnwrapper
+        row.prop(self, "mofPath")
+        row = layout.row()
+        row.active = self.useMofUnwrapper
+        row.prop(self, "setMofAsDefault")
+        if self.useMofUnwrapper and not uv.isMofAvailable(self):
+            row = layout.row()
+            row.alert = True
+            row.label(text="Ministry of Flat executable not found")
+            row.operator("wm.url_open", text="Get Ministry of Flat").url = "https://www.quelsolaar.com/ministry_of_flat/"
         layout.prop(self, "uvPacker")
+        if self.uvPacker == "UVPACKER" and not uv.isUvPackerAvailable():
+            row = layout.row()
+            row.alert = True
+            row.label(text="UV-Packer plugin not found")
+            row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
+                    
 #ENDTRIM -----------------------------------------------------        
         layout.prop(self, "edgeWidth")
         layout.prop(self, "detailEdgeColor")
@@ -82,11 +104,8 @@ class AddonPreferences(bpy.types.AddonPreferences):
         
         
 #BEGINTRIM -------------------------------------------------- 
-        if self.uvPacker == "UVPACKER" and not uv.isUvPackerAvailable():
-            row = layout.row()
-            row.alert = True
-            row.label(text="UV-Packer plugin not found")
-            row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
+
+        
 #ENDTRIM -----------------------------------------------------          
         
         #layout.prop(self, "my_property")

@@ -2,6 +2,9 @@ gUV_UNWRAP_METHODS = [
         ("ANGLE_BASED", "Angle Based", "", 1),
         ("CONFORMAL", "Conformal", "", 2),
         ("MINIMUM_STRETCH", "Minimum stretch", "", 3),
+#BEGINTRIM -------------------------------------------------- 
+        ("MOF", "Automatic (MoF)", "Only possible with Ministry of Truth installed and enabled", -1),
+#ENDTRIM -----------------------------------------------------  
     ]
 gUV_RESOLUTION = [        
         ("512",  "512",  "", 512),

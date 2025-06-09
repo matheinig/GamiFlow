@@ -5,6 +5,7 @@ import math
 import addon_utils
 import importlib  
 import platform, os, subprocess, queue
+import time
 from bpy_extras.bmesh_utils import bmesh_linked_uv_islands
 from . import geotags
 from . import helpers
@@ -15,6 +16,16 @@ from . import settings
 def isUvPackerAvailable():
     (default, current) = addon_utils.check("UV-Packer")
     return current
+    
+def getMofConsole(stgs):
+    return os.path.join(stgs.mofPath, 'UnWrapConsole3.exe')
+def isMofAvailable(stgs):
+    if not stgs.mofPath: return False
+    consolePath = getMofConsole(stgs)
+    if not os.path.exists(consolePath): return False
+    return True
+def isMofAvailableAndEnbaled(stgs):
+    return stgs.useMofUnwrapper and isMofAvailable(stgs)
 #ENDTRIM -----------------------------------------------------  
 def hardenSeams(context, obj):
     return
@@ -178,7 +189,7 @@ def straightenUv(context, obj):
                 bpy.ops.uv.pin(clear=False)
                 # Unwrap everything in the island
                 bpy.ops.mesh.select_linked(delimit={'SEAM'})
-                safeUnwrap(obj)
+                safeUnwrap(context, obj)
                 # Unpin
                 bpy.ops.uv.pin(clear=True)
 
@@ -278,7 +289,7 @@ def unwrap(context, objects):
         bpy.ops.mesh.reveal(select=False)
 
         # Unwrap
-        safeUnwrap(o)
+        safeUnwrap(context, o)
         
         # Smooth if needed
         if o.gflow.unwrap_smooth_iterations>0:
@@ -292,9 +303,21 @@ def unwrap(context, objects):
         o.select_set(False)
     bpy.ops.object.select_all(action='DESELECT')
 
-def safeUnwrap(o):
+def safeUnwrap(context, o):
     # Unwrap
     method = o.gflow.unwrap_method
+    
+#BEGINTRIM --------------------------------------------------
+    if method == "MOF":
+        succeeded = False 
+        if isMofAvailableAndEnbaled(settings.getSettings()):
+            succeeded = mofUnwrap(context, o)
+        if succeeded: return
+        else:
+            print("GamiFlow: Could not use Ministry of Flat unwrapper on "+o.name+". Is it isntalled and enabled?")
+            method = "ANGLE_BASED" # fallback to basic blender unwrapper if MoF failed
+#ENDTRIM -----------------------------------------------------
+
     # Pre 4.3 blender does not support minimum stretch unwrapping
     if bpy.app.version < (4, 3, 0):
         if method == 'MINIMUM_STRETCH': method = 'ANGLE_BASED'
@@ -806,6 +829,74 @@ def pack_uvpacker(context):
     
     print("UV-Packer integration not available in this version of GamiFlow")
     return
+    
+# Ministry of flat backend
+def mofUnwrap(context, obj):
+    print(obj.name)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    helpers.setDeselected(obj)
+
+    # First we want to prevent MoF from creating seams on edges that will get deleted by gamiflow
+    # The easiest way is to just delete all those edges before unwrapping
+    tempObj = obj.copy()
+    tempObj.data = obj.data.copy()
+    context.collection.objects.link(tempObj)
+    sets.removeEdgesForLevel(context, tempObj, 0, keepPainter=False)
+    helpers.setSelected(context, tempObj)
+    # Export the file as obj
+    mofFolder = settings.getSettings().mofPath
+    sourceObjPath = os.path.join(mofFolder, "mofTempInput.obj")
+    resultObjPath = os.path.join(mofFolder, "mofTempOutput.obj")
+    bpy.ops.wm.obj_export(filepath=sourceObjPath, check_existing=False, filter_glob="*.obj", 
+        forward_axis='NEGATIVE_Z', up_axis='Y', 
+        export_selected_objects = True, export_eval_mode = 'DAG_EVAL_RENDER',
+        export_uv = True, export_normals = True, export_colors = False, export_materials = False, export_pbr_extensions = False, export_triangulated_mesh = False)
+    helpers.setDeselected(tempObj)
+    # Wait for the input file to exist just in case
+    while not os.path.exists(sourceObjPath):
+        time.sleep(0.05)
+        
+    # Run MoF
+    mofPath = os.path.join(mofFolder, 'UnWrapConsole3.exe')
+    center = " -CENTER "+str(obj.location[0])+" "+str(obj.location[1])+" "+str(obj.location[2]) # Maybe not necessary, mostly for safety
+    command = mofPath + " " + sourceObjPath + " " + resultObjPath + " -NORMALS FALSE -SEPARATE TRUE" + center
+    os.popen(command)
+
+    # Wait for the output file to exist just in case
+    while not os.path.exists(resultObjPath):
+        time.sleep(0.05)
+    
+    # Load the unwrapped obj
+    bpy.ops.wm.obj_import(filepath=resultObjPath, global_scale=1.0, clamp_size=0.0, forward_axis='NEGATIVE_Z', up_axis='Y', use_split_objects=True, use_split_groups=False, import_vertex_groups=False, validate_meshes=False)
+    unwrappedObj = context.object
+    os.remove(resultObjPath) 
+
+    # Transfer the UVs (can't use bpy.ops.object.join_uvs() because the topology won't match if we deleted edges)
+    helpers.setSelected(context, obj)
+    transfer = obj.modifiers.new(type="DATA_TRANSFER", name="UV Transfer (GFlow, TEMP)")
+    transfer.object = unwrappedObj
+    transfer.use_loop_data = True
+    transfer.data_types_loops = {'UV'}
+    bpy.ops.object.modifier_apply(modifier=transfer.name)
+    
+    
+    # Big hack: UV-Packer doesn't behave nicely when we have lots of 0-area faces (which can be the case if we dissolved lots of edges). Se we smooth the UVs a tiny bit for safety
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.uv.select_all(action='SELECT')
+    bpy.ops.uv.minimize_stretch(blend=0.99, iterations=1)
+    
+    # Clean up the scene
+    bpy.data.meshes.remove(unwrappedObj.data) # Will get rid of the object too
+    bpy.data.meshes.remove(tempObj.data)
+    bpy.ops.object.mode_set(mode='EDIT') # the rest of the unwrapper expects to be in edit mode
+    
+    # Update the seams
+    bpy.ops.uv.select_all(action='SELECT')
+    bpy.ops.mesh.mark_seam(clear=True)
+    bpy.ops.uv.seams_from_islands()
+
+    return True
+    
 #ENDTRIM --------------------------------------------------
 
 @bpy.app.handlers.persistent

@@ -16,6 +16,7 @@ bl_info = {
 # Trick to properly reload other files
 if "bpy" in locals():
     import importlib
+    importlib.reload(enums)
     importlib.reload(data)
     importlib.reload(settings)
     importlib.reload(ui)
@@ -32,6 +33,7 @@ if "bpy" in locals():
     importlib.reload(baker)
 
 import bpy
+from . import enums
 from . import data
 from . import settings
 from . import ui

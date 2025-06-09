@@ -6,6 +6,7 @@ from . import helpers
 from . import geotags
 from . import data
 from . import enums
+from . import settings
   
 def backwardCompatibility(scene):
     currentVersion = 2
@@ -52,6 +53,11 @@ def checkForNewObjectsAndScenes(scene, depsgraph):
 def onNewObject(o, scene):
     o.gflow.registered = True
     o.gflow.textureSetEnum = scene.gflow.udims[scene.gflow.ui_selectedUdim].name
+#BEGINTRIM --------------------------------------------------
+    stgs = settings.getSettings()
+    if stgs.useMofUnwrapper and stgs.setMofAsDefault:
+        o.gflow.unwrap_method = 'MOF'
+#ENDTRIM -----------------------------------------------------
     return
 
 class GeneratorData:
