@@ -11,6 +11,7 @@ from . import geotags
 from . import helpers
 from . import sets
 from . import settings
+from . import enums
 
 #BEGINTRIM -------------------------------------------------- 
 def isUvPackerAvailable():
@@ -702,7 +703,24 @@ class GFLOW_OT_SetToCurrentUdim(bpy.types.Operator):
     def execute(self, context):
         context.object.gflow.textureSet = context.scene.gflow.ui_selectedUdim
 
-        return {"FINISHED"}    
+        return {"FINISHED"}
+        
+class GFLOW_OT_SetUnwrapMethod(bpy.types.Operator):
+    bl_idname      = "gflow.set_unwrap_method"
+    bl_label       = "Set Unwrap Method"
+    bl_description = "Set the unwrap method to the selection"
+    bl_options = {"REGISTER", "UNDO"}
+    
+    unwrap_method: bpy.props.EnumProperty(name="Unwrapper", default='ANGLE_BASED', items=enums.gUV_UNWRAP_METHODS)
+    
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects)>0
+
+    def execute(self, context):
+        for o in context.selected_objects:
+            o.gflow.unwrap_method = self.unwrap_method
+        return {"FINISHED"} 
 
 def udimItemGenerator(self,context):
     items = []
@@ -832,8 +850,8 @@ def pack_uvpacker(context):
     
 # Ministry of flat backend
 def mofUnwrap(context, obj):
-    print(obj.name)
     bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.select_all(action='DESELECT')
     helpers.setDeselected(obj)
 
     # First we want to prevent MoF from creating seams on edges that will get deleted by gamiflow
@@ -891,11 +909,36 @@ def mofUnwrap(context, obj):
     bpy.ops.object.mode_set(mode='EDIT') # the rest of the unwrapper expects to be in edit mode
     
     # Update the seams
-    bpy.ops.uv.select_all(action='SELECT')
+    bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.mesh.mark_seam(clear=True)
+    bpy.ops.uv.select_all(action='SELECT')
     bpy.ops.uv.seams_from_islands()
 
     return True
+    
+class GFLOW_OT_AutoSeam(bpy.types.Operator):
+    bl_idname      = "gflow.auto_seam"
+    bl_label       = "Auto Seams"
+    bl_description = "Automatically compute UV seams on the selected objects."
+    bl_options = {"REGISTER", "UNDO"}
+   
+    @classmethod
+    def poll(cls, context):
+        if len(context.selected_objects) == 0:
+            cls.poll_message_set("Must select objects.")
+            return False
+        if not isMofAvailableAndEnbaled(settings.getSettings()): 
+            cls.poll_message_set("Only available with the Ministry of Flat addon.")
+            return False
+        return True
+    def execute(self, context):
+        selection = context.selected_objects.copy()
+        for o in selection:
+            helpers.setDeselected(o)
+        for o in selection:
+            mofUnwrap(context, o)
+        
+        return {"FINISHED"}      
     
 #ENDTRIM --------------------------------------------------
 
@@ -915,7 +958,11 @@ classes = [
     GFLOW_OT_SetGridify, GFLOW_OT_DeGridify, GFLOW_OT_SelectGridify,
     GFLOW_OT_SetUvOrientationVertical, GFLOW_OT_SetUvOrientationHorizontal, GFLOW_OT_SetUvOrientationNeutral,
     GFLOW_OT_SetUvIslandScale,
-    GFLOW_OT_AddUdim, GFLOW_OT_RemoveUdim, GFLOW_OT_SetToCurrentUdim]
+    GFLOW_OT_AddUdim, GFLOW_OT_RemoveUdim, GFLOW_OT_SetToCurrentUdim,
+    GFLOW_OT_SetUnwrapMethod]
+#BEGINTRIM --------------------------------------------------
+classes.append(GFLOW_OT_AutoSeam)
+#ENDTRIM --------------------------------------------------
 
 def register():
     for c in classes: 

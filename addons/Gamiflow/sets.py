@@ -373,28 +373,32 @@ class GFLOW_OT_SetSmoothing(bpy.types.Operator):
     bl_label       = "Set smoothing"
     bl_description = "Enable weighted normals"
     bl_options = {"REGISTER", "UNDO"}
-
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects)>0
     def execute(self, context):
-        setObjectSmoothing(context, context.active_object)
+        for obj in context.selected_objects.copy():
+            setObjectSmoothing(context, obj)
         return {"FINISHED"} 
 class GFLOW_OT_AddBevel(bpy.types.Operator):
     bl_idname      = "gflow.add_bevel"
     bl_label       = "Quick Bevel"
     bl_description = "Add a bevel modifier to be used only on the high-poly set"
     bl_options = {"REGISTER", "UNDO"}
-
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects)>0
     def execute(self, context):
-        obj = context.view_layer.objects.active
-        if obj is None: return 
-        bevel = obj.modifiers.new(type="BEVEL", name="GFLOW Bevel")
-        bevel.segments = 2
-        bevel.width = 0.01
-        bevel.angle_limit = math.radians(60)
-        bevel.show_render = False
-        wnIndex = getFirstModifierIndex(obj, "WEIGHTED_NORMAL")
-        if wnIndex is not None:
-            bpy.ops.object.modifier_move_to_index(modifier=bevel.name, index=wnIndex)
-        
+        for obj in context.selected_objects:
+            bevel = obj.modifiers.new(type="BEVEL", name="GFLOW Bevel")
+            bevel.segments = 2
+            bevel.width = 0.01
+            bevel.angle_limit = math.radians(60)
+            bevel.show_render = False
+            wnIndex = getFirstModifierIndex(obj, "WEIGHTED_NORMAL")
+            if wnIndex is not None:
+                bpy.ops.object.modifier_move_to_index(modifier=bevel.name, index=wnIndex)
+            
         return {"FINISHED"}        
 
 class GFLOW_OT_SetUDIM(bpy.types.Operator):
@@ -402,7 +406,9 @@ class GFLOW_OT_SetUDIM(bpy.types.Operator):
     bl_label       = "Set UDIM"
     bl_description = "Apply the current UDIM to the selection"
     bl_options = {"REGISTER", "UNDO"}
-
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects)>0
     def execute(self, context):
         udimName = context.scene.gflow.udims[context.scene.gflow.ui_selectedUdim].name
         for o in context.selected_objects:

@@ -340,7 +340,7 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         op.detail = False        
         op = row.operator("gflow.select_face_level", text="Select detail")
           
-# Context menus
+# Context menus (right click in viewport)
 class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
     bl_label = "GamiFlow"
     bl_idname = "MESH_MT_gflow_mesh_menu"
@@ -359,6 +359,14 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
             layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0
             layout.operator("gflow.set_edge_level", text="Mark as Cage").level = geotags.GEO_EDGE_LEVEL_CAGE
             layout.operator("gflow.unmark_edge", text="Clear")
+            
+            layout.label(text="UV Seams", icon="UV")
+#BEGINTRIM --------------------------------------------------
+            layout.operator("gflow.auto_seam")
+#ENDTRIM ---            
+            layout.operator("gflow.add_soft_seam")
+            layout.operator("gflow.add_hard_seam")
+            layout.operator("gflow.clear_seam")
         # Face mode
         if context.tool_settings.mesh_select_mode[2]: 
             layout.label(text="Face Detail", icon="FACESEL")
@@ -368,11 +376,34 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
             layout.label(text="Face Mirroring", icon="MOD_MIRROR")
             layout.operator("gflow.set_face_mirror", text="Mirror").mirror = "X"   
             layout.operator("gflow.set_face_mirror", text="Unmirror").mirror = "NONE" 
-        
 
 def draw_mesh_menu(self, context):
     self.layout.separator(factor=1.0)
     self.layout.menu(GFLOW_MT_MESH_CONTEXT.bl_idname)
+    
+class GFLOW_MT_OBJECT_CONTEXT(bpy.types.Menu):
+    bl_label = "GamiFlow"
+    bl_idname = "OBJECT_MT_gflow_object_menu"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.separator()
+        
+        layout.operator("gflow.set_smoothing")
+        layout.operator("gflow.add_bevel") 
+        layout.operator("gflow.set_udim")
+        layout.label(text="Baking", icon="MESH_MONKEY")
+        layout.operator("gflow.project_to_active")     
+#BEGINTRIM --------------------------------------------------        
+        layout.label(text="Unwrapping", icon="UV")
+        layout.operator("gflow.set_unwrap_method")
+        layout.operator("gflow.auto_seam")
+#ENDTRIM ---            
+
+
+def draw_object_menu(self, context):
+    self.layout.separator(factor=1.0)
+    self.layout.menu(GFLOW_MT_OBJECT_CONTEXT.bl_idname)
 
 # Overlay
 class GFLOW_PT_Overlays(bpy.types.Panel):
@@ -454,7 +485,7 @@ classes = [
     GFLOW_PT_OBJ_PANEL, GamiflowObjPanel_UV, GamiflowObjPanel_Bake, GamiflowObjPanel_Export,
     GFLOW_PT_OBJ_EDIT_PANEL,
     GFLOW_PT_Overlays,
-    GFLOW_MT_MESH_CONTEXT,
+    GFLOW_MT_MESH_CONTEXT, GFLOW_MT_OBJECT_CONTEXT,
     GFLOW_MT_PIE_Object, VIEW3D_OT_PIE_Obj_call]
 
 addon_keymaps  = []
@@ -480,6 +511,7 @@ def register():
 
     # Context menus
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(draw_mesh_menu)
+    bpy.types.VIEW3D_MT_object_context_menu.append(draw_object_menu)
 
         
     pass
@@ -491,7 +523,7 @@ def unregister():
     
     # Context menus
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.remove(draw_mesh_menu)
-
+    bpy.types.VIEW3D_MT_object_context_menu.remove(draw_object_menu)
     
     for c in reversed(classes): 
         bpy.utils.unregister_class(c)
