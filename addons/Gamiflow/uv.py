@@ -852,14 +852,23 @@ def pack_uvpacker(context):
 def mofUnwrap(context, obj):
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
+    
+    # Clear the old seams
+    helpers.setSelected(context, obj)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.mark_seam(clear=True)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
     helpers.setDeselected(obj)
 
     # First we want to prevent MoF from creating seams on edges that will get deleted by gamiflow
     # The easiest way is to just delete all those edges before unwrapping
     tempObj = obj.copy()
     tempObj.data = obj.data.copy()
+    tempObj.name = tempObj.name + "_temporary_for_unwrap"
     context.collection.objects.link(tempObj)
-    sets.removeEdgesForLevel(context, tempObj, 0, keepPainter=False)
+    nbRemovedEdges = sets.removeEdgesForLevel(context, tempObj, 0, keepPainter=False)
     helpers.setSelected(context, tempObj)
     # Export the file as obj
     mofFolder = settings.getSettings().mofPath
@@ -870,9 +879,13 @@ def mofUnwrap(context, obj):
         export_selected_objects = True, export_eval_mode = 'DAG_EVAL_RENDER',
         export_uv = True, export_normals = True, export_colors = False, export_materials = False, export_pbr_extensions = False, export_triangulated_mesh = False)
     helpers.setDeselected(tempObj)
+    
     # Wait for the input file to exist just in case
     while not os.path.exists(sourceObjPath):
         time.sleep(0.05)
+    # Make sure to delete any previous output
+    if os.path.exists(resultObjPath):
+        os.remove(resultObjPath)         
         
     # Run MoF
     mofPath = os.path.join(mofFolder, 'UnWrapConsole3.exe')
@@ -887,16 +900,39 @@ def mofUnwrap(context, obj):
     # Load the unwrapped obj
     bpy.ops.wm.obj_import(filepath=resultObjPath, global_scale=1.0, clamp_size=0.0, forward_axis='NEGATIVE_Z', up_axis='Y', use_split_objects=True, use_split_groups=False, import_vertex_groups=False, validate_meshes=False)
     unwrappedObj = context.object
-    os.remove(resultObjPath) 
+    unwrappedObj.name = obj.name + "_mof_unwrap"
 
-    # Transfer the UVs (can't use bpy.ops.object.join_uvs() because the topology won't match if we deleted edges)
+    # If we didn't delete any edges we can transfer the UVs as is
+    if nbRemovedEdges == 0:
+        helpers.setSelected(context, obj)
+        helpers.setSelected(context, unwrappedObj)
+        bpy.ops.object.join_uvs()
+    # Otherwise all we can do is transfer the seams and unwrap
+    else:
+        # Apply seams to the unwrapped object
+        helpers.setSelected(context, unwrappedObj)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.uv.select_all(action='SELECT')
+        bpy.ops.uv.seams_from_islands() 
+        bpy.ops.object.mode_set(mode='OBJECT')
+        helpers.setDeselected(unwrappedObj)        
+        
+        # Get the UVs separately
+        # Note: it can happen that the transfer fails on some edges and we get loops getting linked to the wrong island
+        #       which causes very bad polygons stretching across the UV space. No real solution for it.
+        transfer = obj.modifiers.new(type="DATA_TRANSFER", name="UV Transfer (GFlow, TEMP)")
+        transfer.object = unwrappedObj
+        transfer.use_loop_data = True
+        transfer.data_types_loops = {'UV'}
+        bpy.ops.object.modifier_apply(modifier=transfer.name)    
+
+
+    # Update the seams
     helpers.setSelected(context, obj)
-    transfer = obj.modifiers.new(type="DATA_TRANSFER", name="UV Transfer (GFlow, TEMP)")
-    transfer.object = unwrappedObj
-    transfer.use_loop_data = True
-    transfer.data_types_loops = {'UV'}
-    bpy.ops.object.modifier_apply(modifier=transfer.name)
-    
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.uv.select_all(action='SELECT')
+    bpy.ops.uv.seams_from_islands() 
+    bpy.ops.object.mode_set(mode='OBJECT')     
     
     # Big hack: UV-Packer doesn't behave nicely when we have lots of 0-area faces (which can be the case if we dissolved lots of edges). Se we smooth the UVs a tiny bit for safety
     bpy.ops.object.mode_set(mode='EDIT')
@@ -908,12 +944,6 @@ def mofUnwrap(context, obj):
     bpy.data.meshes.remove(tempObj.data)
     bpy.ops.object.mode_set(mode='EDIT') # the rest of the unwrapper expects to be in edit mode
     
-    # Update the seams
-    bpy.ops.mesh.select_all(action='SELECT')
-    bpy.ops.mesh.mark_seam(clear=True)
-    bpy.ops.uv.select_all(action='SELECT')
-    bpy.ops.uv.seams_from_islands()
-
     return True
     
 class GFLOW_OT_AutoSeam(bpy.types.Operator):
