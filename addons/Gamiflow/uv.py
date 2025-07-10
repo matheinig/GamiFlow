@@ -876,7 +876,7 @@ def mofUnwrap(context, obj):
     resultObjPath = os.path.join(mofFolder, "mofTempOutput.obj")
     bpy.ops.wm.obj_export(filepath=sourceObjPath, check_existing=False, filter_glob="*.obj", 
         forward_axis='NEGATIVE_Z', up_axis='Y', 
-        export_selected_objects = True, export_eval_mode = 'DAG_EVAL_RENDER',
+        export_selected_objects = True, export_eval_mode = 'DAG_EVAL_RENDER', apply_modifiers = False,
         export_uv = True, export_normals = True, export_colors = False, export_materials = False, export_pbr_extensions = False, export_triangulated_mesh = False)
     helpers.setDeselected(tempObj)
     
@@ -901,39 +901,35 @@ def mofUnwrap(context, obj):
     bpy.ops.wm.obj_import(filepath=resultObjPath, global_scale=1.0, clamp_size=0.0, forward_axis='NEGATIVE_Z', up_axis='Y', use_split_objects=True, use_split_groups=False, import_vertex_groups=False, validate_meshes=False)
     unwrappedObj = context.object
     unwrappedObj.name = obj.name + "_mof_unwrap"
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    offsetMatrix = (obj.matrix_world.inverted() @ unwrappedObj.matrix_world)
+    unwrappedObj.data.transform(offsetMatrix)             
+    unwrappedObj.matrix_world = obj.matrix_world
+    # Compute seams on the unwrapped object
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.uv.select_all(action='SELECT')
+    bpy.ops.uv.seams_from_islands() 
+    bpy.ops.object.mode_set(mode='OBJECT')     
+    helpers.setDeselected(unwrappedObj)
 
     # If we didn't delete any edges we can transfer the UVs as is
     if nbRemovedEdges == 0:
         helpers.setSelected(context, obj)
         helpers.setSelected(context, unwrappedObj)
         bpy.ops.object.join_uvs()
-    # Otherwise all we can do is transfer the seams and unwrap
-    else:
-        # Apply seams to the unwrapped object
-        helpers.setSelected(context, unwrappedObj)
+        helpers.setDeselected(unwrappedObj)
+        # Update the seams
+        helpers.setSelected(context, obj)
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.uv.select_all(action='SELECT')
         bpy.ops.uv.seams_from_islands() 
-        bpy.ops.object.mode_set(mode='OBJECT')
-        helpers.setDeselected(unwrappedObj)        
-        
-        # Get the UVs separately
-        # Note: it can happen that the transfer fails on some edges and we get loops getting linked to the wrong island
-        #       which causes very bad polygons stretching across the UV space. No real solution for it.
-        transfer = obj.modifiers.new(type="DATA_TRANSFER", name="UV Transfer (GFlow, TEMP)")
-        transfer.object = unwrappedObj
-        transfer.use_loop_data = True
-        transfer.data_types_loops = {'UV'}
-        bpy.ops.object.modifier_apply(modifier=transfer.name)    
+        bpy.ops.object.mode_set(mode='OBJECT')         
+    # Otherwise all we can do is transfer the seams and unwrap
+    else:
+        helpers.setSelected(context, obj)
+        transferUVs(context, unwrappedObj, obj)
 
 
-    # Update the seams
-    helpers.setSelected(context, obj)
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.uv.select_all(action='SELECT')
-    bpy.ops.uv.seams_from_islands() 
-    bpy.ops.object.mode_set(mode='OBJECT')     
-    
     # Big hack: UV-Packer doesn't behave nicely when we have lots of 0-area faces (which can be the case if we dissolved lots of edges). Se we smooth the UVs a tiny bit for safety
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.uv.select_all(action='SELECT')
@@ -945,6 +941,101 @@ def mofUnwrap(context, obj):
     bpy.ops.object.mode_set(mode='EDIT') # the rest of the unwrapper expects to be in edit mode
     
     return True
+    
+def makeBMeshTree(bmesh, transform=mathutils.Matrix()):
+    kd = mathutils.kdtree.KDTree(len(bmesh.verts))
+    for v in bmesh.verts:
+        kd.insert(v.co @ transform, v.index)
+    kd.balance()
+    return kd
+
+def transferUVs(context, fromObj, toObj):
+    helpers.setSelected(context, toObj)
+    bpy.ops.object.mode_set(mode='EDIT')
+    with helpers.editModeBmesh(toObj, loop_triangles=False, destructive=False) as tbm:
+        # Make the bmeshes
+        fbm = bmesh.new()
+        fbm.from_mesh(fromObj.data)
+        fbm.faces.ensure_lookup_table()
+        tbm.faces.ensure_lookup_table()
+        tbm.verts.ensure_lookup_table()      
+        # Make the acceleration structures
+        ftree = makeBMeshTree(fbm)
+        ttree = makeBMeshTree(tbm)
+
+        fuv = fbm.loops.layers.uv.active
+        tuv = tbm.loops.layers.uv.active
+                
+        # unpin all the loops first
+        for tface in tbm.faces:
+            for tloop in tface.loops:
+                tloop[tuv].pin_uv = False
+                
+        # For each face loop on the unwrapped mesh, we try to find the equivalent loop in the original mesh
+        # It will always exist since the unwrapped mesh is the one with dissolved geometry
+        for fface in fbm.faces:
+            for floop in fface.loops:
+                # Find the closest vertex (will always succeed in our case)
+                # However, there are cases where the closest vertex isn't even on the same mesh island (vertices at the same position but belonging to two split geo islands). So we need to look for at least a few vertices jsut to be safe
+                fco = floop.vert.co
+                for (tco, tindex, dist) in ttree.find_n(fco, 4):
+                    if dist>0.001:
+                        continue
+
+                    # Now we must find which of the target link_loops would best match the current source loop
+                    # Using the face tangent direction (points towards the centre of the face) seems like a pretty good method
+                    # Also adding normal just for safety, but maybe not needed
+                    referenceT = floop.calc_tangent()
+                    referenceN = floop.calc_normal()
+                    bestLoop = None
+                    bestScore = -1
+                    tvert = tbm.verts[tindex]
+                    for tloop in tvert.link_loops:
+                        tangentScore = referenceT.dot(tloop.calc_tangent())
+                        normalScore = abs(referenceN.dot(tloop.calc_normal()))
+                        similarity = tangentScore*normalScore
+                        if similarity > bestScore:
+                            bestLoop = tloop
+                            bestScore = similarity
+                            if similarity>0.99: break # no need to check further if it's already a great match
+                    
+                    # If none of the options were good we continue to the next found vertex
+                    if bestScore<0.9: 
+                        continue
+                    
+                    bestLoop[tuv].uv = floop[fuv].uv
+                    bestLoop[tuv].pin_uv = True
+                    
+                    bestLoop.edge.seam = floop.edge.seam
+                    
+                    # We found something good enough we don't need to search the other vertices
+                    break
+             
+        # Fixes pass: we try to find all dissolved edges and rebuild missing seams
+        # TODO: should probably run multiple iterations until we don't see any changes
+        detailLayer = geotags.getDetailEdgesLayer(tbm, forceCreation=False)
+        if detailLayer:
+            for edge in tbm.edges:
+                if edge[detailLayer] == geotags.GEO_EDGE_LEVEL_DEFAULT: continue
+                
+                eloops = edge.link_loops
+                # https://b3d.interplanety.org/en/learning-loops/
+                for eloop in eloops:
+                    # if we see a seam on the left, we duplicate it on the right
+                    if eloop.link_loop_next.edge.seam:
+                        eloop.link_loop_radial_next.link_loop_prev.edge.seam = True
+
+
+        # Clear the bmeshes
+        fbm.free()
+        
+        # Unwrap anything that hasn't been touched (i.e. the dissolvable edges) because they are currently undefined
+        bpy.ops.uv.select_all(action='SELECT')
+        bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
+        bpy.ops.uv.pin(clear=True)
+        bpy.ops.uv.select_all(action='DESELECT')
+        
+    return
     
 class GFLOW_OT_AutoSeam(bpy.types.Operator):
     bl_idname      = "gflow.auto_seam"
