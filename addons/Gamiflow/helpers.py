@@ -67,7 +67,7 @@ def setParent(o, parent):
 def objectModeBmesh(obj):
     bm = bmesh.new()
     if obj.type != 'MESH':
-        print("GamiFlow error: "+obj.name+" is nto a mesh")
+        print("GamiFlow error: "+obj.name+" is not a mesh")
     bm.from_mesh(obj.data)
     bm.faces.ensure_lookup_table()
     
