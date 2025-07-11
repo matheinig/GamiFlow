@@ -906,7 +906,9 @@ def mofUnwrap(context, obj):
     unwrappedObj.data.transform(offsetMatrix)             
     unwrappedObj.matrix_world = obj.matrix_world
     # Compute seams on the unwrapped object
+    helpers.setSelected(context, unwrappedObj)
     bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.select_all(action='SELECT')
     bpy.ops.uv.seams_from_islands() 
     bpy.ops.object.mode_set(mode='OBJECT')     
@@ -921,6 +923,7 @@ def mofUnwrap(context, obj):
         # Update the seams
         helpers.setSelected(context, obj)
         bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
         bpy.ops.uv.select_all(action='SELECT')
         bpy.ops.uv.seams_from_islands() 
         bpy.ops.object.mode_set(mode='OBJECT')         
@@ -1012,19 +1015,25 @@ def transferUVs(context, fromObj, toObj):
                     break
              
         # Fixes pass: we try to find all dissolved edges and rebuild missing seams
-        # TODO: should probably run multiple iterations until we don't see any changes
         detailLayer = geotags.getDetailEdgesLayer(tbm, forceCreation=False)
         if detailLayer:
-            for edge in tbm.edges:
-                if edge[detailLayer] == geotags.GEO_EDGE_LEVEL_DEFAULT: continue
-                
-                eloops = edge.link_loops
-                # https://b3d.interplanety.org/en/learning-loops/
-                for eloop in eloops:
-                    # if we see a seam on the left, we duplicate it on the right
-                    if eloop.link_loop_next.edge.seam:
-                        eloop.link_loop_radial_next.link_loop_prev.edge.seam = True
-
+            needAnotherIteration = True
+            iterationCount = 0
+            while needAnotherIteration and iterationCount<50:
+                needAnotherIteration = False
+                iterationCount = iterationCount+1
+                for edge in tbm.edges:
+                    if edge[detailLayer] == geotags.GEO_EDGE_LEVEL_DEFAULT: continue
+                    
+                    eloops = edge.link_loops
+                    # https://b3d.interplanety.org/en/learning-loops/
+                    for eloop in eloops:
+                        # if we see a seam on the left, we duplicate it on the right
+                        if eloop.link_loop_next.edge.seam:
+                            rightEdge = eloop.link_loop_radial_next.link_loop_prev.edge
+                            if not rightEdge.seam:
+                                eloop.link_loop_radial_next.link_loop_prev.edge.seam = True
+                                needAnotherIteration = True
 
         # Clear the bmeshes
         fbm.free()
