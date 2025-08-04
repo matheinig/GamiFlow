@@ -34,8 +34,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ],
         default="BLENDER"
         )
-    useMofUnwrapper : bpy.props.BoolProperty(name = "Use Ministry of Flat (MoF) Auto Uwnrapper", default=False, description="Enable the Ministry of Flat integration.")
-    setMofAsDefault : bpy.props.BoolProperty(name = "Make default method", default=False, description="Will set the MoF uwnrap method on all newly created objects.")
+    useMofUnwrapper : bpy.props.BoolProperty(name = "Use Ministry of Flat (MoF)", default=False, description="Enable the Ministry of Flat integration for automatic seams.")
     mofPath : bpy.props.StringProperty(name = "MoF path", default = "", subtype="FILE_PATH", description="Path to the folder containing UnWrapConsole3.exe")
 #ENDTRIM -----------------------------------------------------           
     idMap : bpy.props.EnumProperty(
