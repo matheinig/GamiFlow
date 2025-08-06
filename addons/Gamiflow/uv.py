@@ -838,7 +838,7 @@ def pack_uvpacker(context):
     return
     
 # Ministry of flat backend
-def mofUnwrap(context, obj):
+def mofUnwrap(context, obj, seamsOnly=False):
     if obj.type != 'MESH': return
 
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -921,7 +921,7 @@ def mofUnwrap(context, obj):
     # Otherwise all we can do is transfer the seams and unwrap
     else:
         helpers.setSelected(context, obj)
-        transferSeam(context, unwrappedObj, obj)
+        transferSeam(context, unwrappedObj, obj, transferUVs = not seamsOnly)
 
 
     # Big hack: UV-Packer doesn't behave nicely when we have lots of 0-area faces (which can be the case if we dissolved lots of edges). Se we smooth the UVs a tiny bit for safety
@@ -933,7 +933,7 @@ def mofUnwrap(context, obj):
     bpy.data.meshes.remove(unwrappedObj.data) # Will get rid of the object too
     bpy.data.meshes.remove(tempObj.data)
     bpy.ops.object.mode_set(mode='EDIT') # the rest of the unwrapper expects to be in edit mode
-    
+        
     return True
     
 def makeBMeshTree(bmesh, transform=mathutils.Matrix()):
@@ -943,7 +943,7 @@ def makeBMeshTree(bmesh, transform=mathutils.Matrix()):
     kd.balance()
     return kd
    
-def transferSeam(context, fromObj, toObj):
+def transferSeam(context, fromObj, toObj, transferUVs=False):
     helpers.setSelected(context, toObj)
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_mode(type="VERT")
@@ -956,7 +956,6 @@ def transferSeam(context, fromObj, toObj):
         tbm.verts.ensure_lookup_table()
         fbm.verts.ensure_lookup_table()        
         # Make the acceleration structures
-        ftree = makeBMeshTree(fbm)
         ttree = makeBMeshTree(tbm)
 
         fuv = fbm.loops.layers.uv.active
@@ -992,14 +991,52 @@ def transferSeam(context, fromObj, toObj):
                             e.select = False
                     bpy.ops.mesh.select_mode(type="VERT")
 
-        fbm.free()
         
-        # Unwrap anything that hasn't been touched (i.e. the dissolvable edges) because they are currently undefined
-        bpy.ops.uv.select_all(action='SELECT')
-        bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
-        bpy.ops.uv.pin(clear=True)
-        bpy.ops.uv.select_all(action='DESELECT')
+        
+        if transferUVs:
+            # unpin all the loops first
+            for tface in tbm.faces:
+                for tloop in tface.loops:
+                    tloop[tuv].pin_uv = False
+            
+            # For each face loop on the unwrapped mesh, we try to find the equivalent loop in the original mesh
+            # It will always exist since the unwrapped mesh is the one with dissolved geometry
+            for fface in fbm.faces:
+                for floop in fface.loops:
+                    # Find the closest vertex (will always succeed in our case)
+                    # However, there are cases where the closest vertex isn't even on the same mesh island (vertices at the same position but belonging to two split geo islands). So we need to look for at least a few vertices just to be safe
+                    fco = floop.vert.co
+                    for (tco, tindex, dist) in ttree.find_n(fco, 4):
+                        if dist>0.001:
+                            continue
+                   
+                        # Now we must find which of the target link_loops would best match the current source loop
+                        # Using the face tangent direction (points towards the centre of the face) seems like a pretty good method
+                        # Also adding normal just for safety, but maybe not needed
+                        referenceT = floop.calc_tangent()
+                        referenceN = floop.calc_normal()
+                        bestLoop = None
+                        bestScore = -1
+                        tvert = tbm.verts[tindex]
+                        for tloop in tvert.link_loops:
+                            tangentScore = referenceT.dot(tloop.calc_tangent())
+                            normalScore = abs(referenceN.dot(tloop.calc_normal()))
+                            similarity = tangentScore*normalScore
+                            if similarity > bestScore:
+                                bestLoop = tloop
+                                bestScore = similarity
+                                if similarity>0.99: break # no need to check further if it's already a great match
+                       
+                        bestLoop[tuv].uv = floop[fuv].uv
+                        bestLoop[tuv].pin_uv = True
+                   
+            # Unwrap anything that hasn't been touched (i.e. the dissolvable edges) because they are currently undefined
+            bpy.ops.uv.select_all(action='SELECT')
+            bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
+            bpy.ops.uv.pin(clear=True)
+            bpy.ops.uv.select_all(action='DESELECT')
                 
+        fbm.free()
     return
     
 class GFLOW_OT_AutoSeam(bpy.types.Operator):
@@ -1022,9 +1059,33 @@ class GFLOW_OT_AutoSeam(bpy.types.Operator):
         for o in selection:
             helpers.setDeselected(o)
         for o in selection:
-            mofUnwrap(context, o)
+            mofUnwrap(context, o, seamsOnly=True)
         
-        return {"FINISHED"}      
+        return {"FINISHED"}
+class GFLOW_OT_AutoUV(bpy.types.Operator):
+    bl_idname      = "gflow.auto_uv"
+    bl_label       = "Auto UVs"
+    bl_description = "Automatically unwraps the selected objects. This will ignore gridification."
+    bl_options = {"REGISTER", "UNDO"}
+   
+    @classmethod
+    def poll(cls, context):
+        if len(context.selected_objects) == 0:
+            cls.poll_message_set("Must select objects.")
+            return False
+        if not isMofAvailableAndEnbaled(settings.getSettings()): 
+            cls.poll_message_set("Only available with the Ministry of Flat addon.")
+            return False
+        return True
+    def execute(self, context):
+        selection = context.selected_objects.copy()
+        for o in selection:
+            helpers.setDeselected(o)
+        for o in selection:
+            mofUnwrap(context, o, seamsOnly=False)
+            o.gflow.unwrap = False
+        
+        return {"FINISHED"}           
     
 #ENDTRIM --------------------------------------------------
 
@@ -1047,7 +1108,7 @@ classes = [
     GFLOW_OT_AddUdim, GFLOW_OT_RemoveUdim, GFLOW_OT_SetToCurrentUdim,
     GFLOW_OT_SetUnwrapMethod]
 #BEGINTRIM --------------------------------------------------
-classes.append(GFLOW_OT_AutoSeam)
+classes += [GFLOW_OT_AutoSeam, GFLOW_OT_AutoUV]
 #ENDTRIM --------------------------------------------------
 
 def register():

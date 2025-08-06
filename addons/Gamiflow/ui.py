@@ -363,6 +363,7 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
             layout.label(text="UV Seams", icon="UV")
 #BEGINTRIM --------------------------------------------------
             layout.operator("gflow.auto_seam")
+            layout.operator("gflow.auto_uv")
 #ENDTRIM ---            
             layout.operator("gflow.add_soft_seam")
             layout.operator("gflow.add_hard_seam")
@@ -398,6 +399,7 @@ class GFLOW_MT_OBJECT_CONTEXT(bpy.types.Menu):
         layout.label(text="Unwrapping", icon="UV")
         layout.operator("gflow.set_unwrap_method")
         layout.operator("gflow.auto_seam")
+        layout.operator("gflow.auto_uv")
 #ENDTRIM ---            
 
 
