@@ -98,3 +98,13 @@ All objects sharing a UDIM will be packed together in the same [0,1[ UV square. 
 Sometimes, things get in the way. Imagine you modelled a gun with its ammo magazine inside, making it difficult to texture it. You can set a *Bake Anchor* on the magazine. When generating the Bake Sets, the magazine will be teleported to its anchor.
 
 
+## Optional Integrations
+If you installed the full version of GamiFlow (i.e. any version *not* from the official Blender extensions platform), you can enjoy the integration of a few extra plugins.
+### UV-Packer (free)
+As the name would imply [UV-Packer](https://www.uv-packer.com/download/) is a UV packer, except that it's nicer and faster than the native Blender one. That being said, newer versions of Blender have made considerable progress in terms of packing (mostly thanks to the addition of non-bounding-box-based packing), so maybe this plugin no longer as crucial as it once was. Still, it's free so no reason not to have it.
+When the UV-Packer is installed and enabled in Blender, you can find an *UV Packer* option in the GamiFlow settings menu (might require a Blender restart) where you can choose between the native Blender version and UV-Packer. If UV-Packer is selected, it will be used whenever you run the *Unwrap* command.
+
+### Ministry of Flat (also free)
+[Ministry of Flat](https://www.quelsolaar.com/ministry_of_flat/) is standalone tool that can automatically unwrap meshes. It is free and has a very permissive license,making it a must-have for anyone looking to speed-up their unwrapping game. To use it in GamiFlow, download Ministry of Flat, unzip it, and then go to the GamiFlow settings. Tick *use Ministry of Flat (MoF)* and set the path to the folder containing the UnWrapConsole3.exe program.
+Once done, you can find two new operators in the object mode right click menu: *Auto Seams* and *Auto UVs*. Auto Seams will only create UV seams on the selected objects, but the unwrapping is still left to GamiFlow, while Auto UVs will let MoF generate the seams and UVs, and GamiFlow will only repack them with the rest when clicking Unwrap.
+
