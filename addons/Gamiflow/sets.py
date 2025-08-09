@@ -275,7 +275,7 @@ def removeSharpEdges(obj):
 def removeEdgesForLevel(context, obj, level, keepPainter=False):
     with helpers.objectModeBmesh(obj) as bm:
         layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
-        if not layer: return
+        if not layer: return 0
         relevantEdges = []
         for e in bm.edges:
             if e[layer] == geotags.GEO_EDGE_LEVEL_DEFAULT: continue

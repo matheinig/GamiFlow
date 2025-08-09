@@ -837,6 +837,13 @@ def pack_uvpacker(context):
     print("UV-Packer integration not available in this version of GamiFlow")
     return
     
+def isFileInUse(filePath):
+    try:
+        os.rename(filePath, filePath)
+        return False
+    except OSError:
+        return True
+    
 # Ministry of flat backend
 def mofUnwrap(context, obj, seamsOnly=False):
     if obj.type != 'MESH': return
@@ -884,8 +891,11 @@ def mofUnwrap(context, obj, seamsOnly=False):
     command = mofPath + " " + sourceObjPath + " " + resultObjPath + " -NORMALS FALSE -SEPARATE TRUE" + center
     os.popen(command)
 
-    # Wait for the output file to exist just in case
+    # Wait for the output file to exist
     while not os.path.exists(resultObjPath):
+        time.sleep(0.05)
+    # Wait for it to be completely written to (.obj files can get pretty big)
+    while isFileInUse(resultObjPath):
         time.sleep(0.05)
     
     # Load the unwrapped obj
@@ -1006,17 +1016,14 @@ def transferSeam(context, fromObj, toObj, transferUVs=False):
                     # Find the closest vertex (will always succeed in our case)
                     # However, there are cases where the closest vertex isn't even on the same mesh island (vertices at the same position but belonging to two split geo islands). So we need to look for at least a few vertices just to be safe
                     fco = floop.vert.co
+                    referenceT = floop.calc_tangent()
+                    referenceN = floop.calc_normal()   
+                    bestLoop = None
+                    bestScore = -1
                     for (tco, tindex, dist) in ttree.find_n(fco, 4):
                         if dist>0.001:
                             continue
                    
-                        # Now we must find which of the target link_loops would best match the current source loop
-                        # Using the face tangent direction (points towards the centre of the face) seems like a pretty good method
-                        # Also adding normal just for safety, but maybe not needed
-                        referenceT = floop.calc_tangent()
-                        referenceN = floop.calc_normal()
-                        bestLoop = None
-                        bestScore = -1
                         tvert = tbm.verts[tindex]
                         for tloop in tvert.link_loops:
                             tangentScore = referenceT.dot(tloop.calc_tangent())
@@ -1027,8 +1034,8 @@ def transferSeam(context, fromObj, toObj, transferUVs=False):
                                 bestScore = similarity
                                 if similarity>0.99: break # no need to check further if it's already a great match
                        
-                        bestLoop[tuv].uv = floop[fuv].uv
-                        bestLoop[tuv].pin_uv = True
+                    bestLoop[tuv].uv = floop[fuv].uv
+                    bestLoop[tuv].pin_uv = True
                    
             # Unwrap anything that hasn't been touched (i.e. the dissolvable edges) because they are currently undefined
             bpy.ops.uv.select_all(action='SELECT')
