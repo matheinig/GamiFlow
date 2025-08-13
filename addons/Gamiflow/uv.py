@@ -937,7 +937,7 @@ def mofUnwrap(context, obj, seamsOnly=False):
     # Big hack: UV-Packer doesn't behave nicely when we have lots of 0-area faces (which can be the case if we dissolved lots of edges). Se we smooth the UVs a tiny bit for safety
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.uv.select_all(action='SELECT')
-    bpy.ops.uv.minimize_stretch(blend=0.99, iterations=1)
+    bpy.ops.uv.minimize_stretch(blend=0.01, iterations=1)
     
     # Clean up the scene
     bpy.data.meshes.remove(unwrappedObj.data) # Will get rid of the object too
