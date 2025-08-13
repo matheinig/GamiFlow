@@ -8,6 +8,13 @@ from . import sets_cage
 import mathutils
 import random
 
+#BEGINTRIM -------------------------------------------------- 
+try:
+    import DECALmachine
+except ImportError:
+    pass
+#ENDTRIM ----------------------------------------------------- 
+
 # Find or create the Export Set
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.exportCollection
@@ -262,7 +269,8 @@ def triangulateObjects(context, objects):
         if o.data.users == 1:
             helpers.setSelected(context, o)
             tri = sets.triangulate(context, o)
-            bpy.ops.object.modifier_apply(modifier=tri.name)
+            if o.data.shape_keys is None:
+                bpy.ops.object.modifier_apply(modifier=tri.name)
             helpers.setDeselected(o)
         elif o.data.users > 1:
             if o.data not in objectsUsingMesh:
@@ -300,7 +308,12 @@ def generateExport(context):
     
     stgs = settings.getSettings()
     exportSuffix = stgs.exportsuffix
-    
+#BEGINTRIM --------------------------------------------------
+    # Show the decalmachine layers (necessary)
+    if settings.isDecalMachineEnabled(settings.getSettings()):
+        for c in context.collection.children_recursive:
+            if c.DM.isdecaltypecol: sets.setCollectionVisibility(context, c, True, recursive=True)
+#ENDTRIM -----------------------------------------------------       
     bpy.ops.object.select_all(action='DESELECT')
 
     # A collection instance template has already been completely processed and merged
@@ -332,6 +345,11 @@ def generateExport(context):
         localgen = sets.GeneratorData()
         roots = []
         parented = []
+#BEGINTRIM --------------------------------------------------  
+        useDecalMachine = settings.isDecalMachineEnabled(settings.getSettings())
+        decals = None
+        if useDecalMachine: decals = [obj for obj in context.visible_objects if obj.DM.isdecal]
+#ENDTRIM -----------------------------------------------------          
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type=='EMPTY' or o.type == 'ARMATURE'): continue # We could potentially allow more types (.e.g lights)
             if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'NON_BAKED'): continue
@@ -341,6 +359,33 @@ def generateExport(context):
             newobj = sets.duplicateObject(o, collection, suffix=exportSuffix, link=o.type=='ARMATURE')
             newobj.name = namePrefix+newobj.name
             localgen.register(newobj, o)
+#BEGINTRIM --------------------------------------------------             
+            # Get the DECALmachine decals
+            if useDecalMachine:
+                for d in decals:
+                    if d.parent == o: 
+                        decalCopy = sets.duplicateObject(d, collection, suffix=exportSuffix, link=False)
+                        decalCopy.parent = newobj
+                        decalCopy.gflow.objType = 'NON_BAKED'
+                        # Apply the modifiers
+                        helpers.setSelected(context, decalCopy)
+                        bpy.ops.object.convert(target='MESH')
+                        helpers.setDeselected(decalCopy)
+                        # Find which UV layer we need to use
+                        decalLayer = None
+                        atlasLayer = None
+                        for uv in decalCopy.data.uv_layers:
+                            if uv.name == 'Atlas UVs': atlasLayer = uv;
+                            if uv.name == 'Decal UVs': decalLayer = uv;
+                        toKeep = atlasLayer if atlasLayer else decalLayer
+                        if not toKeep: toKeep = decalCopy.data.uv_layers[0]
+                        # Delete any layer that we don't care about
+                        for uv in decalCopy.data.uv_layers:
+                            if uv != toKeep: decalCopy.data.uv_layers.remove(uv)
+                        toKeep.name = 'UVMap default'
+                        if newobj.type == 'MESH': 
+                            toKeep.name = newobj.data.uv_layers[0].name
+#ENDTRIM -----------------------------------------------------               
             
             # remove cage control data
             if o.type == 'MESH': 
@@ -519,6 +564,14 @@ def generateExport(context):
             if o.type == 'MESH' and o.data not in meshes:
                 o.data.name = o.name
                 meshes.append(o.data)
+#BEGINTRIM --------------------------------------------------
+    # Hide the DECALmachine layers (nice to have)
+    if settings.isDecalMachineEnabled(settings.getSettings()):
+        for c in context.collection.children_recursive:
+            if c.DM.isdecaltypecol: sets.setCollectionVisibility(context, c, False, recursive=True)
+#ENDTRIM -----------------------------------------------------                   
+    
+    
 
 class GFLOW_OT_MakeExport(bpy.types.Operator):
     bl_idname      = "gflow.make_export"

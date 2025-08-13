@@ -1,6 +1,15 @@
 import bpy
 from . import data 
 from . import uv
+import addon_utils
+
+#BEGINTRIM -------------------------------------------------- 
+def isDecalMachineAvailable():
+    (default, current) = addon_utils.check("DECALmachine")
+    return current    
+def isDecalMachineEnabled(stgs):
+    return stgs.useDecalMachine and isDecalMachineAvailable()
+#ENDTRIM -----------------------------------------------------    
 
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
@@ -36,6 +45,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         )
     useMofUnwrapper : bpy.props.BoolProperty(name = "Use Ministry of Flat (MoF)", default=False, description="Enable the Ministry of Flat integration for automatic seams.")
     mofPath : bpy.props.StringProperty(name = "MoF path", default = "", subtype="FILE_PATH", description="Path to the folder containing UnWrapConsole3.exe")
+    useDecalMachine: bpy.props.BoolProperty(name = "Use DECALmachine", default=False, description="Enable the DECALmachine integration.")
 #ENDTRIM -----------------------------------------------------           
     idMap : bpy.props.EnumProperty(
         name="ID Map",
@@ -73,7 +83,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.prop(self, "mofPath")
         row = layout.row()
         row.active = self.useMofUnwrapper
-        row.prop(self, "setMofAsDefault")
         if self.useMofUnwrapper and not uv.isMofAvailable(self):
             row = layout.row()
             row.alert = True
@@ -99,16 +108,15 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.label(text="Export set")
         layout.prop(self, "mergeExportMeshes")
         layout.prop(self, "renameExportMeshes")
-        
-        
-        
-#BEGINTRIM -------------------------------------------------- 
+#BEGINTRIM --------------------------------------------------  
+        row = layout.row()
+        row.prop(self, "useDecalMachine")
+        if self.useDecalMachine and not isDecalMachineAvailable():
+            col = row.column()
+            col.alert = True
+            col.label(text="DECALmachine not found")        
+#ENDTRIM -----------------------------------------------------      
 
-        
-#ENDTRIM -----------------------------------------------------          
-        
-        #layout.prop(self, "my_property")
-  
 
 classes = [AddonPreferences]
 

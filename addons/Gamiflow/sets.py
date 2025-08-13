@@ -159,7 +159,7 @@ def getCollectionVisibility(context, coll):
     return False
 def toggleCollectionVisibility(context, coll):
     layer = findLayerCollection(context, coll)
-    if layer: setLayerCollectionVisibility(layer, layer.exclude  , recursive=True)
+    if layer: setLayerCollectionVisibility(layer, layer.exclude, recursive=True)
     
 def deleteObject(o):
     mustDeleteObject = True
