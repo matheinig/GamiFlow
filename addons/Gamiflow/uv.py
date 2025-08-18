@@ -263,11 +263,15 @@ def lightmapUnwrap(context, objects):
             uv = o.data.uv_layers.new(name='UVLightMap')
         o.data.uv_layers['UVLightMap'].active = True
 
-    # Everything gets packed into the same lightmap UV regardless of the UDIM
-    ## Not sure if that's for the best
-    ## Also do we even care about all the custom scale and orientation?
     unwrap(context, obj)
-    pack(context, obj, context.scene.gflow.uvPackSettings)
+
+def lightmapPack(context, objects):
+    # Lightmap UVs are packed per object. This is based on how Unity handles lightmapping
+    ## Note: Do we even care about all the custom scale and orientation?
+    obj, collections = filterUnwrappableOrPackableObjects(objects)
+    for o in obj:
+        o.data.uv_layers['UVLightMap'].active = True
+        pack(context, [o], context.scene.gflow.uvPackSettings)
 
 def unwrap(context, objects):
     bpy.ops.object.select_all(action='DESELECT')

@@ -552,6 +552,10 @@ def generateExport(context):
         for chunk in chunks:
             chunk.merge(context, False)
     
+    # Now that we have our final objects, we can pack their lightmap UVs
+    if context.scene.gflow.lightmapUvs:
+        uv.lightmapPack(context, collection.all_objects)
+    
     if context.scene.gflow.exportFormat == "GLTF" and context.scene.gflow.exportTarget == "SKETCHFAB":
         for o in collection.all_objects:
             if o.type == 'MESH': uv.flipUVs(o)
