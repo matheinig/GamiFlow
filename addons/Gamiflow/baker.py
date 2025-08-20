@@ -117,6 +117,9 @@ def bakeUdim(context, udimId):
     bakeSettings.margin_type = 'EXTEND'
     bakeSettings.use_selected_to_active = True
     
+    standardSamples = 1
+    aoSamples = 16
+    
     margin = int(context.scene.gflow.uvMargin)//2
     
     start = time.time()
@@ -140,9 +143,11 @@ def bakeUdim(context, udimId):
         # Run the bake
         ## AO
         material.node_tree.nodes.active = aoNode
+        context.scene.cycles.samples = aoSamples
         bpy.ops.object.bake(type="AO", margin = margin, use_clear = useClear)
         ## Tangent-space normal map
         material.node_tree.nodes.active = normalNode
+        context.scene.cycles.samples = standardSamples
         bpy.ops.object.bake(type="NORMAL", normal_space = 'TANGENT', margin = margin, use_clear = useClear)
         # Deselect everything
         helpers.setDeselected(o)
