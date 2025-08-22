@@ -311,13 +311,13 @@ def unwrap(context, objects):
 def safeUnwrap(context, o):
     # Unwrap
     method = o.gflow.unwrap_method
-    
+
     # Pre 4.3 blender does not support minimum stretch unwrapping
     if bpy.app.version < (4, 3, 0):
         if method == 'MINIMUM_STRETCH': method = 'ANGLE_BASED'
-        bpy.ops.uv.unwrap(method=method, margin=0.001)
+        bpy.ops.uv.unwrap(method=method, fill_holes=o.gflow.unwrap_fillHoles, margin=0.001)
     else:
-        bpy.ops.uv.unwrap(method=method, margin=0.001, iterations=o.gflow.unwrap_extraParameter)
+        bpy.ops.uv.unwrap(method=method, fill_holes=o.gflow.unwrap_fillHoles, margin=0.001, iterations=o.gflow.unwrap_extraParameter)
     
 
 def pack(context, objects, packMethod = 'FAST'):
