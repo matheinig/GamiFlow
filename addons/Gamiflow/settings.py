@@ -31,7 +31,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ("EXTERNAL", "External", "You want to bake everything in an external tool such as Painter or Toolbag."),
         ],
         default="EXTERNAL"
-        )    
+        )
+        
+    renameUVs: bpy.props.BoolProperty(name = "Rename UVs", default=True, description="Rename the active UV layer")
+    uvName : bpy.props.StringProperty(name = "UV name", default = "UVMap")
+        
 #BEGINTRIM --------------------------------------------------
     uvPacker : bpy.props.EnumProperty(
         name="UV Packer",
@@ -108,6 +112,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.label(text="Export set")
         layout.prop(self, "mergeExportMeshes")
         layout.prop(self, "renameExportMeshes")
+        row = layout.row(align=True)
+        row.prop(self, "renameUVs")
+        sub = row.row()
+        sub.active = self.renameUVs
+        sub.prop(self, "uvName", text="")
 #BEGINTRIM --------------------------------------------------  
         row = layout.row()
         row.prop(self, "useDecalMachine")

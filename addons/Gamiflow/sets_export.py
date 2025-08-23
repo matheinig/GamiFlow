@@ -345,8 +345,9 @@ def generateExport(context):
         localgen = sets.GeneratorData()
         roots = []
         parented = []
+        stgs = settings.getSettings()
 #BEGINTRIM --------------------------------------------------  
-        useDecalMachine = settings.isDecalMachineEnabled(settings.getSettings())
+        useDecalMachine = settings.isDecalMachineEnabled(stgs)
         decals = None
         if useDecalMachine: decals = [obj for obj in context.visible_objects if obj.DM.isdecal]
 #ENDTRIM -----------------------------------------------------          
@@ -359,6 +360,14 @@ def generateExport(context):
             newobj = sets.duplicateObject(o, collection, suffix=exportSuffix, link=o.type=='ARMATURE')
             newobj.name = namePrefix+newobj.name
             localgen.register(newobj, o)
+            
+            # Rename its UVs
+            if stgs.renameUVs and newobj.type == 'MESH':
+                for uv in newobj.data.uv_layers:
+                    if uv.active_render: 
+                        uv.name = stgs.uvName
+                        break
+            
 #BEGINTRIM --------------------------------------------------             
             # Get the DECALmachine decals
             if useDecalMachine:
