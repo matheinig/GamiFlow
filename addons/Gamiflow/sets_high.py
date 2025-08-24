@@ -163,6 +163,7 @@ def generatePainterHigh(context):
             for hp in o.gflow.highpolys:
                 if hp.obj is None: continue
                 canUseLinkedInstance = not bakeObjectsNeedsProcessing(o, stgs)
+                canUseLinkedInstance = canUseLinkedInstance and not (hp.obj.type == 'FONT' or hp.obj.type == 'CURVE')
                 newhp = sets.duplicateObject(hp.obj, highCollection, suffix="_TEMP_", link=canUseLinkedInstance)
                 helpers.convertToMesh(context, newhp)
                 hpsuffix = suffix
