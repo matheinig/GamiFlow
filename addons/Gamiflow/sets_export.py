@@ -349,7 +349,7 @@ def generateExport(context):
 #BEGINTRIM --------------------------------------------------  
         useDecalMachine = settings.isDecalMachineEnabled(stgs)
         decals = None
-        if useDecalMachine: decals = [obj for obj in context.visible_objects if obj.DM.isdecal]
+        if useDecalMachine: decals = [obj for obj in context.scene.objects if obj.DM.isdecal]
 #ENDTRIM -----------------------------------------------------          
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type=='EMPTY' or o.type == 'ARMATURE'): continue # We could potentially allow more types (.e.g lights)
@@ -372,6 +372,9 @@ def generateExport(context):
             # Get the DECALmachine decals
             if useDecalMachine:
                 for d in decals:
+                    # DECALmachine properties that seem relevant (and better than just checking for parenting):
+                    # DM.projectedon
+                    # DM.slicedon
                     if d.parent == o: 
                         decalCopy = sets.duplicateObject(d, collection, suffix=exportSuffix, link=False)
                         decalCopy.parent = newobj
@@ -391,7 +394,7 @@ def generateExport(context):
                         # Delete any layer that we don't care about
                         for uv in decalCopy.data.uv_layers:
                             if uv != toKeep: decalCopy.data.uv_layers.remove(uv)
-                        toKeep.name = 'UVMap default'
+                        # Name the UV map after the parent's UVs so that they can be merged later
                         if newobj.type == 'MESH': 
                             toKeep.name = newobj.data.uv_layers[0].name
 #ENDTRIM -----------------------------------------------------               
