@@ -248,7 +248,12 @@ def removeLowModifiers(context, obj):
         if not m.show_render:  obj.modifiers.remove(m)
 def removePainterModifiers(context, obj):
     for m in list(obj.modifiers):
-        if m.type == 'ARMATURE':  obj.modifiers.remove(m)
+        pass
+def applyPainterModifiers(context, obj):
+    for m in list(obj.modifiers):
+        if m.type == 'ARMATURE': # Painter will ignore the armature, so we need to apply it to the geometry
+            bpy.ops.object.modifier_apply(modifier=m.name)
+    pass
 
 def getTextureSetName(setNumber, mergeUdims=False):
     if mergeUdims: return bpy.context.scene.gflow.udims[0].name

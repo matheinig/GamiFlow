@@ -124,6 +124,7 @@ def generatePainterLow(context):
                 # Process modifiers
                 sets.removeLowModifiers(context, newobj)
                 sets.removePainterModifiers(context, newobj)
+                sets.applyPainterModifiers(context, newobj)
                 processModifiers(context, localGen, newobj)
                 sets.triangulate(context, newobj)
                 helpers.setDeselected(newobj)            

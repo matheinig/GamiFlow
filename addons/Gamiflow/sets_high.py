@@ -52,20 +52,22 @@ def bakeVertexColours(obj):
     return
 
 def bakeObjectsNeedsProcessing(obj, stgs):
-    if len(obj.modifiers) != 0: return False
-    if stgs.idMap == 'VERTEX' and len(obj.data.color_attributes)==0: return False
+    if len(obj.modifiers) != 0: return True
+    if stgs.idMap == 'VERTEX' and len(obj.data.color_attributes)==0: return True
     with helpers.objectModeBmesh(obj) as bm:
         mirrorLayer = geotags.getMirrorLayer(bm)
-        if mirrorLayer: return False
-    return True
+        if mirrorLayer: return True
+    return False
 
 def generateIdMap(stgs, obj):
     if stgs.idMap == 'VERTEX': bakeVertexColours(obj)
 
 def processNewObject(context, o, stgs, isBakeObject=False):
+    helpers.setSelected(context, o)
     generateIdMap(stgs, o)
     sets.generatePartialSymmetryIfNeeded(context, o)
     sets.removePainterModifiers(context, o)
+    sets.applyPainterModifiers(context, o)
     # We don't need to do this for bake objects,and it means that we don't always need to modify the mesh
     if (not isBakeObject):
         if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
@@ -76,6 +78,8 @@ def processNewObject(context, o, stgs, isBakeObject=False):
     if stgs.baker == 'BLENDER':
         for m in o.modifiers:
             if m.show_viewport: m.show_render = True
+            
+    helpers.setDeselected(o)
 
 def generatePainterHigh(context):
     highCollection = getCollection(context, createIfNeeded=False)
