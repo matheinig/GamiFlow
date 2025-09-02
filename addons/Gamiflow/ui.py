@@ -237,6 +237,7 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row = self.layout.row()
             row.enabled = gflow.bakeAnchor is not None
             row.prop(gflow, "bakeGhost")
+            self.layout.prop(gflow, "bakeAction")
             
             # Cage
             self.layout.separator()
@@ -250,8 +251,10 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             else:
                 row.operator("gflow.remove_cage_displacement_map", icon="GROUP_VERTEX", text="Clear")
 
-            
+        elif obj.type == 'ARMATURE':
+            self.layout.prop(gflow, "bakeAction")
         elif obj.type == 'EMPTY':
+            self.layout.prop(gflow, "objType")
             row = self.layout.row()
             validInstancer = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))
             row.enabled = validInstancer
@@ -279,6 +282,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             self.layout.prop(gflow, "exportAnchor")        
             self.layout.prop(gflow, "mergeWithParent")
             self.layout.prop(gflow, "doubleSided")
+        elif obj.type == 'ARMATURE':
+            self.layout.prop(gflow, "exportAction")            
         elif obj.type == 'EMPTY':
             row = self.layout.row()
             self.layout.prop(gflow, "mergeWithParent")

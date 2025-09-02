@@ -55,7 +55,7 @@ def generatePainterLow(context):
         parented = []
         instanceRootsTransforms = {}
         for o in objectsToDuplicate:
-            if not (o.type == 'MESH' or o.type=='EMPTY'): continue
+            if not (o.type == 'MESH' or o.type=='EMPTY' or o.type=='ARMATURE'): continue
             if o.gflow.objType != 'STANDARD': continue
             
             # Make a copy the object
@@ -64,7 +64,7 @@ def generatePainterLow(context):
             gen.register(newobj, o)
             localGen.register(newobj, o)
 
-            if not o.type=='EMPTY':
+            if o.type=='MESH':
                 # Special handling of instanced meshes
                 # Painter doesn't like overlapping UVs when baking so we offset the UVs by 1
                 if o.data in knownMeshes:
@@ -90,7 +90,7 @@ def generatePainterLow(context):
                 sets.setMaterial(newobj, material)
                 
                 
-            else: # o.type != 'EMPTY'
+            elif o.type == 'EMPTY':
                 newobj.instance_type = 'NONE'
 
             if o.parent != None: 
@@ -111,10 +111,14 @@ def generatePainterLow(context):
                         r.matrix_world = o.matrix_world @ r.matrix_world  # we also need to move the instances into world space
         #endfor object duplication
   
+        # Apply bake actions before we apply the armature modifiers
+        for newobj in localGen.generated:
+            if newobj.animation_data: newobj.animation_data.action = newobj.gflow.bakeAction
+  
         # Now go back through all the objects and deal with their mesh data and modifiers
         # It is crucial to wait until the other objects have been created so that we can e.g. change what object is referenced in mirror or array modifiers
         for newobj in localGen.generated:
-            if newobj.type != 'EMPTY':
+            if newobj.type == 'MESH':
                 helpers.setSelected(context, newobj)
                 sets.collapseEdges(context, newobj)
                 sets.removeEdgesForLevel(context, newobj, 0, keepPainter=True)
@@ -141,7 +145,7 @@ def generatePainterLow(context):
     # Deal with anchors
     for o in gen.generated:
         if o.gflow.bakeAnchor:
-            o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()
+            o.matrix_world = o.gflow.bakeAnchor.matrix_world.copy()        
 
     # Generate the cage
     if context.scene.gflow.useCage:

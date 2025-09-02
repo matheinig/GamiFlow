@@ -361,6 +361,8 @@ def generateExport(context):
             newobj.name = namePrefix+newobj.name
             localgen.register(newobj, o)
             
+            if newobj.animation_data: newobj.animation_data.action = newobj.gflow.exportAction
+            
             # Rename its UVs
             if stgs.renameUVs and newobj.type == 'MESH':
                 for uv in newobj.data.uv_layers:

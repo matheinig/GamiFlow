@@ -90,12 +90,14 @@ class GFlowObject(bpy.types.PropertyGroup):
     ui_selectedHighPoly : bpy.props.IntProperty(name="[UI] HP Index", default=0, description="Internal")
     
     cageOffset : bpy.props.FloatProperty(name="Cage offset", subtype='DISTANCE', default=0.0, min=0.0, soft_max=0.5, description="Per-object cage offset override. Leave at 0 to use the scene value instead.", update=onCageOffsetChanged)
+    bakeAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Bake Pose")
 
     # Export
     doubleSided: bpy.props.BoolProperty(name="Double-sided", default=False)
     instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)
     mergeWithParent: bpy.props.BoolProperty(name="Merge with parents", default=True)
     exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set")
+    exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
 
 # Per scene
 gUV_PACK_METHODS = [("FAST", "Fast", "", 0), ("REASONABLE", "Reasonable", "", 1), ("ACCURATE", "Accurate", "", 2)]

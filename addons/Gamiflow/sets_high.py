@@ -105,7 +105,7 @@ def generatePainterHigh(context):
         parented = []
     
         for o in objectsToDuplicate:
-            if not (o.type == 'MESH' or o.type == 'FONT' or o.type == 'CURVE' or o.type=='EMPTY'): continue
+            if not (o.type == 'MESH' or o.type == 'FONT' or o.type == 'CURVE' or o.type=='EMPTY' or o.type=='ARMATURE'): continue
             if not (o.gflow.objType == 'STANDARD' or o.gflow.objType == 'OCCLUDER' or o.gflow.objType == 'NON_BAKED'): continue
             
             suffix = stgs.hpsuffix
@@ -146,6 +146,7 @@ def generatePainterHigh(context):
                 if o.gflow.singleSided: suffix += decalsuffix
                 newobj = sets.duplicateObject(o, highCollection, suffix=suffix)
                 newobj.name = namePrefix + newobj.name
+                if newobj.animation_data: newobj.animation_data.action = newobj.gflow.bakeAction
                 
                 # Convert the 'mesh-adjacent' objects into actual meshes
                 if o.type == 'FONT' or o.type == 'CURVE': 
