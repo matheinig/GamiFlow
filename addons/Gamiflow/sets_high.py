@@ -146,7 +146,8 @@ def generatePainterHigh(context):
                 if o.gflow.singleSided: suffix += decalsuffix
                 newobj = sets.duplicateObject(o, highCollection, suffix=suffix)
                 newobj.name = namePrefix + newobj.name
-                if newobj.animation_data: newobj.animation_data.action = newobj.gflow.bakeAction
+                if newobj.animation_data and newobj.gflow.bakeAction: 
+                    newobj.animation_data.action = newobj.gflow.bakeAction
                 
                 # Convert the 'mesh-adjacent' objects into actual meshes
                 if o.type == 'FONT' or o.type == 'CURVE': 
