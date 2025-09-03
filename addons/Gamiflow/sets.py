@@ -162,16 +162,7 @@ def toggleCollectionVisibility(context, coll):
     if layer: setLayerCollectionVisibility(layer, layer.exclude, recursive=True)
     
 def deleteObject(o):
-    mustDeleteObject = True
-    # Make sure we absolutely nuke the meshes too
-    # This avoids 'leaking' an increasingly large amout of orphaned meshes into the file
-    if o.type == 'MESH': 
-        if o.data.users == 1: 
-            bpy.data.meshes.remove(o.data)
-            mustDeleteObject = False
-            
-    if mustDeleteObject:
-        bpy.data.objects.remove(o, do_unlink=True)
+    helpers.deleteObject(o)
     
 def _clearCollection(coll):
     for o in list(coll.objects):
@@ -201,14 +192,8 @@ def findRoots(collection):
 def getNewName(sourceObj, prefix, suffix):
     return prefix + sourceObj.name + suffix
 def duplicateObject(sourceObj, collection, prefix="", suffix="", link=False):
-    new_obj = sourceObj.copy()
+    new_obj = helpers.copyObject(sourceObj, collection, link=link)
     new_obj.name = getNewName(sourceObj, prefix, suffix)
-    if sourceObj.data: 
-        if not link: new_obj.data = sourceObj.data.copy()
-    # Make sure we allow selection to avoid bugs in other parts
-    if sourceObj.hide_select: new_obj.hide_select = False
-    
-    collection.objects.link(new_obj)
     return new_obj
     
 def getFirstModifierOfType(obj, modType):
@@ -250,9 +235,9 @@ def removePainterModifiers(context, obj):
     for m in list(obj.modifiers):
         pass
 def applyPainterModifiers(context, obj):
-    for m in list(obj.modifiers):
-        if m.type == 'ARMATURE': # Painter will ignore the armature, so we need to apply it to the geometry
-            bpy.ops.object.modifier_apply(modifier=m.name)
+    modifiers = [m for m in obj.modifiers if m.type == 'ARMATURE']
+    helpers.applyModifiers(context, obj, modifiers)
+
 
 def getTextureSetName(setNumber, mergeUdims=False):
     if mergeUdims: return bpy.context.scene.gflow.udims[0].name

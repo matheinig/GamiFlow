@@ -67,7 +67,7 @@ def processNewObject(context, o, stgs, isBakeObject=False):
     generateIdMap(stgs, o)
     sets.generatePartialSymmetryIfNeeded(context, o)
     sets.removePainterModifiers(context, o)
-    sets.applyPainterModifiers(context, o)
+    
     # We don't need to do this for bake objects,and it means that we don't always need to modify the mesh
     if (not isBakeObject):
         if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
@@ -195,6 +195,9 @@ def generatePainterHigh(context):
         # It is crucial to wait until the other objects have been created so that we can e.g. change what object is referenced in mirror or array modifiers
         for newobj in localgen.generated:
             sets.updateModifierDependencies(localgen, newobj)
+            helpers.setSelected(context, newobj)
+            sets.applyPainterModifiers(context, newobj)
+            helpers.setDeselected(newobj)
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:
             localgen.reparent(newobj)

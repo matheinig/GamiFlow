@@ -126,10 +126,10 @@ def generatePainterLow(context):
                 sets.generatePartialSymmetryIfNeeded(context, newobj, offsetUvs=True)
                 
                 # Process modifiers
+                processModifiers(context, localGen, newobj)
                 sets.removeLowModifiers(context, newobj)
                 sets.removePainterModifiers(context, newobj)
                 sets.applyPainterModifiers(context, newobj)
-                processModifiers(context, localGen, newobj)
                 sets.triangulate(context, newobj)
                 helpers.setDeselected(newobj)            
   

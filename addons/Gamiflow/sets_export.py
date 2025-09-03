@@ -32,15 +32,16 @@ def processModifiers(context, generatorData, obj):
     helpers.setSelected(context, obj)
     
     sets.updateModifierDependencies(generatorData, obj)
+    sets_cage.removeCageModifier(context, obj)
     
     # Deal with special cases for special modifiers
     # NOTE: Currently no special cases for the Export Set :)
     
-    # Collapse all other 'standard' modifiers (incredibly slow but important if we start merging objects)
-    for m in list(obj.modifiers):
-        if m.type == 'ARMATURE': continue # Armature modifiers should not be collapsed
-        bpy.ops.object.modifier_apply(modifier=m.name)
-    sets_cage.removeCageModifier(context, obj)
+    # Apply all modifiers except armatures which are needed
+    modifiers = [m for m in obj.modifiers if m.type != 'ARMATURE']
+    helpers.applyModifiers(context, obj, modifiers)
+
+    
     helpers.setDeselected(obj) 
 
 

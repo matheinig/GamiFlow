@@ -100,6 +100,139 @@ def getScreenArea(context, areaType="VIEW_3D"):
         if a.type == areaType: return a
     return None
 
+def copyObject(sourceObj, collection, link=False):
+    new_obj = sourceObj.copy()
+    if sourceObj.data: 
+        if not link: new_obj.data = sourceObj.data.copy()
+    # Make sure we allow selection to avoid bugs in other parts
+    if sourceObj.hide_select: new_obj.hide_select = False
+    collection.objects.link(new_obj)
+    return new_obj
+def deleteObject(obj):
+    mustDeleteObject = True
+    # Make sure we absolutely nuke the meshes too
+    # This avoids 'leaking' an increasingly large amout of orphaned meshes into the file
+    if obj.type == 'MESH': 
+        if obj.data.users == 1: 
+            bpy.data.meshes.remove(obj.data)
+            mustDeleteObject = False
+    if mustDeleteObject:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+def applyModifiersByName(context, obj, modifierNames):
+    modifiers = []
+    for mn in modifierNames:
+        modifiers.append(obj.modifiers[mn])
+    applyModifiers(context, obj, modifiers)
+    return
+def applyModifiers(context, obj, modifiers):
+    if modifiers is None or len(modifiers) == 0: return
+    if obj.data.shape_keys is None:
+        # No Shape keys, easy method
+        applyModifiers_simple(context, obj, modifiers)
+    elif len(obj.data.shape_keys.key_blocks) == 1:
+        # Only one shape key, we delete it and canapply the modifiers
+        obj.shape_key_remove(obj.data.shape_keys.key_blocks[0])
+        applyModifiers_simple(context, obj, modifiers)
+    else:
+        # Multiple shape keys, needs the hacky method
+        applyModifiers_shapeKeys(context, obj, modifiers)
+    return
+def backupOtherModifiers(obj, modifiersToDiscard):
+    backedUp = []
+    for m in obj.modifiers:
+        if m not in modifiersToDiscard: backedUp.append([m, m.show_viewport])
+    return backedUp
+def applyModifiers_shapeKeys(context, obj, modifiers):
+    # Make a backup copy that will retain all the shape key data until we're done
+    duplicate = copyObject(obj, context.collection)
+    modifierNames = [mn.name for mn in modifiers]
+    
+    # Remove all the shape keys on the main object
+    obj.shape_key_clear()
+
+    # Apply the modifiers to the main object as normally
+    applyModifiers_simple(context, obj, modifiers)
+    
+    # Re-apply the shape keys
+    baseObjBsisShapeKey = obj.shape_key_add(from_mix=False)
+    for index, sk in enumerate(duplicate.data.shape_keys.key_blocks):
+        if index==0: continue
+    
+        # Duplicate the backup again, but this time keep only one shape key
+        morphedObject = copyObject(duplicate, context.collection)
+        morphedObject.show_only_shape_key = True
+        morphedObject.active_shape_key_index = index
+        
+        # Apply the modifiers to the morph duplicate
+        modifiersList = []
+        for m in modifierNames:
+            modifiersList.append(morphedObject.modifiers[m])
+        applyModifiers_simple(context, morphedObject, modifiersList)
+        # Remove all the other modifiers
+        morphedObject.modifiers.clear()
+        
+        # Copy the vertices to a new shape key on the original object
+        baseObjShapeKey = obj.shape_key_add(from_mix=False)
+        baseObjShapeKey.name = sk.name
+        for (index, vertex) in enumerate(morphedObject.data.vertices):
+            baseObjShapeKey.data[index].co = vertex.co
+        
+        deleteObject(morphedObject)
+        
+        # Shapekey settings
+        baseObjShapeKey.value = sk.value
+        baseObjShapeKey.slider_min = sk.slider_min
+        baseObjShapeKey.slider_max = sk.slider_max
+        baseObjShapeKey.vertex_group = sk.vertex_group
+
+    # Shapekey animations
+    if duplicate.data.shape_keys.animation_data or duplicate.data.shape_keys.animation_data.action:
+        if obj.data.shape_keys.animation_data is None: 
+            obj.data.shape_keys.animation_data_create()
+        obj.data.shape_keys.animation_data.action = duplicate.data.shape_keys.animation_data.action    
+        if bpy.app.version >= (4,4,0):
+            obj.data.shape_keys.animation_data.action_slot = duplicate.data.shape_keys.animation_data.action_slot
+
+    ## TODO: Figure out drivers
+        
+
+    # Cleanup
+    deleteObject(duplicate)
+
+    return
+def applyModifiers_simple(context, obj, modifiers):
+    # Disable the other modifiers for now
+    modifiersToKeep = backupOtherModifiers(obj, modifiers)
+    for m, v, in modifiersToKeep:
+        m.show_viewport = False
+
+    # Evaluate the mesh with only the selected modifiers
+    for m in modifiers:
+        m.show_viewport = True
+    depsgraph = context.evaluated_depsgraph_get()
+    evaluatedObj = obj.evaluated_get(depsgraph)
+    evaluatedMesh = bpy.data.meshes.new_from_object(evaluatedObj, preserve_all_data_layers=True, depsgraph=depsgraph)    
+    
+    # Delete the applied modifiers from the original object
+    for m in modifiers:
+        obj.modifiers.remove(m)
+    
+    # Replace the original object mesh with the newly evaluated one
+    originalMesh = obj.data
+    originalMeshName = originalMesh.name
+    obj.data = evaluatedMesh
+    bpy.data.meshes.remove(originalMesh)
+    obj.data.name = originalMeshName
+        
+    # Re-enable the saved modifiers and hope for the best
+    for m, v in modifiersToKeep:
+        m.show_viewport = v
+        
+    return
+
+
+
 classes = []
 
 
