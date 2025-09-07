@@ -155,7 +155,7 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
     applyModifiers_simple(context, obj, modifiers)
     
     # Re-apply the shape keys
-    baseObjBsisShapeKey = obj.shape_key_add(from_mix=False)
+    baseObjBasisShapeKey = obj.shape_key_add(name=duplicate.data.shape_keys.key_blocks[0].name, from_mix=False)
     for index, sk in enumerate(duplicate.data.shape_keys.key_blocks):
         if index==0: continue
     
@@ -173,18 +173,20 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
         morphedObject.modifiers.clear()
         
         # Copy the vertices to a new shape key on the original object
-        baseObjShapeKey = obj.shape_key_add(from_mix=False)
-        baseObjShapeKey.name = sk.name
+        baseObjShapeKey = obj.shape_key_add(name=sk.name, from_mix=False)
         for (index, vertex) in enumerate(morphedObject.data.vertices):
             baseObjShapeKey.data[index].co = vertex.co
         
         deleteObject(morphedObject)
         
         # Shapekey settings
+        baseObjShapeKey.relative_key = baseObjBasisShapeKey
         baseObjShapeKey.value = sk.value
         baseObjShapeKey.slider_min = sk.slider_min
         baseObjShapeKey.slider_max = sk.slider_max
         baseObjShapeKey.vertex_group = sk.vertex_group
+        baseObjShapeKey.mute = sk.mute
+        baseObjShapeKey.lock_shape = sk.lock_shape
 
     # Shapekey animations
     if duplicate.data.shape_keys.animation_data or duplicate.data.shape_keys.animation_data.action:
@@ -201,6 +203,7 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
     deleteObject(duplicate)
 
     return
+
 def applyModifiers_simple(context, obj, modifiers):
     # Disable the other modifiers for now
     modifiersToKeep = backupOtherModifiers(obj, modifiers)
@@ -211,8 +214,10 @@ def applyModifiers_simple(context, obj, modifiers):
     for m in modifiers:
         m.show_viewport = True
     depsgraph = context.evaluated_depsgraph_get()
-    evaluatedObj = obj.evaluated_get(depsgraph)
-    evaluatedMesh = bpy.data.meshes.new_from_object(evaluatedObj, preserve_all_data_layers=True, depsgraph=depsgraph)    
+    evaluatedMesh = bpy.data.meshes.new_from_object(
+        obj.evaluated_get(depsgraph), 
+        preserve_all_data_layers=True, 
+        depsgraph=depsgraph)    
     
     # Delete the applied modifiers from the original object
     for m in modifiers:

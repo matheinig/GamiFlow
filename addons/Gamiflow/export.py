@@ -67,6 +67,14 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         axisForward = getAxis('-Z', flip)
         axisUp = 'Y'
     
+    # Check if we have any shape keys to be exported
+    # In which case we absolutely cannot apply the modifiers for some reason
+    applyModifiers = True
+    for o in objects:
+        if o.type =='MESH' and o.data.shape_keys and len(o.data.shape_keys.key_blocks) > 0:
+            applyModifiers = False
+            break
+    
     # Export
     bpy.ops.export_scene.fbx(
         filepath=filename+".fbx",
@@ -75,7 +83,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         global_scale = 1.0, apply_scale_options = 'FBX_SCALE_ALL', # Prevents 100x scale in Unity/Unreal
         bake_space_transform = False, axis_up = axisUp, axis_forward = axisForward,
         # Mesh data
-        use_mesh_modifiers = True,
+        use_mesh_modifiers = applyModifiers, 
         use_tspace = not isHighPoly,
         colors_type = 'LINEAR',
         # Armatures and animation
