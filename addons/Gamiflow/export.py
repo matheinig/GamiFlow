@@ -6,6 +6,14 @@ from . import sets_high
 from . import sets
 from . import helpers
 from . import settings
+from enum import Enum
+
+class ExportType(Enum):
+    BAKE_LOW = 1
+    BAKE_HIGH = 2
+    BAKE_CAGE = 3
+    FINAL = 0
+
 
 def getAxis(baseAxis, flipped):
     if flipped:
@@ -18,26 +26,26 @@ def getAxis(baseAxis, flipped):
         return dic[baseAxis]
     return baseAxis
 
-def exportCollection(context, collection, filename, fFormat, exportTarget = "UNITY", flip=False, isHighPoly=False):
-    exportObjects(context, collection.all_objects, filename, fFormat, exportTarget, flip, isHighPoly=isHighPoly)
+def exportCollection(context, collection, filename, fFormat, exportTarget = "UNITY", flip=False, exportType=ExportType.FINAL):
+    exportObjects(context, collection.all_objects, filename, fFormat, exportTarget, flip, exportType=exportType)
     return
     
-def exportTextureSets(context, collection, baseFilename, fFormat):
+def exportTextureSets(context, collection, baseFilename, fFormat, exportType):
     for (i, texset) in enumerate(context.scene.gflow.udims):
         objs = [o for o in collection.all_objects if o.gflow.textureSet == i]
-        exportObjects(context, objs, baseFilename+"_"+texset.name, fFormat)
+        exportObjects(context, objs, baseFilename+"_"+texset.name, fFormat, exportType=exportType)
     
-def exportObjects(context, objects, filename, fFormat, exportTarget = "UNITY", flip=False, isHighPoly=False):
+def exportObjects(context, objects, filename, fFormat, exportTarget = "UNITY", flip=False, exportType=ExportType.FINAL):
     # select all relevant objects
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
         helpers.setSelected(context, o)
     if fFormat == "FBX":
-        exportselectedFbx(context, objects, filename, exportTarget = exportTarget, flip=flip, isHighPoly=isHighPoly)
+        exportselectedFbx(context, objects, filename, exportTarget = exportTarget, flip=flip, exportType=exportType)
     else:
-        exportSelectedGltf(context, objects, filename, exportTarget = exportTarget, flip=flip, isHighPoly=isHighPoly)
+        exportSelectedGltf(context, objects, filename, exportTarget = exportTarget, flip=flip, exportType=exportType)
     
-def exportSelectedGltf(context, objects, filename, exportTarget = "UNITY", flip=False, isHighPoly=False):
+def exportSelectedGltf(context, objects, filename, exportTarget = "UNITY", flip=False, exportType=ExportType.FINAL):
     bpy.ops.export_scene.gltf(
         filepath=filename+".gltf",
         use_selection = True,
@@ -46,12 +54,13 @@ def exportSelectedGltf(context, objects, filename, exportTarget = "UNITY", flip=
         export_yup = True,
         export_apply = True,
         # Mesh data
-        export_texcoords=not isHighPoly, export_normals=True, export_tangents=not isHighPoly, export_vertex_color='ACTIVE',
+        export_texcoords=exportType is not ExportType.BAKE_HIGH, export_normals=True, 
+        export_tangents=exportType is not ExportType.BAKE_HIGH, export_vertex_color='ACTIVE',
         # Materials
         export_materials = 'EXPORT',
     )
     
-def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=False, isHighPoly=False):
+def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=False, exportType=ExportType.FINAL):
     # Defaults for modern Unity
     axisForward = getAxis('Y', flip)
     axisUp = 'Z'
@@ -67,13 +76,19 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         axisForward = getAxis('-Z', flip)
         axisUp = 'Y'
     
+    tangents = True
+    if exportType is ExportType.BAKE_HIGH or exportType is ExportType.BAKE_CAGE:
+        tangents = False
+
     # Check if we have any shape keys to be exported
     # In which case we absolutely cannot apply the modifiers for some reason
     applyModifiers = True
-    for o in objects:
-        if o.type =='MESH' and o.data.shape_keys and len(o.data.shape_keys.key_blocks) > 0:
-            applyModifiers = False
-            break
+    if exportType is ExportType.FINAL:
+        for o in objects:
+            if o.type == 'MESH' and o.data.shape_keys and len(o.data.shape_keys.key_blocks) > 0:
+                applyModifiers = False
+                print("GamiFlow: Cannot export with applied modifiers because of shape keys")
+                break
     
     # Export
     bpy.ops.export_scene.fbx(
@@ -84,7 +99,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         bake_space_transform = False, axis_up = axisUp, axis_forward = axisForward,
         # Mesh data
         use_mesh_modifiers = applyModifiers, 
-        use_tspace = not isHighPoly,
+        use_tspace = tangents,
         colors_type = 'LINEAR',
         # Armatures and animation
         armature_nodetype = 'NULL',
@@ -125,15 +140,15 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         gflow = context.scene.gflow
         if len(gflow.painterLowCollection.all_objects)>0:
             sets.setCollectionVisibility(context, gflow.painterLowCollection, True)
-            exportCollection(context, gflow.painterLowCollection, baseName+"_low", "FBX")
+            exportCollection(context, gflow.painterLowCollection, baseName+"_low", "FBX", ExportType.BAKE_LOW)
         if len(gflow.painterHighCollection.all_objects)>0:
             sets.setCollectionVisibility(context, gflow.painterHighCollection, True)
-            exportCollection(context, gflow.painterHighCollection, baseName+"_high", "FBX", isHighPoly=True)
+            exportCollection(context, gflow.painterHighCollection, baseName+"_high", "FBX", ExportType.BAKE_HIGH)
         
         if gflow.painterCageCollection and len(gflow.painterCageCollection.objects)>0:
             sets.setCollectionVisibility(context, gflow.painterCageCollection, True)
             # Because of the way painter matches the geometry, we have to export one cageper texture set
-            exportTextureSets(context, gflow.painterCageCollection, baseName+"_cage", "FBX")
+            exportTextureSets(context, gflow.painterCageCollection, baseName+"_cage", "FBX", ExportType.BAKE_CAGE)
         
         return {'FINISHED'}
 
@@ -174,7 +189,7 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
         # Simple export
         if gflow.exportMethod == 'SINGLE':
             baseName = os.path.join(folder,name)
-            exportCollection(context, gflow.exportCollection, baseName, gflow.exportFormat, exportTarget=gflow.exportTarget, flip=gflow.exportFlip)
+            exportCollection(context, gflow.exportCollection, baseName, gflow.exportFormat, exportTarget=gflow.exportTarget, flip=gflow.exportFlip, exportType=ExportType.FINAL)
         # Kit export: each root object gets exported separately
         if gflow.exportMethod == 'KIT':
             roots = findRoots(gflow.exportCollection.objects)
@@ -185,7 +200,7 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
                 filename = os.path.join(folder, cleanname)
                 objects = list(o.children_recursive)
                 objects.append(o)
-                exportObjects(context, objects, filename, gflow.exportFormat, exportTarget=gflow.exportTarget, flip=gflow.exportFlip)
+                exportObjects(context, objects, filename, gflow.exportFormat, exportTarget=gflow.exportTarget, flip=gflow.exportFlip, exportType=ExportType.FINAL)
 
         return {'FINISHED'}
   
