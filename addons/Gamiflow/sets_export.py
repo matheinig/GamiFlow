@@ -309,6 +309,10 @@ def generateExport(context):
     
     stgs = settings.getSettings()
     exportSuffix = stgs.exportsuffix
+    
+    # Get a list of all the actions present now
+    actions = set(bpy.data.actions)
+    
 #BEGINTRIM --------------------------------------------------
     # Show the decalmachine layers (necessary)
     if settings.isDecalMachineEnabled(settings.getSettings()):
@@ -576,6 +580,12 @@ def generateExport(context):
         for o in collection.all_objects:
             if o.type == 'MESH': uv.flipUVs(o)
                 
+    # Cleanup the actions that were potentially accidentally duplicated
+    newActions = set(bpy.data.actions)
+    toDelete = newActions-actions
+    for a in toDelete:
+        print("GamiFlow: Cleaning up action"+a.name+" thatshouldn't have created in the first place")
+        bpy.actions.remove(a)
     
     if stgs.renameExportMeshes:
         print("GamiFlow: Rename export meshes")
