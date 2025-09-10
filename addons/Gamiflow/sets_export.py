@@ -110,7 +110,9 @@ def bakeVertexColor(context, scene, obj):
     
     # Keep track of the originally active color channel
     originalColorAttribute = obj.data.color_attributes.active_color
-    #TODO need to check if this attribute is per corner
+    # GamiFlow will generate a per-corner color, but if the source color is a per vertex we need to find a corner->vertex mapping
+    sourceIsPerCorner = originalColorAttribute == 'CORNER'
+
     
     # Generate the attribute (it could already exist if the user wanted to be clever)
     gflowVertexColorName = "GFLOW_Color"
@@ -135,7 +137,9 @@ def bakeVertexColor(context, scene, obj):
         originalColor = [0.0,0.0,0.0,1.0] 
 
         if aoTarget: aoValue = aoTarget.data[index].color[0]
-        if originalColorAttribute: originalColor = originalColorAttribute.data[index].color
+        if originalColorAttribute: 
+            vi = index if sourceIsPerCorner else obj.data.loops[index].vertex_index
+            originalColor = originalColorAttribute.data[vi].color
         
         red = getColorValue(sGflow.vertexChannelR, aoValue, originalColor[0], rndColor[0])
         green = getColorValue(sGflow.vertexChannelG, aoValue, originalColor[1], rndColor[1])
@@ -144,7 +148,6 @@ def bakeVertexColor(context, scene, obj):
         vertexColorAttribute.data[index].color = [red, green, blue, 1.0]
                         
     obj.data.color_attributes.active_color_name = gflowVertexColorName
-    #bpy.ops.geometry.color_attribute_render_set(name=gflowVertexColorName)
     
     # Cleanup
     if aoTarget: 
