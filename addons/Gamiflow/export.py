@@ -61,6 +61,9 @@ def exportSelectedGltf(context, objects, filename, exportTarget = "UNITY", flip=
     )
     
 def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=False, exportType=ExportType.FINAL):
+    simplify = context.scene.render.use_simplify
+    context.scene.render.use_simplify = False
+    
     # Defaults for modern Unity
     axisForward = getAxis('Y', flip)
     axisUp = 'Z'
@@ -79,6 +82,12 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
     tangents = True
     if exportType is ExportType.BAKE_HIGH or exportType is ExportType.BAKE_CAGE:
         tangents = False
+
+    useStrips = False
+    useAllActions = True
+    if exportType is not ExportType.FINAL:
+        useStrips = True
+        useAllActions = False       
 
     # Check if we have any shape keys to be exported
     # In which case we absolutely cannot apply the modifiers for some reason
@@ -109,6 +118,10 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         bake_anim_use_all_bones = True, # Maybe not necessary, but probably safer. Will make fbx larger
         bake_anim_simplify_factor = 0.0,
         )
+        
+    
+    context.scene.render.use_simplify = simplify
+        
     return
     
 class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
@@ -140,15 +153,15 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         gflow = context.scene.gflow
         if len(gflow.painterLowCollection.all_objects)>0:
             sets.setCollectionVisibility(context, gflow.painterLowCollection, True)
-            exportCollection(context, gflow.painterLowCollection, baseName+"_low", "FBX", ExportType.BAKE_LOW)
+            exportCollection(context, gflow.painterLowCollection, baseName+"_low", "FBX", exportType=ExportType.BAKE_LOW)
         if len(gflow.painterHighCollection.all_objects)>0:
             sets.setCollectionVisibility(context, gflow.painterHighCollection, True)
-            exportCollection(context, gflow.painterHighCollection, baseName+"_high", "FBX", ExportType.BAKE_HIGH)
+            exportCollection(context, gflow.painterHighCollection, baseName+"_high", "FBX", exportType=ExportType.BAKE_HIGH)
         
         if gflow.painterCageCollection and len(gflow.painterCageCollection.objects)>0:
             sets.setCollectionVisibility(context, gflow.painterCageCollection, True)
             # Because of the way painter matches the geometry, we have to export one cageper texture set
-            exportTextureSets(context, gflow.painterCageCollection, baseName+"_cage", "FBX", ExportType.BAKE_CAGE)
+            exportTextureSets(context, gflow.painterCageCollection, baseName+"_cage", "FBX", exportType=ExportType.BAKE_CAGE)
         
         return {'FINISHED'}
 
