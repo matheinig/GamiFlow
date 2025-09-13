@@ -85,9 +85,9 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
 
     useStrips = False
     useAllActions = True
+    allowAnimations = True
     if exportType is not ExportType.FINAL:
-        useStrips = True
-        useAllActions = False       
+        allowAnimations = False        
 
     # Check if we have any shape keys to be exported
     # In which case we absolutely cannot apply the modifiers for some reason
@@ -113,7 +113,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         # Armatures and animation
         armature_nodetype = 'NULL',
         use_armature_deform_only = True,
-        bake_anim = context.scene.gflow.exportAnimations,
+        bake_anim = context.scene.gflow.exportAnimations and allowAnimations,
         bake_anim_use_nla_strips = useStrips, bake_anim_use_all_actions = useAllActions,
         bake_anim_use_all_bones = True, # Maybe not necessary, but probably safer. Will make fbx larger
         bake_anim_simplify_factor = 0.0,
