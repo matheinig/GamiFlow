@@ -114,7 +114,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         armature_nodetype = 'NULL',
         use_armature_deform_only = True,
         bake_anim = context.scene.gflow.exportAnimations,
-        bake_anim_use_nla_strips = False, bake_anim_use_all_actions = True,
+        bake_anim_use_nla_strips = useStrips, bake_anim_use_all_actions = useAllActions,
         bake_anim_use_all_bones = True, # Maybe not necessary, but probably safer. Will make fbx larger
         bake_anim_simplify_factor = 0.0,
         )
