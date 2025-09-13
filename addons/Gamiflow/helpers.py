@@ -154,50 +154,59 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
     # Apply the modifiers to the main object as normally
     applyModifiers_simple(context, obj, modifiers)
     
-    # Re-apply the shape keys
     baseObjBasisShapeKey = obj.shape_key_add(name=duplicate.data.shape_keys.key_blocks[0].name, from_mix=False)
-    for index, sk in enumerate(duplicate.data.shape_keys.key_blocks):
-        if index==0: continue
     
-        # Duplicate the backup again, but this time keep only one shape key
-        morphedObject = copyObject(duplicate, context.collection)
-        morphedObject.show_only_shape_key = True
-        morphedObject.active_shape_key_index = index
+    if len(obj.data.vertices) == len(duplicate.data.vertices):
+        # TODO: figure out transfer with some generative modifiers.
+        ## mirror: any vertex not found can be found on the other side with a kdtree
+        ## decimate/mask: vertices keep their position so we can just look up the displaced position with a kdtree
+        ## geonodes are a problem because we can't know if they are adding/removing geometry
+    
+        # Re-apply the shape keys
+        for index, sk in enumerate(duplicate.data.shape_keys.key_blocks):
+            if index==0: continue
         
-        # Apply the modifiers to the morph duplicate
-        modifiersList = []
-        for m in modifierNames:
-            modifiersList.append(morphedObject.modifiers[m])
-        applyModifiers_simple(context, morphedObject, modifiersList)
-        # Remove all the other modifiers
-        morphedObject.modifiers.clear()
-        
-        # Copy the vertices to a new shape key on the original object
-        baseObjShapeKey = obj.shape_key_add(name=sk.name, from_mix=False)
-        for (index, vertex) in enumerate(morphedObject.data.vertices):
-            baseObjShapeKey.data[index].co = vertex.co
-        
-        deleteObject(morphedObject)
-        
-        # Shapekey settings
-        baseObjShapeKey.relative_key = baseObjBasisShapeKey
-        baseObjShapeKey.value = sk.value
-        baseObjShapeKey.slider_min = sk.slider_min
-        baseObjShapeKey.slider_max = sk.slider_max
-        baseObjShapeKey.vertex_group = sk.vertex_group
-        baseObjShapeKey.mute = sk.mute
-        baseObjShapeKey.lock_shape = sk.lock_shape
+            # Duplicate the backup again, but this time keep only one shape key
+            morphedObject = copyObject(duplicate, context.collection)
+            morphedObject.show_only_shape_key = True
+            morphedObject.active_shape_key_index = index
+            
+            # Apply the modifiers to the morph duplicate
+            modifiersList = []
+            for m in modifierNames:
+                modifiersList.append(morphedObject.modifiers[m])
+            applyModifiers_simple(context, morphedObject, modifiersList)
+            # Remove all the other modifiers
+            morphedObject.modifiers.clear()
+            
+            # Copy the vertices to a new shape key on the original object
+            baseObjShapeKey = obj.shape_key_add(name=sk.name, from_mix=False)
+            for (index, vertex) in enumerate(morphedObject.data.vertices):
+                baseObjShapeKey.data[index].co = vertex.co
+            
+            deleteObject(morphedObject)
+            
+            # Shapekey settings
+            baseObjShapeKey.relative_key = baseObjBasisShapeKey
+            baseObjShapeKey.value = sk.value
+            baseObjShapeKey.slider_min = sk.slider_min
+            baseObjShapeKey.slider_max = sk.slider_max
+            baseObjShapeKey.vertex_group = sk.vertex_group
+            baseObjShapeKey.mute = sk.mute
+            baseObjShapeKey.lock_shape = sk.lock_shape
 
-    # Shapekey animations
-    if duplicate.data.shape_keys.animation_data or duplicate.data.shape_keys.animation_data.action:
-        if obj.data.shape_keys.animation_data is None: 
-            obj.data.shape_keys.animation_data_create()
-        obj.data.shape_keys.animation_data.action = duplicate.data.shape_keys.animation_data.action    
-        if bpy.app.version >= (4,4,0):
-            obj.data.shape_keys.animation_data.action_slot = duplicate.data.shape_keys.animation_data.action_slot
+        # Shapekey animations
+        if duplicate.data.shape_keys.animation_data or duplicate.data.shape_keys.animation_data.action:
+            if obj.data.shape_keys.animation_data is None: 
+                obj.data.shape_keys.animation_data_create()
+            obj.data.shape_keys.animation_data.action = duplicate.data.shape_keys.animation_data.action    
+            if bpy.app.version >= (4,4,0):
+                obj.data.shape_keys.animation_data.action_slot = duplicate.data.shape_keys.animation_data.action_slot
 
-    ## TODO: Figure out drivers
-        
+        ## TODO: Figure out drivers
+    else:
+        # make a dummy shape keywith an error message in it
+        obj.shape_key_add(name="Modifiers not compatible", from_mix=False)
 
     # Cleanup
     deleteObject(duplicate)
@@ -236,6 +245,58 @@ def applyModifiers_simple(context, obj, modifiers):
         
     return
 
+# Mesh islands code from https://blender.stackexchange.com/a/250139
+class BMRegion:
+    """Warning: this does not validate the BMesh, nor that the passed geometry belongs to same BMesh"""
+
+    def __init__(self, verts, edges, faces):
+        self.verts = verts
+        self.edges = edges
+        self.faces = faces
+def _bm_grow_tagged(vert: bmesh.types.BMVert):
+    """Flood fill untagged linked geometry starting from a vertex, tags and returns them"""
+    verts = [vert]
+    edges = []
+    faces = []
+
+    for vert in verts:
+        for link_face in vert.link_faces:
+            if link_face.tag:
+                continue
+            faces.append(link_face)
+            link_face.tag = True
+        for link_edge in vert.link_edges:
+            if link_edge.tag:
+                continue
+            link_edge.tag = True
+            edges.append(link_edge)
+            other_vert = link_edge.other_vert(vert)
+            if other_vert.tag:
+                continue
+            verts.append(other_vert)
+            other_vert.tag = True
+
+        vert.tag = True
+    return BMRegion(verts, edges, faces)
+def bm_loose_parts(bm):
+    # Clear tags
+    for v in bm.verts:
+        v.tag = False
+    for e in bm.edges:
+        e.tag = False
+    for f in bm.faces:
+        f.tag = False
+
+    loose_parts = []
+    for seed_vert in bm.verts:
+        if seed_vert.tag:
+            continue
+        # We could yield instead
+        # but tag could be modifed after yield
+        # so better to store results in a list
+        loose_parts.append(_bm_grow_tagged(seed_vert))
+
+    return loose_parts
 
 
 classes = []
