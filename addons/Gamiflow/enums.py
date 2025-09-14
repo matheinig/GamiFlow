@@ -24,6 +24,7 @@ gVERTEX_CHANNEL = [
         ("CURRENT", "Current", "Whatever value exists in the currently active vertex color attribute", 2),
         ("AO", "AO", "AO is baked into the channel", 3),
         ("OBJECT_RAND", "Random (Object)", "Random value per object", 4),
+        ("ISLAND_RAND", "Random (Island)", "Random value per geometry island", 5),
     ]
 
 gPROJECTION_MODES = [

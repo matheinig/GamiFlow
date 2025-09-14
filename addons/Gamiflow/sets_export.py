@@ -146,7 +146,25 @@ def bakeVertexColor(context, scene, obj):
         blue = getColorValue(sGflow.vertexChannelB, aoValue, originalColor[2], rndColor[2])
         
         vertexColorAttribute.data[index].color = [red, green, blue, 1.0]
-                        
+                   
+    # Second pass for random color
+    if sGflow.vertexChannelR == 'ISLAND_RAND' or sGflow.vertexChannelG == 'ISLAND_RAND' or sGflow.vertexChannelB == 'ISLAND_RAND':
+        with helpers.objectModeBmesh(obj) as bm:        
+            parts = helpers.bm_loose_parts(bm)
+            colorLayer = bm.loops.layers.color[gflowVertexColorName]
+            for faceIsland in parts:
+                print("ISland")
+                rndColor = (random.random(), random.random(), random.random())
+                for face in faceIsland.faces:
+                    for loop in face.loops:
+                        if sGflow.vertexChannelR == 'ISLAND_RAND':
+                            loop[colorLayer][0] = rndColor[0]
+                        if sGflow.vertexChannelG == 'ISLAND_RAND':
+                            loop[colorLayer][1] = rndColor[1]
+                        if sGflow.vertexChannelB == 'ISLAND_RAND':
+                            loop[colorLayer][2] = rndColor[2]                        
+
+                   
     obj.data.color_attributes.active_color_name = gflowVertexColorName
     
     # Cleanup

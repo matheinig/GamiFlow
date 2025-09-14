@@ -253,7 +253,7 @@ class BMRegion:
         self.verts = verts
         self.edges = edges
         self.faces = faces
-def _bm_grow_tagged(vert: bmesh.types.BMVert):
+def _bm_grow_tagged(vert):
     """Flood fill untagged linked geometry starting from a vertex, tags and returns them"""
     verts = [vert]
     edges = []
@@ -297,7 +297,6 @@ def bm_loose_parts(bm):
         loose_parts.append(_bm_grow_tagged(seed_vert))
 
     return loose_parts
-
 
 classes = []
 
