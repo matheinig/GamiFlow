@@ -196,7 +196,7 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
             baseObjShapeKey.lock_shape = sk.lock_shape
 
         # Shapekey animations
-        if duplicate.data.shape_keys.animation_data or duplicate.data.shape_keys.animation_data.action:
+        if duplicate.data.shape_keys.animation_data and duplicate.data.shape_keys.animation_data.action:
             if obj.data.shape_keys.animation_data is None: 
                 obj.data.shape_keys.animation_data_create()
             obj.data.shape_keys.animation_data.action = duplicate.data.shape_keys.animation_data.action    
