@@ -64,6 +64,11 @@ def generateIdMap(stgs, obj):
 
 def processNewObject(context, o, stgs, isBakeObject=False):
     helpers.setSelected(context, o)
+    
+    # Apply any shape key there might be
+    if o.data.shape_keys:
+        bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+    
     generateIdMap(stgs, o)
     sets.generatePartialSymmetryIfNeeded(context, o)
     sets.removePainterModifiers(context, o)
