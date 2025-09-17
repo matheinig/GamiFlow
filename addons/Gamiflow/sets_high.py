@@ -153,6 +153,7 @@ def generatePainterHigh(context):
                 newobj.name = namePrefix + newobj.name
                 if newobj.animation_data and newobj.gflow.bakeAction: 
                     newobj.animation_data.action = newobj.gflow.bakeAction
+                    sets.setShapekeyAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionSlotName)
                 
                 # Convert the 'mesh-adjacent' objects into actual meshes
                 if o.type == 'FONT' or o.type == 'CURVE': 

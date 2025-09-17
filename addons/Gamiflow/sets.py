@@ -202,6 +202,15 @@ def duplicateObject(sourceObj, collection, prefix="", suffix="", workingSuffix="
     new_obj.name = getNewName(sourceObj, prefix, suffix, workingSuffix)
     return new_obj
     
+def setShapekeyAction(obj, action, slotName):
+    if obj.type == 'MESH' and obj.data.shape_keys:
+        try:
+            obj.data.shape_keys.animation_data.action = action
+            if bpy.app.version >= (4,4,0): 
+                obj.data.shape_keys.animation_data.action_slot = obj.data.shape_keys.animation_data.action.slots['KE'+slotName]
+        except:
+            print("GamiFlow: Export action slot error in object "+obj.name)
+    
 def getFirstModifierOfType(obj, modType):
     for m in obj.modifiers:
         if modType == m.type: return m

@@ -238,6 +238,8 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row.enabled = gflow.bakeAnchor is not None
             row.prop(gflow, "bakeGhost")
             self.layout.prop(gflow, "bakeAction")
+            if bpy.app.version >= (4,4,0):
+                self.layout.prop(gflow, "bakeActionSlotName")            
             
             # Cage
             self.layout.separator()
@@ -279,7 +281,10 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
         self.layout.use_property_decorate = False
         if obj.type == 'MESH':
             self.layout.prop(gflow, "exportable")
-            self.layout.prop(gflow, "exportAnchor")        
+            self.layout.prop(gflow, "exportAnchor")
+            self.layout.prop(gflow, "exportAction")
+            if bpy.app.version >= (4,4,0):
+                self.layout.prop(gflow, "bakeActionSlotName")
             self.layout.prop(gflow, "mergeWithParent")
             self.layout.prop(gflow, "doubleSided")
         elif obj.type == 'ARMATURE':
