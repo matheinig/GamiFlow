@@ -86,6 +86,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
     useStrips = False
     useAllActions = True
     allowAnimations = True
+    smoothingType = 'OFF'
     if exportType is not ExportType.FINAL:
         allowAnimations = False        
 
@@ -96,6 +97,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         for o in objects:
             if o.type == 'MESH' and o.data.shape_keys and len(o.data.shape_keys.key_blocks) > 0:
                 applyModifiers = False
+                smoothingType = 'FACE'
                 print("GamiFlow: Cannot export with applied modifiers because of shape keys")
                 break
     
@@ -108,6 +110,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         bake_space_transform = False, axis_up = axisUp, axis_forward = axisForward,
         # Mesh data
         use_mesh_modifiers = applyModifiers, 
+        mesh_smooth_type = smoothingType,
         use_tspace = tangents,
         colors_type = 'LINEAR',
         # Armatures and animation
