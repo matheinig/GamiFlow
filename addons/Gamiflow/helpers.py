@@ -157,11 +157,18 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
     baseObjBasisShapeKey = obj.shape_key_add(name=duplicate.data.shape_keys.key_blocks[0].name, from_mix=False)
     
     if len(obj.data.vertices) == len(duplicate.data.vertices):
-        # TODO: figure out transfer with some generative modifiers.
-        ## mirror: any vertex not found can be found on the other side with a kdtree
-        ## decimate/mask: vertices keep their position so we can just look up the displaced position with a kdtree
-        ## geonodes are a problem because we can't know if they are adding/removing geometry
-    
+        # This should probably be redone completely and just apply one modifier at a time which is awful.
+        # How do we deal with harmless modifiers like triangulate or weighted normals? just skip them?
+        # We still have to try and respect the order of modifiers to avoid weird problems
+        # We also have the issue of one modifier being easy on its own, but decimate+mirror+array is getting difficult
+        # decimate: pretty cheap as we don't have to actually do anything crazy
+        #   we remove the shapekeys from obj, we apply the decimation to obj.
+        #   for each vertex in Obj, we find its counterpart in Duplicate with a kdtree
+        #   we lookup the shapekey for that particular vertex
+        # mirror: 
+        #   we remove the shapekeys from obj and apply the mirror to obj
+        #   ????
+        
         # Re-apply the shape keys
         for index, sk in enumerate(duplicate.data.shape_keys.key_blocks):
             if index==0: continue
