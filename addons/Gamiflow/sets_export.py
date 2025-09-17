@@ -330,6 +330,7 @@ def generateExport(context):
     
     stgs = settings.getSettings()
     exportSuffix = stgs.exportsuffix
+    workingSuffix = stgs.workingsuffix
     
     # Get a list of all the actions present now
     actions = set(bpy.data.actions)
@@ -383,7 +384,7 @@ def generateExport(context):
             if not  o.gflow.exportable: continue
             
             # Make a copy the object
-            newobj = sets.duplicateObject(o, collection, suffix=exportSuffix, link=o.type=='ARMATURE')
+            newobj = sets.duplicateObject(o, collection, suffix=exportSuffix, workingSuffix=workingSuffix, link=o.type=='ARMATURE')
             newobj.name = namePrefix+newobj.name
             localgen.register(newobj, o)
             
@@ -405,7 +406,7 @@ def generateExport(context):
                     # DM.projectedon
                     # DM.slicedon
                     if d.parent == o: 
-                        decalCopy = sets.duplicateObject(d, collection, suffix=exportSuffix, link=False)
+                        decalCopy = sets.duplicateObject(d, collection, suffix=exportSuffix, workingSuffix=workingSuffix, link=False)
                         decalCopy.parent = newobj
                         decalCopy.gflow.objType = 'NON_BAKED'
                         # Apply the modifiers
@@ -472,7 +473,7 @@ def generateExport(context):
                         template = collectionInstanceTemplate[o.instance_collection]
                         instgen = sets.GeneratorData()
                         for io in template.generated:
-                            i = sets.duplicateObject(io, collection, suffix="_TMP_", link=True) # Should ideally use linked but causes issues when merging later
+                            i = sets.duplicateObject(io, collection, suffix="_TMP_", workingSuffix=workingSuffix, link=True) # Should ideally use linked but causes issues when merging later
                             instgen.register(i, io)
                         for i in instgen.parented:
                             instgen.reparent(i)

@@ -189,11 +189,17 @@ def findRoots(collection):
         if o.parent is None: roots.append(o)
     return roots
 
-def getNewName(sourceObj, prefix, suffix):
-    return prefix + sourceObj.name + suffix
-def duplicateObject(sourceObj, collection, prefix="", suffix="", link=False):
+def getNewName(sourceObj, prefix, suffix, workingSuffix):
+    baseName = sourceObj.name
+    if len(workingSuffix)>0: 
+        oldLength = len(baseName)
+        baseName = baseName.replace(workingSuffix, "")
+        if len(baseName) != oldLength:
+            suffix = ""
+    return prefix + baseName + suffix
+def duplicateObject(sourceObj, collection, prefix="", suffix="", workingSuffix="", link=False):
     new_obj = helpers.copyObject(sourceObj, collection, link=link)
-    new_obj.name = getNewName(sourceObj, prefix, suffix)
+    new_obj.name = getNewName(sourceObj, prefix, suffix, workingSuffix)
     return new_obj
     
 def getFirstModifierOfType(obj, modType):

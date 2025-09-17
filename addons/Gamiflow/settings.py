@@ -14,10 +14,11 @@ def isDecalMachineEnabled(stgs):
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
     
+    workingsuffix : bpy.props.StringProperty(name = "Working", default = "_working", description="[Optional] If you don't want your export meshes to have the export suffix applied to them, you can instead suffix your working mesh and have the suffix removed in the export set.")
     hpsuffix : bpy.props.StringProperty(name = "High poly", default = "_high")
     lpsuffix : bpy.props.StringProperty(name = "Low poly", default = "_low")
     decalsuffix : bpy.props.StringProperty(name = "Decal", default = "_ignorebf")
-    exportsuffix : bpy.props.StringProperty(name = "Export", default = "_e")
+    exportsuffix : bpy.props.StringProperty(name = "Export", default = "_e", description="Blender does not allow multiple objects to have the same name, so we have to suffix them with something else.")
     cageprefix : bpy.props.StringProperty(name = "Cage", default = "cage_")
     mergeExportMeshes : bpy.props.BoolProperty(name = "Auto merge", default=True, description="Collapses hierarchies when possible and when allowed")
     renameExportMeshes : bpy.props.BoolProperty(name = "Rename meshes", default=True, description="Renames meshes so that they have the same name as their object")
@@ -72,6 +73,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.use_property_split = True
         
         layout.label(text="Naming convention")
+        layout.prop(self, "workingsuffix")
         layout.prop(self, "lpsuffix")
         layout.prop(self, "hpsuffix")
         layout.prop(self, "decalsuffix")
