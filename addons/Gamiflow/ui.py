@@ -94,6 +94,7 @@ class GFLOW_PT_ExportPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
             row.prop(context.scene.gflow, "vertexChannelR", text="")
             row.prop(context.scene.gflow, "vertexChannelG", text="")
             row.prop(context.scene.gflow, "vertexChannelB", text="")
+        layout.prop(context.scene.gflow.lod, "toGenerate")
         layout.operator("gflow.make_export")
         layout.separator()
         row = layout.row()

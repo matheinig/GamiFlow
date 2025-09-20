@@ -265,13 +265,15 @@ def lightmapUnwrap(context, objects):
 
     unwrap(context, obj)
 
-def lightmapPack(context, objects):
+def lightmapPack(context, objectGroups):
     # Lightmap UVs are packed per object. This is based on how Unity handles lightmapping
     ## Note: Do we even care about all the custom scale and orientation?
-    obj, collections = filterUnwrappableOrPackableObjects(objects)
-    for o in obj:
-        o.data.uv_layers['UVLightMap'].active = True
-        pack(context, [o], context.scene.gflow.uvPackSettings)
+    
+    for grp in objectGroups:
+        objects, collections = filterUnwrappableOrPackableObjects(grp)
+        for o in objects:
+            o.data.uv_layers['UVLightMap'].active = True
+        pack(context, objects, context.scene.gflow.uvPackSettings)
 
 def unwrap(context, objects):
     bpy.ops.object.select_all(action='DESELECT')

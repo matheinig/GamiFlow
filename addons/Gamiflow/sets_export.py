@@ -250,7 +250,7 @@ class Chunk:
         for oe in oldEmpties: bpy.data.objects.remove(oe)   # TODO: maybe make sure we don't delete the root if empty roots are allowed 
 
         self.objects = None
-        
+
 def mergeObjects(context, objects):
     chunks = []
     # Nothing to merge, ezpz
@@ -577,17 +577,41 @@ def generateExport(context):
     # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
     # But needs special treatment because shared meshes don't like modifiers being applied
     triangulateObjects(context, gen.generated)
-
-                
+    
+    if context.scene.gflow.lightmapUvs:
+        if stgs.mergeExportMeshes:
+            print("GamiFlow: Find mergeable meshes")
+            todo = sets.findRoots(collection)
+            bpy.ops.object.select_all(action='DESELECT')
+            chunks = []
+            # Build a list of 'chunks' that can be merged together
+            while(len(todo)>0):
+                # Pick one object in the todo list and decide what to do with its children
+                root = todo[0]
+                todo.remove(root)
+                merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
+                #if len(merge)>0:
+                chunk = Chunk()
+                chunk.objects = merge+[root]
+                chunks.append(chunk)
+         
+            # Now that we know how objects will be grouped, we can uv pack them together
+            groups = [chunk.objects for chunk in chunks]
+            #for chunk in chunks:
+            #    groups.append(chunk.objects)
+            uv.lightmapPack(context, groups)
+        else:
+            groups = [[o] for o in collection.all_objects]
+            uv.lightmapPack(context, groups)
+        
+     
     # Generate other levels of detail here
     originalRoots = sets.findRoots(collection)[:]
-    for level in range(1,4):
+    for level in range(1,context.scene.gflow.lod.toGenerate):
         for o in originalRoots:
-            generateLod(context, o, collection, level)
-            # TODO: recursively go through the children and process them while reparenting properly
-            pass
- 
-    # Merge all possible objects
+            generateLod(context, o, collection, level) 
+
+    # Merge all possible objects 
     if stgs.mergeExportMeshes:
         print("GamiFlow: Find mergeable meshes")
         todo = sets.findRoots(collection)
@@ -606,15 +630,9 @@ def generateExport(context):
             chunks.append(chunk)
         # Actually do the merge
         print("GamiFlow: Merge into "+str(len(chunks))+" groups")
-                
         for chunk in chunks:
             chunk.merge(context, False)
     
-
-    
-    # Now that we have our final objects, we can pack their lightmap UVs
-    if context.scene.gflow.lightmapUvs:
-        uv.lightmapPack(context, collection.all_objects)
     
     if context.scene.gflow.exportFormat == "GLTF" and context.scene.gflow.exportTarget == "SKETCHFAB":
         for o in collection.all_objects:
