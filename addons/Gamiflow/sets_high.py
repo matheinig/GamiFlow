@@ -62,6 +62,11 @@ def bakeObjectsNeedsProcessing(obj, stgs):
 def generateIdMap(stgs, obj):
     if stgs.idMap == 'VERTEX': bakeVertexColours(obj)
 
+def processHighModifiers(obj):
+    for m in obj.modifiers:
+        if m.type == 'MULTIRES':
+            m.levels = m.total_levels
+
 def processNewObject(context, o, stgs, isBakeObject=False):
     helpers.setSelected(context, o)
     
@@ -72,6 +77,7 @@ def processNewObject(context, o, stgs, isBakeObject=False):
     generateIdMap(stgs, o)
     sets.generatePartialSymmetryIfNeeded(context, o)
     sets.removePainterModifiers(context, o)
+    processHighModifiers(o)
     
     # We don't need to do this for bake objects,and it means that we don't always need to modify the mesh
     if (not isBakeObject):
