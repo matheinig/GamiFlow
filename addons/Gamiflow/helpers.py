@@ -84,7 +84,6 @@ def editModeBmesh(obj, loop_triangles=False, destructive=False):
     yield bm
     
     bmesh.update_edit_mesh(obj.data, loop_triangles=loop_triangles, destructive=destructive) 
-    bm.free()
 
 @contextlib.contextmanager
 def editModeObserverBmesh(obj):
@@ -92,8 +91,6 @@ def editModeObserverBmesh(obj):
     bm.faces.ensure_lookup_table()
     
     yield bm
-
-    bm.free()
 
 def getScreenArea(context, areaType="VIEW_3D"):
     for a in context.screen.areas:

@@ -558,7 +558,6 @@ class GFLOW_OT_SelectGridify(bpy.types.Operator):
             face.select = face[gridifyLayer] == self.target
     
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False) 
-        bm.free()        
 
         return {"FINISHED"}  
 
