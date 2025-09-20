@@ -298,12 +298,11 @@ def removeEdgesForLevel(context, obj, level, keepPainter=False):
             relevant = False
             if (not keepPainter) and e[layer] == geotags.GEO_EDGE_LEVEL_PAINTER: relevant = True
             if e[layer] <= geotags.GEO_EDGE_LEVEL_LOD0+level: relevant = True
-            
             if relevant: relevantEdges.append(e)
-        
         if len(relevantEdges)>0: 
             bmesh.ops.dissolve_edges(bm, edges=relevantEdges, use_verts=True, use_face_split=False)
         return len(relevantEdges)
+
 def removeCageEdges(obj):
     with helpers.objectModeBmesh(obj) as bm:
         layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
@@ -314,7 +313,7 @@ def removeCageEdges(obj):
         if len(relevantEdges)>0: 
             bmesh.ops.dissolve_edges(bm, edges=relevantEdges, use_verts=True, use_face_split=False)
 
-def collapseEdges(context, obj):
+def collapseEdges(context, obj, level=0):
     with helpers.objectModeBmesh(obj) as bm:
         layer = geotags.getCollapseEdgesLayer(bm, forceCreation=False)
         if not layer: return
@@ -322,7 +321,7 @@ def collapseEdges(context, obj):
         for e in bm.edges:
             if e[layer] == geotags.GEO_EDGE_COLLAPSE_DEFAULT: continue
             relevant = False
-            if e[layer] >= geotags.GEO_EDGE_COLLAPSE_LOD0: relevant = True
+            if e[layer] <= geotags.GEO_EDGE_COLLAPSE_LOD0+level: relevant = True
             if relevant: relevantEdges.append(e)
         
         if len(relevantEdges)>0: 

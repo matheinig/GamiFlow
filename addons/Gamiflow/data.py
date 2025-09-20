@@ -119,7 +119,7 @@ class GFlowDisplay(bpy.types.PropertyGroup):
     edgeOffset: bpy.props.FloatProperty(name="Edge offset", default=0.1, min=0.0, max=1.0, description="Pushes the edges outward to avoid clipping", update=onEdgeOffsetChange)
     
 class GFlowLods(bpy.types.PropertyGroup):
-    current : bpy.props.IntProperty(name="LoD", default=0, min=0, max=3, update=onLodChange)
+    current : bpy.props.IntProperty(name="LoD", default=0, min=0, max=3, update=onLodChange, description="The current LoD")
     # TODO: per lod settings like auto-decimate
 
 class GFlowScene(bpy.types.PropertyGroup):

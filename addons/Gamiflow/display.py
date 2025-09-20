@@ -341,7 +341,8 @@ def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
         verts = []
         crossSize = 0.05       
         for edge in bm.edges:
-            if edge[collapseLayer] >= geotags.GEO_EDGE_LEVEL_LOD0:
+            if edge[collapseLayer] == geotags.GEO_EDGE_COLLAPSE_DEFAULT: continue
+            if edge[collapseLayer] <= geotags.GEO_EDGE_COLLAPSE_LOD0+level:
                 centre = (edge.verts[0].co + edge.verts[1].co)*0.5
                 length = (edge.verts[0].co - edge.verts[1].co).length
                 direction = (edge.verts[0].co - edge.verts[1].co).normalized()

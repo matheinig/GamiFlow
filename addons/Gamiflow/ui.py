@@ -457,8 +457,8 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
         # Edge mode
         if context.tool_settings.mesh_select_mode[1]: 
             layout.label(text="Edge Detail", icon="EDGESEL")
-            layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve")
-            layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse")
+            layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
+            layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
             layout.separator()
             layout.operator("gflow.set_edge_level", text="Mark for Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
             layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current

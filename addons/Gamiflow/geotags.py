@@ -357,6 +357,7 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
     
     selected : bpy.props.IntProperty(name="Selected", default=1, min=0, soft_max=4, description="How many edges in a row will be selected")    
     reverse : bpy.props.BoolProperty(name="Reverse", default=False)
+    level: bpy.props.IntProperty(name="Level", min=-1)
     
     @classmethod
     def poll(cls, context):
@@ -386,7 +387,7 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
                 id = index-startIndex
                 wrapped = (id) % (self.selected + 1)
                 if wrapped < self.selected:
-                    edge[layer] = GEO_EDGE_COLLAPSE_LOD0
+                    edge[layer] = self.level
                 else:
                     edge[layer] = GEO_EDGE_COLLAPSE_DEFAULT
         
