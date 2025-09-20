@@ -314,12 +314,14 @@ def triangulateObjects(context, objects):
             o.data = trimesh
            
 def generateLod(context, obj, collection, level):
+    if level>obj.gflow.maxLod: return None
     newobj = sets.duplicateObject(obj, collection, suffix="_lod"+str(level), workingSuffix="", link=False)
     sets.collapseEdges(context, newobj, level)
     sets.deleteDetailFaces(context, newobj, level)
     sets.removeEdgesForLevel(context, newobj, level, keepPainter=False)
     for c in obj.children:
         newchild = generateLod(context, c, collection, level)
+        if not newchild: continue
         newchild.parent = newobj
     return newobj
 

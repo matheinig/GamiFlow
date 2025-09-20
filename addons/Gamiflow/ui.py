@@ -355,6 +355,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
         self.layout.use_property_decorate = False
         if obj.type == 'MESH':
             self.layout.prop(gflow, "exportable")
+            self.layout.prop(gflow, "maxLod")
+
             self.layout.prop(gflow, "exportAnchor")
             
             if bpy.app.version >= (4,4,0):

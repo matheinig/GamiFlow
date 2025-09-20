@@ -104,6 +104,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
     exportActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='')
     exportActionShapekeySlotName: bpy.props.StringProperty(name="Pose Slot (Shape key)", default='')
+    maxLod: bpy.props.IntProperty(name="Final LoD", min=0, max=3, default=3)
 
 # Per scene
 gUV_PACK_METHODS = [("FAST", "Fast", "", 0), ("REASONABLE", "Reasonable", "", 1), ("ACCURATE", "Accurate", "", 2)]
