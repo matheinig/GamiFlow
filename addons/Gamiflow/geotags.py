@@ -456,16 +456,20 @@ def markSelectedFacesAsDetail(context, deleteFromLevel):
         uvScaleLayer = getUvScaleLayer(bm, forceCreation=True)
         faceDetailLayer = getDetailFacesLayer(bm, forceCreation=True)
         
+        rescaleUVs = False
         scaleCode = getUvScaleCode(0.0)
         detailCode = GEO_FACE_LEVEL_LOD0+deleteFromLevel
+        if deleteFromLevel == 0: rescaleUVs=True
+        
         # Unmark and leave visible at all levels
         if deleteFromLevel==-1:
+            rescaleUVs = True
             scaleCode = getUvScaleCode(1.0)
             detailCode = GEO_FACE_LEVEL_DEFAULT
         for face in bm.faces:
             if face.select: 
                 face[uvScaleLayer] = scaleCode
-                face[faceDetailLayer] = detailCode
+                if rescaleUVs: face[faceDetailLayer] = detailCode
                 
     # Select the bounding edges and mark them as seams
     if deleteFromLevel!=-1:
