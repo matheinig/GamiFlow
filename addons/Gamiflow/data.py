@@ -91,7 +91,8 @@ class GFlowObject(bpy.types.PropertyGroup):
     
     cageOffset : bpy.props.FloatProperty(name="Cage offset", subtype='DISTANCE', default=0.0, min=0.0, soft_max=0.5, description="Per-object cage offset override. Leave at 0 to use the scene value instead.", update=onCageOffsetChanged)
     bakeAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Bake Pose")
-    bakeActionSlotName: bpy.props.StringProperty(name="Pose Slot", default='Key', description="Action slots make things difficult and I don't fully understand how they work, but for shape keys you need to set this.")
+    bakeActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='', description="Action slots make things difficult and I don't fully understand how they work, but for shape keys you need to set this.")
+    bakeActionShapekeySlotName: bpy.props.StringProperty(name="Pose Slot (shapekey)", default='')
 
     # Export
     doubleSided: bpy.props.BoolProperty(name="Double-sided", default=False)
@@ -99,6 +100,8 @@ class GFlowObject(bpy.types.PropertyGroup):
     mergeWithParent: bpy.props.BoolProperty(name="Merge with parents", default=True)
     exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set")
     exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
+    exportActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='')
+    exportActionShapekeySlotName: bpy.props.StringProperty(name="Pose Slot (Shape key)", default='')
 
 # Per scene
 gUV_PACK_METHODS = [("FAST", "Fast", "", 0), ("REASONABLE", "Reasonable", "", 1), ("ACCURATE", "Accurate", "", 2)]

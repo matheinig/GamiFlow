@@ -113,9 +113,8 @@ def generatePainterLow(context):
   
         # Apply bake actions before we apply the armature modifiers
         for newobj in localGen.generated:
-            if newobj.animation_data and newobj.gflow.bakeAction: 
-                newobj.animation_data.action = newobj.gflow.bakeAction
-                sets.setShapekeyAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionSlotName)
+            sets.setObjectAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionObjectSlotName)
+            sets.setShapekeyAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionShapekeySlotName)
   
         # Now go back through all the objects and deal with their mesh data and modifiers
         # It is crucial to wait until the other objects have been created so that we can e.g. change what object is referenced in mirror or array modifiers

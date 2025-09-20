@@ -2,7 +2,7 @@ import bpy
 from . import geotags
 from . import sets
 from . import settings
-
+from bl_ui import anim
 # Side panel
 class GFLOW_PT_BASE_PANEL(bpy.types.Panel):
     bl_space_type = "VIEW_3D"  
@@ -191,6 +191,70 @@ class GamiflowObjPanel_UV(bpy.types.Panel):
             self.layout.separator()
             self.layout.prop(gflow, "textureSetEnum")
 
+class GFLOW_OT_ObjectActionSlotPopup(bpy.types.Operator):
+    """Set Action Slot"""
+    bl_idname = "gflow.action_slot_popup"
+    bl_label = "Set Action Slot"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    mode: bpy.props.StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        obj = context.object
+        gflow = obj.gflow
+        if obj.animation_data and obj.animation_data.action_slot:
+            if self.mode=='BAKE':
+                gflow.bakeActionObjectSlotName = obj.animation_data.action_slot.identifier
+            else:
+                gflow.exportActionObjectSlotName = obj.animation_data.action_slot.identifier
+        if obj.type == 'MESH' and obj.data.shape_keys.animation_data and obj.data.shape_keys.animation_data.action_slot:
+            if self.mode=='BAKE':
+                gflow.bakeActionShapekeySlotName = obj.data.shape_keys.animation_data.action_slot.identifier
+            else:
+                gflow.exportActionShapekeySlotName = obj.data.shape_keys.animation_data.action_slot.identifier
+        context.area.tag_redraw()
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        
+        obj = context.object
+    
+        self.layout.template_action(obj, new="action.new", unlink="action.unlink")
+    
+        # Object action slot
+        target = obj
+        adt = target.animation_data
+        if adt.action.is_action_layered:
+            # pointer is maybe just for new/delete
+            #self.layout.context_pointer_set("animated_id", target)
+            self.layout.template_search(
+                adt, "action_slot",
+                adt, "action_suitable_slots",
+                #new="anim.slot_new_for_id",
+                #unlink="anim.slot_unassign_from_id",
+                text="Object"
+            )
+        # Shapekey action slot
+        if obj.type == 'MESH':
+            target = obj.data.shape_keys
+            adt = target.animation_data
+            if adt.action.is_action_layered:
+                #self.layout.context_pointer_set("animated_id", target)
+                self.layout.template_search(
+                    adt, "action_slot",
+                    adt, "action_suitable_slots",
+                    #new="anim.slot_new_for_id",
+                    #unlink="anim.slot_unassign_from_id",
+                    text="Shape key"
+                )
+
 class GamiflowObjPanel_Bake(bpy.types.Panel):
     bl_label = "Bake"
     bl_space_type = 'PROPERTIES'
@@ -237,9 +301,17 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row = self.layout.row()
             row.enabled = gflow.bakeAnchor is not None
             row.prop(gflow, "bakeGhost")
-            self.layout.prop(gflow, "bakeAction")
+            
+            # Bake action
             if bpy.app.version >= (4,4,0):
-                self.layout.prop(gflow, "bakeActionSlotName")            
+                self.layout.separator()
+                self.layout.operator("gflow.action_slot_popup", text="Set Bake Action", icon='ACTION_SLOT').mode = 'BAKE'
+                self.layout.prop(gflow, "bakeAction")
+                self.layout.prop(gflow, "bakeActionObjectSlotName")
+                self.layout.prop(gflow, "bakeActionShapekeySlotName")
+            else:
+                self.layout.prop(gflow, "bakeAction")            
+            
             
             # Cage
             self.layout.separator()
@@ -282,13 +354,25 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
         if obj.type == 'MESH':
             self.layout.prop(gflow, "exportable")
             self.layout.prop(gflow, "exportAnchor")
-            self.layout.prop(gflow, "exportAction")
+            
             if bpy.app.version >= (4,4,0):
-                self.layout.prop(gflow, "bakeActionSlotName")
+                self.layout.separator()
+                self.layout.operator("gflow.action_slot_popup", text="Set Export Action", icon='ACTION_SLOT').mode = 'EXPORT'
+                self.layout.prop(gflow, "exportAction")
+                self.layout.prop(gflow, "exportActionObjectSlotName")
+                self.layout.prop(gflow, "exportActionShapekeySlotName")
+            else:
+                self.layout.prop(gflow, "exportAction")
+            self.layout.separator()
             self.layout.prop(gflow, "mergeWithParent")
             self.layout.prop(gflow, "doubleSided")
         elif obj.type == 'ARMATURE':
-            self.layout.prop(gflow, "exportAction")            
+            if bpy.app.version >= (4,4,0):
+                self.layout.operator("gflow.action_slot_popup", text="Set Export Action", icon='ACTION_SLOT').mode = 'EXPORT'
+                self.layout.prop(gflow, "exportAction")
+                self.layout.prop(gflow, "exportActionObjectSlotName")
+            else:
+                self.layout.prop(gflow, "exportAction")        
         elif obj.type == 'EMPTY':
             row = self.layout.row()
             self.layout.prop(gflow, "mergeWithParent")
@@ -498,6 +582,7 @@ class VIEW3D_OT_PIE_Obj_call(bpy.types.Operator):
         
 
 classes = [
+    GFLOW_OT_ObjectActionSlotPopup,
     GFLOW_PT_Panel, GFLOW_PT_WorkingSet, GFLOW_PT_PainterPanel, GFLOW_PT_ExportPanel, GFLOW_PT_UdimsPanel,
     GFLOW_UL_highpolies, GFLOW_UL_udims,
     GFLOW_PT_OBJ_PANEL, GamiflowObjPanel_UV, GamiflowObjPanel_Bake, GamiflowObjPanel_Export,

@@ -202,14 +202,26 @@ def duplicateObject(sourceObj, collection, prefix="", suffix="", workingSuffix="
     new_obj.name = getNewName(sourceObj, prefix, suffix, workingSuffix)
     return new_obj
     
+def setObjectAction(obj, action, slotName):
+    if not action: return
+    if not obj.animation_data: return
+    try:
+        obj.animation_data.action = action
+        if bpy.app.version >= (4,4,0) and slotName != '': 
+            obj.animation_data.action_slot = obj.animation_data.action.slots[slotName]
+    except Exception as e:
+        print("GamiFlow: Object action slot error in object "+obj.name+":\n"+repr(e))
+    
 def setShapekeyAction(obj, action, slotName):
-    if obj.type == 'MESH' and obj.data.shape_keys:
-        try:
-            obj.data.shape_keys.animation_data.action = action
-            if bpy.app.version >= (4,4,0): 
-                obj.data.shape_keys.animation_data.action_slot = obj.data.shape_keys.animation_data.action.slots['KE'+slotName]
-        except:
-            print("GamiFlow: Export action slot error in object "+obj.name)
+    if not action: return
+    if obj.type != 'MESH' or not obj.data.shape_keys: return
+    if not obj.data.shape_keys.animation_data: return
+    try:
+        obj.data.shape_keys.animation_data.action = action
+        if bpy.app.version >= (4,4,0) and slotName != '': 
+            obj.data.shape_keys.animation_data.action_slot = obj.data.shape_keys.animation_data.action.slots[slotName]
+    except Exception as e:
+        print("GamiFlow: Shapekey action slot error in object "+obj.name+":\n"+repr(e))
     
 def getFirstModifierOfType(obj, modType):
     for m in obj.modifiers:
