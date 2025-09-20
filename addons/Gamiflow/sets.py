@@ -327,11 +327,13 @@ def collapseEdges(context, obj):
         if len(relevantEdges)>0: 
             bmesh.ops.collapse(bm, edges=relevantEdges, uvs=True)
 
-def deleteDetailFaces(context, obj):
+def deleteDetailFaces(context, obj, level=0):
     with helpers.objectModeBmesh(obj) as bm:
         faceDetailLayer = geotags.getDetailFacesLayer(bm, forceCreation=False)
         if not faceDetailLayer: return
-        faces = [f for f in bm.faces if f[faceDetailLayer]!=geotags.GEO_FACE_LEVEL_DEFAULT] 
+        faces = [f for f in bm.faces 
+            if f[faceDetailLayer]!=geotags.GEO_FACE_LEVEL_DEFAULT 
+            and f[faceDetailLayer]<=geotags.GEO_FACE_LEVEL_LOD0+level] 
         bmesh.ops.delete(bm, geom=faces, context="FACES")  
 
 def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):

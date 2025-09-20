@@ -313,6 +313,13 @@ def triangulateObjects(context, objects):
         for o in objs[1:]:
             o.data = trimesh
            
+def generateLod(context, obj, collection, level):
+    newobj = sets.duplicateObject(obj, collection, suffix="_lod"+str(level), workingSuffix="", link=False)
+    sets.deleteDetailFaces(context, newobj, level)
+    for c in obj.children:
+        newchild = generateLod(context, c, collection, level)
+        newchild.parent = newobj
+    return newobj
 
 def generateExport(context):
     # Make sure we don't already have a filled export set
@@ -456,9 +463,8 @@ def generateExport(context):
                     material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
                     sets.setMaterial(newobj, material)
                 
-                # Process modifiers, clean up metadata, etc
+                # Process modifiers
                 sets.removeLowModifiers(context, newobj)
-                geotags.removeObjectLayers(newobj)
                 helpers.setDeselected(newobj) 
             elif o.type == 'EMPTY':
                 newobj.instance_type = 'NONE'
@@ -569,7 +575,13 @@ def generateExport(context):
     triangulateObjects(context, gen.generated)
 
                 
-    
+    # Generate other levels of detail here
+    originalRoots = sets.findRoots(collection)[:]
+    for level in range(1,4):
+        for o in originalRoots:
+            generateLod(context, o, collection, level)
+            # TODO: recursively go through the children and process them while reparenting properly
+            pass
  
     # Merge all possible objects
     if stgs.mergeExportMeshes:
@@ -594,6 +606,8 @@ def generateExport(context):
         for chunk in chunks:
             chunk.merge(context, False)
     
+
+    
     # Now that we have our final objects, we can pack their lightmap UVs
     if context.scene.gflow.lightmapUvs:
         uv.lightmapPack(context, collection.all_objects)
@@ -601,6 +615,10 @@ def generateExport(context):
     if context.scene.gflow.exportFormat == "GLTF" and context.scene.gflow.exportTarget == "SKETCHFAB":
         for o in collection.all_objects:
             if o.type == 'MESH': uv.flipUVs(o)
+                
+    # Remove custom gamiflow data
+    for o in collection.all_objects:
+        geotags.removeObjectLayers(o)                
                 
     # Cleanup the actions that were potentially accidentally duplicated
     newActions = set(bpy.data.actions)

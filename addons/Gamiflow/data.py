@@ -116,6 +116,10 @@ class GFlowDisplay(bpy.types.PropertyGroup):
     detailEdges: bpy.props.BoolProperty(name="Details", default=True)  
     edgeOffset: bpy.props.FloatProperty(name="Edge offset", default=0.1, min=0.0, max=1.0, description="Pushes the edges outward to avoid clipping", update=onEdgeOffsetChange)
     
+class GFlowLods(bpy.types.PropertyGroup):
+    current : bpy.props.IntProperty(name="LoD", default=0, min=0, max=3)
+    # TODO: per lod settings like auto-decimate
+
 class GFlowScene(bpy.types.PropertyGroup):
     version : bpy.props.IntProperty(name="GamiFlow version", default=0, description="Internal version number")
 
@@ -166,6 +170,8 @@ class GFlowScene(bpy.types.PropertyGroup):
     vertexChannelG: bpy.props.EnumProperty(name="Green", default='ONE', items=enums.gVERTEX_CHANNEL)
     vertexChannelB: bpy.props.EnumProperty(name="Blue", default='ONE', items=enums.gVERTEX_CHANNEL)
 
+    # Lodding
+    lod : bpy.props.PointerProperty(type=GFlowLods, name="LoDs")
     
     # Overlays
     overlays : bpy.props.PointerProperty(type=GFlowDisplay, name="Overlays")
@@ -179,6 +185,7 @@ def register():
     
     bpy.utils.register_class(GFlowUdim)
     bpy.utils.register_class(GFlowDisplay)
+    bpy.utils.register_class(GFlowLods)
     bpy.utils.register_class(GFlowScene)
     bpy.types.Scene.gflow = bpy.props.PointerProperty(type=GFlowScene)
         
@@ -193,7 +200,8 @@ def unregister():
     bpy.utils.unregister_class(GFlowHighPolyItem)
     
     del bpy.types.Scene.gflow
-    bpy.utils.unregister_class(GFlowScene)    
+    bpy.utils.unregister_class(GFlowScene) 
+    bpy.utils.unregister_class(GFlowLods)    
     bpy.utils.unregister_class(GFlowDisplay)
     bpy.utils.unregister_class(GFlowUdim)
     

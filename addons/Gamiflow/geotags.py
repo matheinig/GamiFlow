@@ -442,7 +442,7 @@ class GFLOW_OT_SetFaceMirror(bpy.types.Operator):
                 if face.select: face[mirrorLayer] = mirrorCode
         return {"FINISHED"}        
     
-def markSelectedFacesAsDetail(context, isDetail):
+def markSelectedFacesAsDetail(context, deleteFromLevel):
     obj = context.edit_object
 
     # Set the UV size to 0 and set the poly flag
@@ -452,19 +452,18 @@ def markSelectedFacesAsDetail(context, isDetail):
         faceDetailLayer = getDetailFacesLayer(bm, forceCreation=True)
         
         scaleCode = getUvScaleCode(0.0)
-        detailCode = GEO_FACE_LEVEL_LOD0
-        
-        if not isDetail:
+        detailCode = GEO_FACE_LEVEL_LOD0+deleteFromLevel
+        # Unmark and leave visible at all levels
+        if deleteFromLevel==-1:
             scaleCode = getUvScaleCode(1.0)
             detailCode = GEO_FACE_LEVEL_DEFAULT
-        
         for face in bm.faces:
             if face.select: 
                 face[uvScaleLayer] = scaleCode
                 face[faceDetailLayer] = detailCode
                 
     # Select the bounding edges and mark them as seams
-    if isDetail:
+    if deleteFromLevel!=-1:
         bpy.ops.mesh.region_to_loop()
         bpy.ops.mesh.mark_seam(clear=False)
         bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='FACE')
@@ -476,7 +475,7 @@ class GFLOW_OT_SetFaceLevel(bpy.types.Operator):
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
 
-    detail : bpy.props.BoolProperty(name="Detail", default=True)
+    deleteFromLevel : bpy.props.IntProperty(name="Detail", default=-10)
         
     @classmethod
     def poll(cls, context):
@@ -487,7 +486,10 @@ class GFLOW_OT_SetFaceLevel(bpy.types.Operator):
         return context.edit_object is not None
 
     def execute(self, context):
-        markSelectedFacesAsDetail(context, self.detail)
+        lod = self.deleteFromLevel
+        if lod == -10:
+            lod = context.scene.gflow.lod.current
+        markSelectedFacesAsDetail(context, lod)
     
         return {"FINISHED"}    
 

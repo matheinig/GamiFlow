@@ -30,7 +30,9 @@ class GFLOW_PT_Panel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         op = row.operator("gflow.toggle_set_visibility", text="High", depress=sets.getCollectionVisibility(context, context.scene.gflow.painterHighCollection))
         op.collectionId = 2
         op = row.operator("gflow.toggle_set_visibility", text="Final", depress=sets.getCollectionVisibility(context, context.scene.gflow.exportCollection))
-        op.collectionId = 3            
+        op.collectionId = 3
+        
+        layout.prop(context.scene.gflow.lod, "current")
 
 
 class GFLOW_PT_WorkingSet(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
@@ -435,9 +437,8 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         # Detail Faces
         row = self.layout.row()
         op = row.operator("gflow.set_face_level", text="Dissolve", icon='FACESEL')
-        op.detail = True
         op = row.operator("gflow.set_face_level", text="Clear")
-        op.detail = False        
+        op.deleteFromLevel = -1       
         op = row.operator("gflow.select_face_level", text="Select detail")
           
 # Context menus (right click in viewport)
@@ -471,8 +472,8 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
         # Face mode
         if context.tool_settings.mesh_select_mode[2]: 
             layout.label(text="Face Detail", icon="FACESEL")
-            layout.operator("gflow.set_face_level", text="Mark for Deletion").detail = True
-            layout.operator("gflow.set_face_level", text="Clear").detail = False               
+            layout.operator("gflow.set_face_level", text="Mark for Deletion")
+            layout.operator("gflow.set_face_level", text="Clear").deleteFromLevel = -1               
             layout.separator()
             layout.label(text="Face Mirroring", icon="MOD_MIRROR")
             layout.operator("gflow.set_face_mirror", text="Mirror").mirror = "X"   
@@ -564,8 +565,8 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 pie.separator() # Empty N          
                 pie.operator("gflow.uv_gridify", text="Gridify", icon='VIEW_ORTHO')
                 pie.operator("gflow.uv_degridify", text="Ungridify", icon='CANCEL')       
-                pie.operator("gflow.set_face_level", text="Mark for Deletion").detail = True
-                pie.operator("gflow.set_face_level", text="Unmark deletion").detail = False               
+                pie.operator("gflow.set_face_level", text="Mark for Deletion")
+                pie.operator("gflow.set_face_level", text="Unmark deletion").deleteFromLevel = -1               
 
                              
                 
