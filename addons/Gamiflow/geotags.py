@@ -174,6 +174,10 @@ class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
     bl_label       = "Set checkered level"
     bl_description = "Set the edge level for every other edge in the ring"
     bl_options = {"REGISTER", "UNDO"}
+    
+    level : bpy.props.IntProperty(name="Level", default=GEO_EDGE_LEVEL_LOD0, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+
+    
     @classmethod
     def poll(cls, context):
         if context.mode != "EDIT_MESH": return False
@@ -189,7 +193,7 @@ class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
         # Extend the selection to the entire loop
         bpy.ops.mesh.loop_multi_select(ring=False)
         # Mark as high level
-        setObjectSelectedEdgeLevel(context.edit_object)
+        setObjectSelectedEdgeLevel(context.edit_object, self.level)
         return {"FINISHED"}
 class GFLOW_OT_SelectEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.select_edge_level"

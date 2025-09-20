@@ -299,7 +299,7 @@ def drawMirrored():
 
     
     
-def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001):
+def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
     layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
     collapseLayer = geotags.getCollapseEdgesLayer(bm, forceCreation=False)
     solidBatch = None
@@ -311,7 +311,7 @@ def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001):
         coords = [v.co+v.normal*offset for v in bm.verts]
     
         indicesSolid = [[v.index for v in edge.verts]
-                    for edge in bm.edges if edge[layer] >= geotags.GEO_EDGE_LEVEL_LOD0]
+                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] <= geotags.GEO_EDGE_LEVEL_LOD0+level]
         if len(indicesSolid) > 0:
             solidBatch = batch_for_shader(solidShader, 
                 'LINES',
@@ -379,6 +379,8 @@ def drawDetailEdges():
     if obj is None: return
     if bpy.context.tool_settings.mesh_select_mode[1] == False: return
     
+    lodLevel = bpy.context.scene.gflow.lod.current
+    
     global gWireShader, gCachedObject, gCachedDetailBatch, gCachedPainterDetailBatch, gCachedCageDetailBatch, gCachedCollapseBatch
     
     if not gWireShader: gWireShader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')    
@@ -387,7 +389,8 @@ def drawDetailEdges():
         with helpers.editModeObserverBmesh(obj) as bm: 
             gCachedDetailBatch, gCachedPainterDetailBatch, gCachedCageDetailBatch, gCachedCollapseBatch = makeEdgeDetailDrawBuffer(bm, 
                     gWireShader, 
-                    bpy.context.scene.gflow.overlays.edgeOffset*0.01)
+                    bpy.context.scene.gflow.overlays.edgeOffset*0.01,
+                    lodLevel)
    
     region = bpy.context.region
     model = obj.matrix_world

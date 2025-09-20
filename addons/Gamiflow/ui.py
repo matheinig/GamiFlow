@@ -407,6 +407,8 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         #self.layout.use_property_split = True
         self.layout.use_property_decorate = False    
         
+        self.layout.prop(context.scene.gflow.lod, "current")
+        
         self.layout.label(text="UVs")
         # UV Scale
         row = self.layout.row(align=True)
@@ -429,7 +431,7 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         # Detail edges
         row = self.layout.row()
         op = row.operator("gflow.set_edge_level", text="Dissolve", icon='EDGESEL')
-        op.level = geotags.GEO_EDGE_LEVEL_LOD0
+        op.level = geotags.GEO_EDGE_LEVEL_LOD0+context.scene.gflow.lod.current
         op = row.operator("gflow.set_edge_level", text="Clear")
         op.level = geotags.GEO_EDGE_LEVEL_DEFAULT        
         op = row.operator("gflow.select_edge_level", text="Select")
@@ -450,14 +452,16 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
         layout = self.layout
         layout.separator()
         
+        lod = context.scene.gflow.lod
+        
         # Edge mode
         if context.tool_settings.mesh_select_mode[1]: 
             layout.label(text="Edge Detail", icon="EDGESEL")
             layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve")
             layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse")
             layout.separator()
-            layout.operator("gflow.set_edge_level", text="Mark for Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0
-            layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0
+            layout.operator("gflow.set_edge_level", text="Mark for Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
+            layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
             layout.operator("gflow.set_edge_level", text="Mark as Cage").level = geotags.GEO_EDGE_LEVEL_CAGE
             layout.operator("gflow.unmark_edge", text="Clear")
             
@@ -542,6 +546,8 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
         pie = layout.menu_pie()
         # Pie order: west, east, south, north, north-west, north-east, south-west, south-east
         
+        lod = context.scene.gflow.lod
+        
         if context.mode == 'OBJECT':
             pie.operator("gflow.set_smoothing")     # W
             pie.operator("gflow.add_bevel")         # E
@@ -552,11 +558,11 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 # Edge mode
                 pie.operator("gflow.set_edge_level", text="Mark Cage Detail").level = geotags.GEO_EDGE_LEVEL_CAGE # W
                 pie.separator() # Empty E
-                pie.operator("gflow.set_edge_collapse_level", text="Mark Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0
+                pie.operator("gflow.set_edge_collapse_level", text="Mark Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
                 pie.operator("gflow.add_soft_seam")
                 pie.operator("gflow.add_hard_seam")
                 pie.operator("gflow.clear_seam")
-                pie.operator("gflow.set_edge_level", text="Mark Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0
+                pie.operator("gflow.set_edge_level", text="Mark Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
                 pie.operator("gflow.unmark_edge", text="Unmark")
             if bpy.context.tool_settings.mesh_select_mode[2] and not bpy.context.tool_settings.mesh_select_mode[1]:
                 pie.operator("gflow.set_face_mirror", text="Mirror", icon='MOD_MIRROR').mirror = "X"        # W

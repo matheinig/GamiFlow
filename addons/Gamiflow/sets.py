@@ -297,7 +297,8 @@ def removeEdgesForLevel(context, obj, level, keepPainter=False):
             if e[layer] == geotags.GEO_EDGE_LEVEL_DEFAULT: continue
             relevant = False
             if (not keepPainter) and e[layer] == geotags.GEO_EDGE_LEVEL_PAINTER: relevant = True
-            if e[layer] >= geotags.GEO_EDGE_LEVEL_LOD0+level: relevant = True
+            if e[layer] <= geotags.GEO_EDGE_LEVEL_LOD0+level: relevant = True
+            
             if relevant: relevantEdges.append(e)
         
         if len(relevantEdges)>0: 

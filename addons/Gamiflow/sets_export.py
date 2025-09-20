@@ -316,6 +316,7 @@ def triangulateObjects(context, objects):
 def generateLod(context, obj, collection, level):
     newobj = sets.duplicateObject(obj, collection, suffix="_lod"+str(level), workingSuffix="", link=False)
     sets.deleteDetailFaces(context, newobj, level)
+    sets.removeEdgesForLevel(context, newobj, level, keepPainter=False)
     for c in obj.children:
         newchild = generateLod(context, c, collection, level)
         newchild.parent = newobj
