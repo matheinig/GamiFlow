@@ -104,7 +104,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
     exportActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='')
     exportActionShapekeySlotName: bpy.props.StringProperty(name="Pose Slot (Shape key)", default='')
-    maxLod: bpy.props.IntProperty(name="Final LoD", min=0, max=3, default=3)
+    maxLod: bpy.props.IntProperty(name="Final LoD", min=0, max=3, default=3, subtype='FACTOR')
 
 # Per scene
 gUV_PACK_METHODS = [("FAST", "Fast", "", 0), ("REASONABLE", "Reasonable", "", 1), ("ACCURATE", "Accurate", "", 2)]
@@ -119,10 +119,14 @@ class GFlowDisplay(bpy.types.PropertyGroup):
     detailEdges: bpy.props.BoolProperty(name="Details", default=True)  
     edgeOffset: bpy.props.FloatProperty(name="Edge offset", default=0.1, min=0.0, max=1.0, description="Pushes the edges outward to avoid clipping", update=onEdgeOffsetChange)
     
+class GFlowLod(bpy.types.PropertyGroup):
+    decimate: bpy.props.BoolProperty(name="Decimate", default=False)
+    decimateAmount: bpy.props.FloatProperty(name="Decimation ratio", subtype='FACTOR', default=1.0, min=0.0, max=1.0, description="How many vertices to keep")    
+    decimatePreserveSeams: bpy.props.BoolProperty(name="Preserve seams", default=False)
+    
 class GFlowLods(bpy.types.PropertyGroup):
-    toGenerate: bpy.props.IntProperty(name="Levels", default=1, min=1, max=4, description="how many LoDs get generated")
-    current : bpy.props.IntProperty(name="LoD", default=0, min=0, max=3, update=onLodChange, description="The current LoD")
-    # TODO: per lod settings like auto-decimate
+    current : bpy.props.IntProperty(name="LoD", default=0, subtype='FACTOR', min=0, max=3, update=onLodChange, description="The current LoD")
+    lods: bpy.props.CollectionProperty(type=GFlowLod)
 
 class GFlowScene(bpy.types.PropertyGroup):
     version : bpy.props.IntProperty(name="GamiFlow version", default=0, description="Internal version number")
@@ -189,6 +193,7 @@ def register():
     
     bpy.utils.register_class(GFlowUdim)
     bpy.utils.register_class(GFlowDisplay)
+    bpy.utils.register_class(GFlowLod)
     bpy.utils.register_class(GFlowLods)
     bpy.utils.register_class(GFlowScene)
     bpy.types.Scene.gflow = bpy.props.PointerProperty(type=GFlowScene)
@@ -205,7 +210,8 @@ def unregister():
     
     del bpy.types.Scene.gflow
     bpy.utils.unregister_class(GFlowScene) 
-    bpy.utils.unregister_class(GFlowLods)    
+    bpy.utils.unregister_class(GFlowLods)
+    bpy.utils.unregister_class(GFlowLod)
     bpy.utils.unregister_class(GFlowDisplay)
     bpy.utils.unregister_class(GFlowUdim)
     

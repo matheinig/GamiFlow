@@ -312,17 +312,48 @@ def triangulateObjects(context, objects):
         # remove the modifier on the other objects and swap the mesh
         for o in objs[1:]:
             o.data = trimesh
-           
-def generateLod(context, obj, collection, level):
+def decimate(context, obj, lodSettings):
+    if not lodSettings.decimate: return
+    
+    # remove all shape keys, otherwise the decimation won't work
+    if obj.data.shape_keys:
+        for shapekey in obj.data.shape_keys.key_blocks[:]:
+            obj.shape_key_remove(shapekey) 
+    
+    # Add a basic decimator
+    decimate = obj.modifiers.new(type="DECIMATE", name="LoD Decimation (GFlow)")
+    decimate.ratio = lodSettings.decimateAmount  
+
+    # Preserve the seams to avoid the textures getting all messed up
+    if lodSettings.decimatePreserveSeams:
+        selectedVerts = []
+        for v in obj.data.vertices:
+            v.select = False
+        for e in obj.data.edges:
+            if e.use_seam: 
+                for v in e.vertices: selectedVerts.append(v)
+        seamsMapName = "GFLOW_Seams"
+        vxgroup = obj.vertex_groups.new(name=seamsMapName)
+        vxgroup.add(selectedVerts, 1.0, 'REPLACE')
+        decimate.vertex_group = seamsMapName
+        decimate.invert_vertex_group = True
+        
+        
+        
+def generateLod(context, obj, collection, level, originalObjects, lodSettings):
+    lodsuffix = "_lod"+str(level)
     if level>obj.gflow.maxLod: return None
-    newobj = sets.duplicateObject(obj, collection, suffix="_lod"+str(level), workingSuffix="", link=False)
-    sets.collapseEdges(context, newobj, level)
-    sets.deleteDetailFaces(context, newobj, level)
-    sets.removeEdgesForLevel(context, newobj, level, keepPainter=False)
+    newobj = None
+    if obj.type == 'MESH' and obj in originalObjects:
+        newobj = sets.duplicateObject(obj, collection, suffix=lodsuffix, workingSuffix="", link=False)
+        sets.collapseEdges(context, newobj, level)
+        sets.deleteDetailFaces(context, newobj, level)
+        sets.removeEdgesForLevel(context, newobj, level, keepPainter=False)
+        decimate(context, newobj, lodSettings)
     for c in obj.children:
-        newchild = generateLod(context, c, collection, level)
+        newchild = generateLod(context, c, collection, level, originalObjects, lodSettings)
         if not newchild: continue
-        newchild.parent = newobj
+        newchild.parent = newobj if newobj else obj
     return newobj
 
 def generateExport(context):
@@ -607,9 +638,10 @@ def generateExport(context):
      
     # Generate other levels of detail here
     originalRoots = sets.findRoots(collection)[:]
-    for level in range(1,context.scene.gflow.lod.toGenerate):
+    originalObjects = collection.all_objects[:]
+    for level in range(1,len(context.scene.gflow.lod.lods)):
         for o in originalRoots:
-            generateLod(context, o, collection, level) 
+            generateLod(context, o, collection, level, originalObjects, context.scene.gflow.lod.lods[level]) 
 
     # Merge all possible objects 
     if stgs.mergeExportMeshes:
@@ -640,7 +672,7 @@ def generateExport(context):
                 
     # Remove custom gamiflow data
     for o in collection.all_objects:
-        geotags.removeObjectLayers(o)                
+        if o.type=='MESH': geotags.removeObjectLayers(o)                
                 
     # Cleanup the actions that were potentially accidentally duplicated
     newActions = set(bpy.data.actions)

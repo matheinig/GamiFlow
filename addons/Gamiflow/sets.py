@@ -9,12 +9,18 @@ from . import enums
 from . import settings
   
 def backwardCompatibility(scene):
+    # The 'scene' is an evaluated copy of the scene rather than the scene itself so we need to retrieve the original first
+    realScene = bpy.data.scenes[scene.name]
+    
+    # Add at least one LOD
+    if len(realScene.gflow.lod.lods) == 0:
+        realScene.gflow.lod.lods.add()
+
     currentVersion = 2
     if scene.gflow.version == currentVersion: return
     
     print("[GamiFlow] Scene "+scene.name + " was saved in different version ("+str(scene.gflow.version)+")")
-    # The 'scene' is an evaluated copy of the scene rather than the scene itself so we need to retrieve the original first
-    realScene = bpy.data.scenes[scene.name]
+
     if realScene.gflow.version == 0:
         # Add at least one UDIM
         if len(realScene.gflow.udims) == 0:
@@ -574,13 +580,44 @@ class GFLOW_OT_ToggleSetVisibility(bpy.types.Operator):
         return {"FINISHED"}        
         
         
-               
+class GFLOW_OT_AddLod(bpy.types.Operator):
+    bl_idname      = "gflow.add_lod"
+    bl_label       = "Add LOD"
+    bl_description = "Add a new LOD"
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        if len(context.scene.gflow.lod.lods) >= 4:
+            cls.poll_message_set("Can only have up to 4 lods")
+            return False
+        return True
+    def execute(self, context):
+        context.scene.gflow.lod.lods.add()
+        context.scene.gflow.lod.current = len(context.scene.gflow.lod.lods)-1
+        #context.scene.gflow.udims[context.scene.gflow.ui_selectedUdim].name = "UDIM_"+str(context.scene.gflow.ui_selectedUdim)
+        return {"FINISHED"} 
+class GFLOW_OT_RemoveLod(bpy.types.Operator):
+    bl_idname      = "gflow.remove_lod"
+    bl_label       = "Remove LOD"
+    bl_description = "Remove the selected LOD"
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        if len(context.scene.gflow.lod.lods) <= 1:
+            cls.poll_message_set("Need at least one LOD")
+            return False
+        return True
+    def execute(self, context):
+        context.scene.gflow.lod.lods.remove(context.scene.gflow.ui_selectedUdim)
+        context.scene.gflow.lod.current = min( context.scene.gflow.lod.current, len(context.scene.gflow.lod.lods)-1)
+        return {"FINISHED"}                 
         
         
 classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
     GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly, GFLOW_OT_ProjectToActive,
     GFLOW_OT_MarkHardSeam, GFLOW_OT_MarkSoftSeam, GFLOW_OT_ClearSeam,
-    GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility]
+    GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility,
+    GFLOW_OT_AddLod, GFLOW_OT_RemoveLod]
 
 
 def register():

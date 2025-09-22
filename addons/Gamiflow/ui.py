@@ -94,7 +94,6 @@ class GFLOW_PT_ExportPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
             row.prop(context.scene.gflow, "vertexChannelR", text="")
             row.prop(context.scene.gflow, "vertexChannelG", text="")
             row.prop(context.scene.gflow, "vertexChannelB", text="")
-        layout.prop(context.scene.gflow.lod, "toGenerate")
         layout.operator("gflow.make_export")
         layout.separator()
         row = layout.row()
@@ -134,7 +133,37 @@ class GFLOW_UL_udims(bpy.types.UIList):
         #if item.obj: layout.prop(item.obj.gflow, "objType", text="")
         
       
+class GFLOW_PT_LodsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
+    bl_label = "LODs"
+    bl_parent_id = "GFLOW_PT_PANEL"
+    def draw(self, context):
+        layout = self.layout
 
+        gflow = context.scene.gflow
+
+        row = self.layout.row()
+        row.template_list("GFLOW_UL_lod", "", gflow.lod, "lods", gflow.lod, "current", rows=4)
+        col = row.column(align=True)
+        col.operator("gflow.add_lod", icon='ADD', text="")
+        col.operator("gflow.remove_lod", icon='REMOVE', text="")
+        
+        if gflow.lod.current<len(gflow.lod.lods):
+            lod = gflow.lod.lods[gflow.lod.current]
+            row = self.layout.row()
+            row.prop(lod, "decimate")
+            row.prop(lod, "decimateAmount", text='')
+            self.layout.prop(lod, "decimatePreserveSeams")
+        
+class GFLOW_UL_lod(bpy.types.UIList):
+    def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, index):
+        split = layout.split(factor=0.25, align=True)
+        split.label(text=str(index), icon="KEYFRAME")
+        row = split.row(align=True)
+        if item.decimate:
+            row.prop(item, "decimate", text="")
+            row.prop(item, "decimateAmount")
+        else:
+            row.prop(item, "decimate")
 
 # Object settings
 class GFLOW_PT_OBJ_PANEL(bpy.types.Panel):
@@ -462,6 +491,7 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
             layout.label(text="Edge Detail", icon="EDGESEL")
             layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
             layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
+            layout.operator("gflow.collapse_edge_ring", text="Ring collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
             layout.separator()
             layout.operator("gflow.set_edge_level", text="Mark for Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
             layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
@@ -593,8 +623,8 @@ class VIEW3D_OT_PIE_Obj_call(bpy.types.Operator):
 
 classes = [
     GFLOW_OT_ObjectActionSlotPopup,
-    GFLOW_PT_Panel, GFLOW_PT_WorkingSet, GFLOW_PT_PainterPanel, GFLOW_PT_ExportPanel, GFLOW_PT_UdimsPanel,
-    GFLOW_UL_highpolies, GFLOW_UL_udims,
+    GFLOW_PT_Panel, GFLOW_PT_WorkingSet, GFLOW_PT_PainterPanel, GFLOW_PT_ExportPanel, GFLOW_PT_UdimsPanel, GFLOW_PT_LodsPanel,
+    GFLOW_UL_highpolies, GFLOW_UL_udims, GFLOW_UL_lod,
     GFLOW_PT_OBJ_PANEL, GamiflowObjPanel_UV, GamiflowObjPanel_Bake, GamiflowObjPanel_Export,
     GFLOW_PT_OBJ_EDIT_PANEL,
     GFLOW_PT_Overlays,

@@ -392,6 +392,25 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
                     edge[layer] = GEO_EDGE_COLLAPSE_DEFAULT
         
         return {"FINISHED"}
+class GFLOW_OT_CollapseEdgeRing(bpy.types.Operator):
+    bl_idname      = "gflow.collapse_edge_ring"
+    bl_label       = "Collapse Edge Ring"
+    bl_description = "Collapse an edge ring into a single loop"
+    bl_options = {"REGISTER", "UNDO"}
+    
+    level : bpy.props.IntProperty(name="Level", default=GEO_EDGE_LEVEL_LOD0, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+    
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[1]: 
+            cls.poll_message_set("Must be in edge mode")
+            return False
+        return context.edit_object is not None
+    def execute(self, context):
+        bpy.ops.mesh.loop_multi_select(ring=True)
+        setObjectSelectedEdgeCollapse(context.edit_object, self.level)
+        return {"FINISHED"}
 
 class GFLOW_OT_UnmarkEdge(bpy.types.Operator):
     bl_idname      = "gflow.unmark_edge"
@@ -537,7 +556,7 @@ class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
     
 classes = [
     GFLOW_OT_SetEdgeLevel, GFLOW_OT_SetCheckeredEdgeLevel, GFLOW_OT_SelectEdgeLevel, 
-    GFLOW_OT_SetEdgeCollapseLevel, GFLOW_OT_SetCheckeredEdgeCollapse,
+    GFLOW_OT_SetEdgeCollapseLevel, GFLOW_OT_SetCheckeredEdgeCollapse, GFLOW_OT_CollapseEdgeRing,
     GFLOW_OT_UnmarkEdge,
     GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
 
