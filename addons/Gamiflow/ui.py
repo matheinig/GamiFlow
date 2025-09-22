@@ -136,6 +136,7 @@ class GFLOW_UL_udims(bpy.types.UIList):
 class GFLOW_PT_LodsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
     bl_label = "LODs"
     bl_parent_id = "GFLOW_PT_PANEL"
+    bl_options = {"DEFAULT_CLOSED"} 
     def draw(self, context):
         layout = self.layout
 
@@ -157,7 +158,7 @@ class GFLOW_PT_LodsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
 class GFLOW_UL_lod(bpy.types.UIList):
     def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, index):
         split = layout.split(factor=0.25, align=True)
-        split.label(text=str(index), icon="KEYFRAME")
+        split.label(text=str(index), icon="MONKEY")
         row = split.row(align=True)
         if item.decimate:
             row.prop(item, "decimate", text="")
