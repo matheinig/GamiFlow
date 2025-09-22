@@ -314,6 +314,7 @@ def triangulateObjects(context, objects):
             o.data = trimesh
 def decimate(context, obj, lodSettings):
     if not lodSettings.decimate: return
+    if obj.type != 'MESH': return
     
     # remove all shape keys, otherwise the decimation won't work
     if obj.data.shape_keys:
@@ -642,7 +643,10 @@ def generateExport(context):
     for level in range(1,len(context.scene.gflow.lod.lods)):
         for o in originalRoots:
             generateLod(context, o, collection, level, originalObjects, context.scene.gflow.lod.lods[level]) 
-
+    # Decimate the first lod if needed too
+    for o in originalObjects:
+        decimate(context, o, context.scene.gflow.lod.lods[0])
+        
     # Merge all possible objects 
     if stgs.mergeExportMeshes:
         print("GamiFlow: Find mergeable meshes")
