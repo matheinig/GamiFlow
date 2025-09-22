@@ -106,6 +106,7 @@ def generatePainterHigh(context):
 
     stgs = settings.getSettings()
     decalsuffix = stgs.decalsuffix
+    workingSuffix = stgs.workingsuffix
 
     # Go through all the objects of the working set
     gen = sets.GeneratorData()
@@ -187,7 +188,7 @@ def generatePainterHigh(context):
                 hpsuffix = suffix
                 if hp.obj.gflow.objType == 'DECAL' or hp.obj.gflow.singleSided: 
                     hpsuffix = hpsuffix + decalsuffix
-                newhp.name = namePrefix+sets.getNewName(o, "", hpsuffix) + "_" + hp.obj.name
+                newhp.name = namePrefix+sets.getNewName(o, "", hpsuffix, workingSuffix) + "_" + hp.obj.name
                 processNewObject(context, newhp, stgs, isBakeObject=True)
                 gen.register(newhp, hp.obj)
                 localgen.register(newhp, hp.obj)
