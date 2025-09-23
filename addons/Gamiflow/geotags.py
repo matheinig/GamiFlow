@@ -487,11 +487,11 @@ def markSelectedFacesAsDetail(context, deleteFromLevel):
             detailCode = GEO_FACE_LEVEL_DEFAULT
         for face in bm.faces:
             if face.select: 
-                face[uvScaleLayer] = scaleCode
-                if rescaleUVs: face[faceDetailLayer] = detailCode
+                if rescaleUVs: face[uvScaleLayer] = scaleCode
+                face[faceDetailLayer] = detailCode
                 
     # Select the bounding edges and mark them as seams
-    if deleteFromLevel!=-1:
+    if deleteFromLevel!=-1 and rescaleUVs:
         bpy.ops.mesh.region_to_loop()
         bpy.ops.mesh.mark_seam(clear=False)
         bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='FACE')
