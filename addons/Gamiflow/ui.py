@@ -359,7 +359,14 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
                 row.operator("gflow.remove_cage_displacement_map", icon="GROUP_VERTEX", text="Clear")
 
         elif obj.type == 'ARMATURE':
-            self.layout.prop(gflow, "bakeAction")
+            # Bake action
+            if bpy.app.version >= (4,4,0):
+                self.layout.separator()
+                self.layout.operator("gflow.action_slot_popup", text="Set Bake Action", icon='ACTION_SLOT').mode = 'BAKE'
+                self.layout.prop(gflow, "bakeAction")
+                self.layout.prop(gflow, "bakeActionObjectSlotName")
+            else:
+                self.layout.prop(gflow, "bakeAction")  
         elif obj.type == 'EMPTY':
             self.layout.prop(gflow, "objType")
             row = self.layout.row()
