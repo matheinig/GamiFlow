@@ -27,6 +27,16 @@ def getCollection(context, createIfNeeded=False):
     if c: c.name = name
     return c
 
+def applyModifiers(context, obj, legacyMode=False):
+    if obj.type != 'MESH': return
+    modsToKeep = ['ARMATURE', 'TRIANGULATE']
+    modifiers = [m for m in obj.modifiers if m.type not in modsToKeep]
+    if legacyMode: 
+        helpers.applyModifiers_legacy(context, obj, modifiers)
+    else:
+        # for some reason this one causes crashes when applying the decimation at the end of the generation
+        helpers.applyModifiers(context, obj, modifiers)
+    
 # Handle modifiers for a clean export
 def processModifiers(context, generatorData, obj):
     helpers.setSelected(context, obj)
@@ -38,10 +48,8 @@ def processModifiers(context, generatorData, obj):
     # NOTE: Currently no special cases for the Export Set :)
     
     # Apply all modifiers except armatures which are needed
-    modifiers = [m for m in obj.modifiers if m.type != 'ARMATURE']
-    helpers.applyModifiers(context, obj, modifiers)
-
-    
+    applyModifiers(context, obj)
+ 
     helpers.setDeselected(obj) 
 
 
@@ -312,12 +320,13 @@ def triangulateObjects(context, objects):
         # remove the modifier on the other objects and swap the mesh
         for o in objs[1:]:
             o.data = trimesh
-def decimate(context, obj, lodSettings):
+def decimate(context, obj, lodSettings, abortOnShapekeys=False):
     if not lodSettings.decimate: return
     if obj.type != 'MESH': return
     
     # remove all shape keys, otherwise the decimation won't work
     if obj.data.shape_keys:
+        if abortOnShapekeys: return
         for shapekey in obj.data.shape_keys.key_blocks[:]:
             obj.shape_key_remove(shapekey) 
     
@@ -643,9 +652,16 @@ def generateExport(context):
     for level in range(1,len(context.scene.gflow.lod.lods)):
         for o in originalRoots:
             generateLod(context, o, collection, level, originalObjects, context.scene.gflow.lod.lods[level]) 
+    
     # Decimate the first lod if needed too
     for o in originalObjects:
-        decimate(context, o, context.scene.gflow.lod.lods[0])
+        decimate(context, o, context.scene.gflow.lod.lods[0], abortOnShapekeys=True)
+        
+    # Re apply all the new modifiers
+    for o in collection.all_objects:
+        helpers.setSelected(context, o)
+        applyModifiers(context, o, True)
+        helpers.setDeselected(o)
         
     # Merge all possible objects 
     if stgs.mergeExportMeshes:
