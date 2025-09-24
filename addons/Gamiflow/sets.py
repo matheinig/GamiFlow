@@ -206,6 +206,7 @@ def getNewName(sourceObj, prefix, suffix, workingSuffix):
 def duplicateObject(sourceObj, collection, prefix="", suffix="", workingSuffix="", link=False):
     new_obj = helpers.copyObject(sourceObj, collection, link=link)
     new_obj.name = getNewName(sourceObj, prefix, suffix, workingSuffix)
+    new_obj.gflow.generated = True
     return new_obj
     
 def setObjectAction(obj, action, slotName):

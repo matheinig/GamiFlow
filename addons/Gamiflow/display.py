@@ -11,7 +11,7 @@ gShader = None
 gMirrorShader = None
 gVertexColorShader = None
 gWireShader = None
-
+gBackgroundShader = None
 
 gCachedObject = None
 gCachedBatch = None
@@ -22,6 +22,7 @@ gCachedDetailBatch = None
 gCachedPainterDetailBatch = None
 gCachedCageDetailBatch = None
 gCachedCollapseBatch = None
+gBackgroundBatch = None
 
 @persistent
 def mesh_change_listener(scene, depsgraph):
@@ -430,12 +431,81 @@ def drawDetailEdges():
             gWireShader.uniform_float("color", stg.cageEdgeColor)
             gCachedCageDetailBatch.draw(gWireShader)
             gpu.state.line_width_set(w)            
+
+def createBackgroundShader():
+    vert_out = gpu.types.GPUStageInterfaceInfo("my_interface")
+
+    shader_info = gpu.types.GPUShaderCreateInfo()
+    shader_info.push_constant('MAT4', "ModelViewProjectionMatrix")
+    shader_info.push_constant('VEC4', "uColor")
+    shader_info.push_constant('VEC4', "uSecondaryColor")
+    shader_info.push_constant('FLOAT', "uScale")
+    shader_info.push_constant('FLOAT', "uPower")
+    shader_info.vertex_in(0, 'VEC3', "pos")
+    
+    vert_out = gpu.types.GPUStageInterfaceInfo("my_interface")
+    vert_out.smooth('VEC2', "uv")
+    shader_info.vertex_out(vert_out)
+    shader_info.fragment_out(0, 'VEC4', "FragColor")
+
+    shader_info.vertex_source(
+        "void main()"
+        "{"
+        "  gl_Position = vec4(pos, 1.0f);"
+        "  uv = pos.xy;"
+        "}"
+    )
+    
+    shader_info.fragment_source(
+        "void main()"
+        "{"
+        "  int magic = int(gl_FragCoord.x)/2 + int(gl_FragCoord.y)/2;"
+        "  vec4 c = magic % 2 == 0? uColor : uSecondaryColor;"
+        "  vec2 t = uv*uScale;"
+        "  float fade = clamp(pow(dot(t, t), uPower),0.0,1.0);"
+        "  c.a *= fade;"
+        "  FragColor = vec4(c);"
+        "}"
+    )
+    shader = gpu.shader.create_from_info(shader_info)    
+    return shader        
+def drawWarning():
+    sgflow = bpy.context.scene.gflow
+    
+    if not bpy.context.object: return
+    if not bpy.context.object.gflow.generated: return
+
+    stg = settings.getSettings()
+    if not stg.displayWarning: return
+
+    global gBackgroundShader, gBackgroundBatch
+    if not gBackgroundShader:
+        gBackgroundShader = createBackgroundShader()
+
+    if not gBackgroundBatch:
+        coords = [(-1.0,-1.0,1.0), (1.0,-1.0,1.0), (-1.0,1.0,1.0), (1.0,1.0,1.0)]
+        indices = [[0,1,2], [1,2,3]]
+        gBackgroundBatch = batch_for_shader(gBackgroundShader, 
+            'TRIS',
+            {"pos": coords},
+            indices=indices)
         
-       
+    gBackgroundShader.uniform_float("uColor", stg.warningColorA)
+    gBackgroundShader.uniform_float("uSecondaryColor", stg.warningColorB)
+    gBackgroundShader.uniform_float("uScale", stg.warningScale)
+    gBackgroundShader.uniform_float("uPower", stg.warningPower)
+    gpu.state.depth_test_set('LESS_EQUAL')
+    gpu.state.blend_set('ALPHA')
+    gpu.state.depth_mask_set(True)
+    gpu.state.face_culling_set('NONE')
+    gBackgroundBatch.draw(gBackgroundShader)            
+        
+    return
        
        
 classes = []
 handlersFunctions = [drawGridified, drawMirrored, drawUvScale, drawDetailEdges]
+backgroundHandlersFunctions = [drawWarning]
 handlers = []
 
 def register():
@@ -444,7 +514,8 @@ def register():
         
     for handlerFunc in handlersFunctions:
         handlers.append(bpy.types.SpaceView3D.draw_handler_add(handlerFunc, (), 'WINDOW', 'POST_VIEW'))
-    
+    for handlerFunc in backgroundHandlersFunctions:
+        handlers.append(bpy.types.SpaceView3D.draw_handler_add(handlerFunc, (), 'WINDOW', 'POST_VIEW'))    
     bpy.app.handlers.depsgraph_update_post.append(mesh_change_listener)
     
     pass
@@ -455,7 +526,7 @@ def unregister():
         
     for handler in handlers:
         bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')
-    
+        
     bpy.app.handlers.depsgraph_update_post.remove(mesh_change_listener)
     
     pass
