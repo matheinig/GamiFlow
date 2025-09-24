@@ -595,7 +595,6 @@ class GFLOW_OT_AddLod(bpy.types.Operator):
     def execute(self, context):
         context.scene.gflow.lod.lods.add()
         context.scene.gflow.lod.current = len(context.scene.gflow.lod.lods)-1
-        #context.scene.gflow.udims[context.scene.gflow.ui_selectedUdim].name = "UDIM_"+str(context.scene.gflow.ui_selectedUdim)
         return {"FINISHED"} 
 class GFLOW_OT_RemoveLod(bpy.types.Operator):
     bl_idname      = "gflow.remove_lod"
@@ -609,7 +608,7 @@ class GFLOW_OT_RemoveLod(bpy.types.Operator):
             return False
         return True
     def execute(self, context):
-        context.scene.gflow.lod.lods.remove(context.scene.gflow.ui_selectedUdim)
+        context.scene.gflow.lod.lods.remove(context.scene.gflow.lod.current)
         context.scene.gflow.lod.current = min( context.scene.gflow.lod.current, len(context.scene.gflow.lod.lods)-1)
         return {"FINISHED"}                 
         
