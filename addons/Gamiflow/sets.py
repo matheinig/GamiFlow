@@ -268,10 +268,16 @@ def removeLowModifiers(context, obj):
 def removePainterModifiers(context, obj):
     for m in list(obj.modifiers):
         pass
-def applyPainterModifiers(context, obj):
-    modifiers = [m for m in obj.modifiers if m.type == 'ARMATURE']
+def applyPainterModifiers(context, obj, isHighPoly):
+    toApply = ['ARMATURE'] if isHighPoly else []
+    modifiers = [m for m in obj.modifiers if m.type in toApply]
     helpers.applyModifiers(context, obj, modifiers)
-
+def enforceModifiersOrder(context, obj):
+    armature = getFirstModifierOfType(obj, 'ARMATURE')
+    if armature:
+        bpy.ops.object.modifier_move_to_index(
+            modifier=armature.name,
+            index=len(obj.modifiers) - 1)
 
 def getTextureSetName(setNumber, mergeUdims=False):
     if mergeUdims: return bpy.context.scene.gflow.udims[0].name

@@ -7,6 +7,7 @@ from . import geotags
 from . import sets_cage
 import mathutils
 import random
+import bmesh
 
 #BEGINTRIM -------------------------------------------------- 
 try:
@@ -29,7 +30,7 @@ def getCollection(context, createIfNeeded=False):
 
 def applyModifiers(context, obj, legacyMode=False):
     if obj.type != 'MESH': return
-    modsToKeep = ['ARMATURE']
+    modsToKeep = ['ARMATURE', 'TRIANGULATE']
     modifiers = [m for m in obj.modifiers if m.type not in modsToKeep]
     if legacyMode: 
         helpers.applyModifiers_legacy(context, obj, modifiers)
@@ -43,6 +44,7 @@ def processModifiers(context, generatorData, obj):
     
     sets.updateModifierDependencies(generatorData, obj)
     sets_cage.removeCageModifier(context, obj)
+    sets.enforceModifiersOrder(context, obj)
     
     # Deal with special cases for special modifiers
     # NOTE: Currently no special cases for the Export Set :)
@@ -290,6 +292,10 @@ def mergeObjects(context, objects):
         result.append(chunk.mergedObject)
     return result
 
+def triangulateObject(context, obj):
+    with helpers.objectModeBmesh(obj) as bm:       
+        bmesh.ops.triangulate(bm, faces=bm.faces, quad_method='SHORT_EDGE', ngon_method='BEAUTY')
+
 def triangulateObjects(context, objects):
     todo = list(objects)
     objectsUsingMesh = {}
@@ -297,11 +303,7 @@ def triangulateObjects(context, objects):
         if not helpers.isObjectValidMesh(o): continue
         
         if o.data.users == 1:
-            helpers.setSelected(context, o)
-            tri = sets.triangulate(context, o)
-            if o.data.shape_keys is None:
-                bpy.ops.object.modifier_apply(modifier=tri.name)
-            helpers.setDeselected(o)
+            triangulateObject(context, o)
         elif o.data.users > 1:
             if o.data not in objectsUsingMesh:
                 objectsUsingMesh[o.data] = [o]
@@ -310,16 +312,8 @@ def triangulateObjects(context, objects):
                 
     # Handle shared meshes separately
     for (mesh, objs) in objectsUsingMesh.items():
-        # make the first object unique, add triangulate modifier, and apply it
-        helpers.setSelected(context, objs[0])
-        trimesh = mesh.copy()
-        objs[0].data = trimesh
-        tri = sets.triangulate(context, objs[0])
-        bpy.ops.object.modifier_apply(modifier=tri.name)
-        helpers.setDeselected(objs[0])
-        # remove the modifier on the other objects and swap the mesh
-        for o in objs[1:]:
-            o.data = trimesh
+        triangulateObject(context, objs[0])
+
 def decimate(context, obj, lodSettings, abortOnShapekeys=False):
     if not lodSettings.decimate: return
     if obj.type != 'MESH': return
@@ -327,7 +321,7 @@ def decimate(context, obj, lodSettings, abortOnShapekeys=False):
     # remove all shape keys, otherwise the decimation won't work
     if obj.data.shape_keys:
         if abortOnShapekeys: return
-        for shapekey in obj.data.shape_keys.key_blocks[:]:
+        for shapekey in reversed(obj.data.shape_keys.key_blocks[:]):
             obj.shape_key_remove(shapekey) 
     
     # Add a basic decimator
@@ -354,7 +348,7 @@ def generateLod(context, obj, collection, level, originalObjects, lodSettings):
     lodsuffix = "_lod"+str(level)
     if level>obj.gflow.maxLod: return None
     newobj = None
-    if obj.type == 'MESH' or obj.type == 'EMPTY' and obj in originalObjects:
+    if (obj.type == 'MESH' or obj.type == 'EMPTY') and obj in originalObjects:
         newobj = sets.duplicateObject(obj, collection, suffix=lodsuffix, workingSuffix="", link=False)
         if obj.type == 'MESH':
             sets.collapseEdges(context, newobj, level)

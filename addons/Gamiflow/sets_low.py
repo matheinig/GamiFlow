@@ -130,8 +130,9 @@ def generatePainterLow(context):
                 processModifiers(context, localGen, newobj)
                 sets.removeLowModifiers(context, newobj)
                 sets.removePainterModifiers(context, newobj)
-                sets.applyPainterModifiers(context, newobj)
+                sets.applyPainterModifiers(context, newobj, False)
                 sets.triangulate(context, newobj)
+                sets.enforceModifiersOrder(context, newobj)
                 helpers.setDeselected(newobj)            
   
         # Now that we have all the objects we can try rebuilding the intended hierarchy
