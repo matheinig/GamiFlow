@@ -29,7 +29,7 @@ def getCollection(context, createIfNeeded=False):
 
 def applyModifiers(context, obj, legacyMode=False):
     if obj.type != 'MESH': return
-    modsToKeep = ['ARMATURE', 'TRIANGULATE']
+    modsToKeep = ['ARMATURE']
     modifiers = [m for m in obj.modifiers if m.type not in modsToKeep]
     if legacyMode: 
         helpers.applyModifiers_legacy(context, obj, modifiers)
@@ -354,12 +354,13 @@ def generateLod(context, obj, collection, level, originalObjects, lodSettings):
     lodsuffix = "_lod"+str(level)
     if level>obj.gflow.maxLod: return None
     newobj = None
-    if obj.type == 'MESH' and obj in originalObjects:
+    if obj.type == 'MESH' or obj.type == 'EMPTY' and obj in originalObjects:
         newobj = sets.duplicateObject(obj, collection, suffix=lodsuffix, workingSuffix="", link=False)
-        sets.collapseEdges(context, newobj, level)
-        sets.deleteDetailFaces(context, newobj, level)
-        sets.removeEdgesForLevel(context, newobj, level, keepPainter=False)
-        decimate(context, newobj, lodSettings)
+        if obj.type == 'MESH':
+            sets.collapseEdges(context, newobj, level)
+            sets.deleteDetailFaces(context, newobj, level)
+            sets.removeEdgesForLevel(context, newobj, level, keepPainter=False)
+            decimate(context, newobj, lodSettings)
     for c in obj.children:
         newchild = generateLod(context, c, collection, level, originalObjects, lodSettings)
         if not newchild: continue
