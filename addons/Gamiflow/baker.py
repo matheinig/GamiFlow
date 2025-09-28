@@ -31,6 +31,22 @@ def createTextures(context, udimId):
             rootNode = n
             break
     
+    # Prepare the Albedo map
+    albedo_name = udimName + "_albedo"
+    ## Delete old image
+    if albedo_name in bpy.data.images: bpy.data.images.remove(bpy.data.images[albedo_name])
+    ## Create a new one with the right settings
+    bpy.ops.image.new(name=albedo_name, width=resolution, height=resolution, color=(1.0, 1.0, 1.0, 1.0), alpha=True, generated_type='BLANK', float=False)
+    albedo_texture = bpy.data.images[albedo_name]
+    ## Add the albedo map to the lowpoly material
+    albedoNode = findNodeByName(albedo_name, imageNodes)
+    if albedoNode is None:
+        albedoNode = material.node_tree.nodes.new("ShaderNodeTexImage")
+        albedoNode.name = albedo_name
+        albedoNode.location = (-500,500)
+        material.node_tree.links.new(albedoNode.outputs['Color'], rootNode.inputs['Base Color'])
+    albedoNode.image = albedo_texture    
+    
     # Prepare the AO map
     ao_name = udimName + "_occlusion"
     ## Delete old image
@@ -48,6 +64,22 @@ def createTextures(context, udimId):
         material.node_tree.links.new(aoNode.outputs['Color'], rootNode.inputs['Base Color'])
     aoNode.image = ao_texture
 
+    # Mix AO and albedo
+    mixNodeName = "Diffuse/AO mix"
+    mixNode = findNodeByName(mixNodeName, material.node_tree.nodes)
+    if not mixNode:
+        mixNode = material.node_tree.nodes.new("ShaderNodeMix")
+    mixNode.name = mixNodeName
+    mixNode.data_type = 'RGBA'
+    mixNode.blend_type = 'MULTIPLY'
+    mixNode.inputs['Factor'].default_value = 1.0
+    mixNode.inputs['A'].default_value = (1.0,1.0,1.0,1.0)
+    mixNode.inputs['B'].default_value = (1.0,1.0,1.0,1.0)
+    if albedoNode: material.node_tree.links.new(albedoNode.outputs['Color'], mixNode.inputs['A'])
+    if aoNode: material.node_tree.links.new(aoNode.outputs['Color'], mixNode.inputs['B'])
+    material.node_tree.links.new(mixNode.outputs['Result'], rootNode.inputs['Base Color'])
+    mixNode.location = (-250, 400)
+
     # Prepare the Tangent Normal map
     normal_name = udimName + "_normal"
     ## Delete old image
@@ -63,16 +95,19 @@ def createTextures(context, udimId):
         normalNode.name = normal_name
         normalNode.location = (-500, 0)
         
-        # add the normal map node too
+    # add the normal map node too
+    normalMapNodeName = "Normal Map"
+    normalMapNode = findNodeByName(normalMapNodeName, material.node_tree.nodes)
+    if not normalMapNode:    
         normalMapNode = material.node_tree.nodes.new("ShaderNodeNormalMap")
         normalMapNode.space = 'TANGENT'
         normalMapNode.location = (-250, 0)
-        # link everything
-        material.node_tree.links.new(normalNode.outputs['Color'], normalMapNode.inputs['Color'])
-        material.node_tree.links.new(normalMapNode.outputs['Normal'], rootNode.inputs['Normal'])
+    # link everything
+    material.node_tree.links.new(normalNode.outputs['Color'], normalMapNode.inputs['Color'])
+    material.node_tree.links.new(normalMapNode.outputs['Normal'], rootNode.inputs['Normal'])
     normalNode.image = normal_texture
 
-    return [material, aoNode, normalNode]
+    return [material, albedoNode, aoNode, normalNode]
     
 def bake(context):
     nbUdims = len(context.scene.gflow.udims)
@@ -102,9 +137,11 @@ def bakeUdim(context, udimId):
     
     setup = createTextures(context, udimId)
     material = setup[0]
-    aoNode = setup[1]
-    normalNode = setup[2]
+    albedoNode = setup[1]
+    aoNode = setup[2]
+    normalNode = setup[3]
     sets.setCollectionVisibility(context, context.scene.gflow.workingCollection, False)
+    sets.setCollectionVisibility(context, context.scene.gflow.exportCollection, False)
     sets.setCollectionVisibility(context, lowCollection, True)
     sets.setCollectionVisibility(context, highCollection, True)
     
@@ -141,6 +178,10 @@ def bakeUdim(context, udimId):
         helpers.setSelected(context, o)
     
         # Run the bake
+        ## Albedo
+        material.node_tree.nodes.active = albedoNode
+        context.scene.cycles.samples = aoSamples
+        bpy.ops.object.bake(type="DIFFUSE", margin = margin, use_clear = useClear)        
         ## AO
         material.node_tree.nodes.active = aoNode
         context.scene.cycles.samples = aoSamples
