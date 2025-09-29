@@ -211,7 +211,7 @@ class GFLOW_OT_ObjectActionSlotPopup(bpy.types.Operator):
                 gflow.bakeActionObjectSlotName = obj.animation_data.action_slot.identifier
             else:
                 gflow.exportActionObjectSlotName = obj.animation_data.action_slot.identifier
-        if obj.type == 'MESH' and obj.data.shape_keys.animation_data and obj.data.shape_keys.animation_data.action_slot:
+        if obj.type == 'MESH' and obj.data.shape_keys and obj.data.shape_keys.animation_data and obj.data.shape_keys.animation_data.action_slot:
             if self.mode=='BAKE':
                 gflow.bakeActionShapekeySlotName = obj.data.shape_keys.animation_data.action_slot.identifier
             else:
@@ -242,7 +242,7 @@ class GFLOW_OT_ObjectActionSlotPopup(bpy.types.Operator):
                 text="Object"
             )
         # Shapekey action slot
-        if obj.type == 'MESH':
+        if obj.type == 'MESH' and obj.data.shape_keys:
             target = obj.data.shape_keys
             adt = target.animation_data
             if adt.action.is_action_layered:
@@ -305,8 +305,8 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             # Bake action
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
-                self.layout.operator("gflow.action_slot_popup", text="Set Bake Action", icon='ACTION_SLOT').mode = 'BAKE'
                 self.layout.prop(gflow, "bakeAction")
+                self.layout.operator("gflow.action_slot_popup", text="Set Bake Slot", icon='ACTION_SLOT').mode = 'BAKE'
                 self.layout.prop(gflow, "bakeActionObjectSlotName")
                 self.layout.prop(gflow, "bakeActionShapekeySlotName")
             else:
@@ -329,8 +329,8 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             # Bake action
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
-                self.layout.operator("gflow.action_slot_popup", text="Set Bake Action", icon='ACTION_SLOT').mode = 'BAKE'
                 self.layout.prop(gflow, "bakeAction")
+                self.layout.operator("gflow.action_slot_popup", text="Set Bake Slot", icon='ACTION_SLOT').mode = 'BAKE'
                 self.layout.prop(gflow, "bakeActionObjectSlotName")
             else:
                 self.layout.prop(gflow, "bakeAction")  
@@ -364,8 +364,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
-                self.layout.operator("gflow.action_slot_popup", text="Set Export Action", icon='ACTION_SLOT').mode = 'EXPORT'
                 self.layout.prop(gflow, "exportAction")
+                self.layout.operator("gflow.action_slot_popup", text="Set Export Slot", icon='ACTION_SLOT').mode = 'EXPORT'
                 self.layout.prop(gflow, "exportActionObjectSlotName")
                 self.layout.prop(gflow, "exportActionShapekeySlotName")
             else:
@@ -375,8 +375,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             self.layout.prop(gflow, "doubleSided")
         elif obj.type == 'ARMATURE':
             if bpy.app.version >= (4,4,0):
-                self.layout.operator("gflow.action_slot_popup", text="Set Export Action", icon='ACTION_SLOT').mode = 'EXPORT'
                 self.layout.prop(gflow, "exportAction")
+                self.layout.operator("gflow.action_slot_popup", text="Set Export Slot", icon='ACTION_SLOT').mode = 'EXPORT'
                 self.layout.prop(gflow, "exportActionObjectSlotName")
             else:
                 self.layout.prop(gflow, "exportAction")        
