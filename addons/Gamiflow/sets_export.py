@@ -293,8 +293,17 @@ def mergeObjects(context, objects):
     return result
 
 def triangulateObject(context, obj):
-    with helpers.objectModeBmesh(obj) as bm:       
-        bmesh.ops.triangulate(bm, faces=bm.faces, quad_method='SHORT_EDGE', ngon_method='BEAUTY')
+    # there are bmesh and mesh approaches, but none of them preserve normals
+    # and bmesh can't even access loop normals for some obscure reason...
+
+    helpers.setSelected(context, obj)
+    tri = sets.triangulate(context, obj)
+    sets.enforceModifiersOrder(context, obj)
+    if obj.data.shape_keys is None:
+        bpy.ops.object.modifier_apply(modifier=tri.name)
+    else:
+        helpers.applyModifiers_shapeKeys(context, obj, [tri])
+    helpers.setDeselected(obj)    
 
 def triangulateObjects(context, objects):
     todo = list(objects)

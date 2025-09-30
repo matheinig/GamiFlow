@@ -269,7 +269,7 @@ def removePainterModifiers(context, obj):
     for m in list(obj.modifiers):
         pass
 def applyPainterModifiers(context, obj, isHighPoly):
-    toApply = ['ARMATURE'] if isHighPoly else []
+    toApply = ['ARMATURE'] if isHighPoly else ['TRIANGULATE', 'ARMATURE']
     modifiers = [m for m in obj.modifiers if m.type in toApply]
     helpers.applyModifiers(context, obj, modifiers)
 def enforceModifiersOrder(context, obj):
