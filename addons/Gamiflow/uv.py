@@ -17,7 +17,21 @@ from . import enums
 def isUvPackerAvailable():
     (default, current) = addon_utils.check("UV-Packer")
     return current
-    
+gPackerIoName = None
+def getPackerIoName():
+    # name might change basedon where the addon was downloaded
+    global gPackerIoName
+    if not gPackerIoName:
+        for name in bpy.context.preferences.addons.keys():
+            if "unwrellaio_connect" in name:
+                gPackerIoName = name
+                break
+    return gPackerIoName
+def isPackerIoAvailable(stgs):
+    name = getPackerIoName()
+    if not name: return False
+    (default, current) = addon_utils.check(name)
+    return current        
 def getMofConsole(stgs):
     return os.path.join(stgs.mofPath, 'UnWrapConsole3.exe')
 def isMofAvailable(stgs):
@@ -381,8 +395,12 @@ def pack(context, objects, packMethod = 'FAST'):
     pass
 def generic_pack_island(context, margin, shape_method, rotate, rotate_method):
     #BEGINTRIM --------------------------------------------------
-    if settings.getSettings().uvPacker == "UVPACKER":
+    stgs = settings.getSettings()
+    if stgs.uvPacker == "UVPACKER" and isUvPackerAvailable():
         uvpacker_pack_island(context=context, margin=margin, rotate=rotate, rotate_method=rotate_method)
+        return
+    elif stgs.uvPacker == "PACKERIO" and isPackerIoAvailable(stgs):
+        packerio_pack_island(context=context, margin=margin, rotate=rotate, rotate_method=rotate_method)
         return
     #ENDTRIM -----------------------------------------------------
     bpy.ops.uv.pack_islands(margin=margin, shape_method=shape_method, rotate=rotate, rotate_method=rotate_method)
@@ -408,6 +426,27 @@ def uvpacker_pack_island(context, margin, rotate, rotate_method):
     
     pack_uvpacker(context)
     return
+def packerio_pack_island(context, margin, rotate, rotate_method):
+    props = context.scene.UnwrellaProps
+    props.uio_selection_only = False
+    props.uio_rescale = False
+    props.uio_width = int(context.scene.gflow.uvResolution)
+    props.uio_height = props.uio_width
+    props.uio_padding = int(margin * props.uio_width)
+    props.uio_prerotate = rotate
+    if rotate:
+        if rotate_method == 'AXIS_ALIGNED': 
+            props.uio_rotate = "1"
+            props.uio_fullRotate = False
+        if rotate_method == 'ANY': 
+            props.uio_fullRotate = True
+    else:
+        props.uio_rotate = "0"
+        props.uio_fullRotate = False
+        
+    pack_packerio(context)
+    return
+    
 #ENDTRIM -----------------------------------------------------
 def snapUv(obj, resolution):
     with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
@@ -774,6 +813,58 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
         return {"FINISHED"}         
 
 #BEGINTRIM --------------------------------------------------
+
+# PackerIO backend (almost indentical to UV-Packer)
+packerIo = None
+def getPackerIo():
+    global packerIo
+    if packerIo is None:
+        packerIo = importlib.import_module(getPackerIoName())
+    return packerIo
+    
+def pack_packerio(context):
+    packerIo = getPackerIo()
+
+    unique_objects = packerIo.Util.get_unique_objects(context.selected_objects)
+    meshes = packerIo.Util.get_meshes(unique_objects)
+    if len(meshes) == 0: return
+    
+    props = context.scene.UnwrellaProps
+    options = {
+      "Width": props.uio_width,
+      "Height": props.uio_height,
+      "PackMode": int(props.uio_engine),
+      "Padding": props.uio_padding,
+      "UseDensity": False,
+      "Density": props.uio_density,
+      "Combine": True,
+      "Rescale": props.uio_rescale,
+      "PreRotate": props.uio_prerotate,
+      "FullRotation": props.uio_fullRotate,
+      "Rotation": int(props.uio_rotate),
+      "TilesX": 1,
+      "TilesY": 1,
+    }
+    localOptions = {
+      "QuickPack": False,
+      "Selection": props.uio_selection_only,
+    }    
+    
+    process = None
+    try:
+        exePath = packerIo.app_params.unwrellaParams["appPath"]
+        process = subprocess.Popen([exePath, 'connect'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=False)
+    except:
+        print('UV-Packer executable not found in "' + packerDir + '". Please check the Documentation for installation information.')
+        return
+    msg_queue = queue.SimpleQueue()
+    packerIo.data_exchange.DataExchange.data_exchange_thread(process, options, localOptions, meshes, msg_queue)  
+
+    print("PackerIO response:")
+    while not msg_queue.empty():
+        print( msg_queue.get() )
+    return
+    
 # UV-Packer backend
 uvPacker = None
 def getUvPacker():
