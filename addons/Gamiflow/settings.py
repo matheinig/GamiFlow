@@ -100,13 +100,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
         if self.uvPacker == "UVPACKER" and not uv.isUvPackerAvailable():
             row = layout.row()
             row.alert = True
-            row.label(text="UV-Packer plugin not found")
-            row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
-        if self.uvPacker == "PACKERIO" and not uv.isUvPackerAvailable():
+            row.label(text="UV-Packer plugin not found, use its successor, PackerIO")
+        if self.uvPacker == "PACKERIO" and not uv.isPackerIoAvailable(self):
             row = layout.row()
             row.alert = True
-            row.label(text="UV-Packer plugin not found")
-            row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"            
+            row.label(text="PackerIO plugin not found, download and enable Unwrella")
+            row.operator("wm.url_open", text="Get PackerIO/Unwrella").url = "https://www.uv-packer.com/blender/"            
                     
 #ENDTRIM -----------------------------------------------------        
         layout.prop(self, "edgeWidth")
