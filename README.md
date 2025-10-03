@@ -102,7 +102,9 @@ Sometimes, things get in the way. Imagine you modelled a gun with its ammo magaz
 If you installed the full version of GamiFlow (i.e. any version *not* from the official Blender extensions platform), you can enjoy the integration of a few extra plugins.
 ### UV-Packer (free)
 As the name would imply [UV-Packer](https://www.uv-packer.com/download/) is a UV packer, except that it's nicer and faster than the native Blender one. That being said, newer versions of Blender have made considerable progress in terms of packing (mostly thanks to the addition of non-bounding-box-based packing), so maybe this plugin no longer as crucial as it once was. Still, it's free so no reason not to have it.
-When the UV-Packer is installed and enabled in Blender, you can find an *UV Packer* option in the GamiFlow settings menu (might require a Blender restart) where you can choose between the native Blender version and UV-Packer. If UV-Packer is selected, it will be used whenever you run the *Unwrap* command.
+When UV-Packer is installed and enabled in Blender, you can find an *UV Packer* option in the GamiFlow settings menu (might require a Blender restart) where you can choose between the native Blender version and UV-Packer. If UV-Packer is selected, it will be used whenever you run the *Unwrap* command.
+### Packer-IO (free)
+The new name for UV-Packer, packs just as well and is integrated in the same way. You need to first install [Packer-IO and UnwrellaConnect](https://www.uv-packer.com/blender/) and enable the UnwrellaConnect plugin in Blender. Then you can set the *UV Packer* GamiFlow option to *Packer-IO*.
 
 ### Ministry of Flat (also free)
 [Ministry of Flat](https://www.quelsolaar.com/ministry_of_flat/) is standalone tool that can automatically unwrap meshes. It is free and has a very permissive license,making it a must-have for anyone looking to speed-up their unwrapping game. To use it in GamiFlow, download Ministry of Flat, unzip it, and then go to the GamiFlow settings. Tick *use Ministry of Flat (MoF)* and set the path to the folder containing the UnWrapConsole3.exe program.
