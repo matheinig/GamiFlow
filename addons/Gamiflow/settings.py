@@ -45,11 +45,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
         [
         ("BLENDER", "Blender", "Native packer, can be quite slow"),
         ("UVPACKER", "UV-Packer", "Free plugin (must be installed separately). Very fast, very good quality."),
+        ("PACKERIO", "Packer-IO", "Free plugin (must be installed separately). New version of UV-Packer."),
         ],
         default="BLENDER"
         )
     useMofUnwrapper : bpy.props.BoolProperty(name = "Use Ministry of Flat (MoF)", default=False, description="Enable the Ministry of Flat integration for automatic seams.")
     mofPath : bpy.props.StringProperty(name = "MoF path", default = "", subtype="FILE_PATH", description="Path to the folder containing UnWrapConsole3.exe")
+    packerioPath: bpy.props.StringProperty(name = "Packer-IO path", default = "C:\Program Files\Packer-IO\Packer-IO.exe", subtype="FILE_PATH", description="Path to PackerIO.exe")
     useDecalMachine: bpy.props.BoolProperty(name = "Use DECALmachine", default=False, description="Enable the DECALmachine integration.")
 #ENDTRIM -----------------------------------------------------           
     idMap : bpy.props.EnumProperty(
@@ -100,6 +102,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
             row.alert = True
             row.label(text="UV-Packer plugin not found")
             row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"
+        if self.uvPacker == "PACKERIO" and not uv.isUvPackerAvailable():
+            row = layout.row()
+            row.alert = True
+            row.label(text="UV-Packer plugin not found")
+            row.operator("wm.url_open", text="Get UV-Packer").url = "https://www.uv-packer.com/download/"            
                     
 #ENDTRIM -----------------------------------------------------        
         layout.prop(self, "edgeWidth")
