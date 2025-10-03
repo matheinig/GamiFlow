@@ -303,21 +303,38 @@ def drawMirrored():
 def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
     layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
     collapseLayer = geotags.getCollapseEdgesLayer(bm, forceCreation=False)
-    solidBatch = None
+    solidBatch = [None, None, None]
     painterBatch = None
     cageBatch = None
-    collapseBatch = None
+    collapseBatch = [None, None, None]
     
     if layer:
         coords = [v.co+v.normal*offset for v in bm.verts]
     
+        # Removed at lower levels
         indicesSolid = [[v.index for v in edge.verts]
-                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] <= geotags.GEO_EDGE_LEVEL_LOD0+level]
+                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] < geotags.GEO_EDGE_LEVEL_LOD0+level]
         if len(indicesSolid) > 0:
-            solidBatch = batch_for_shader(solidShader, 
+            solidBatch[0] = batch_for_shader(solidShader, 
+                'LINES',
+                {"pos": coords},
+                indices=indicesSolid)           
+        # Removed at current level
+        indicesSolid = [[v.index for v in edge.verts]
+                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] == geotags.GEO_EDGE_LEVEL_LOD0+level]
+        if len(indicesSolid) > 0:
+            solidBatch[1] = batch_for_shader(solidShader, 
                 'LINES',
                 {"pos": coords},
                 indices=indicesSolid)   
+        # Removed at higher levels
+        indicesSolid = [[v.index for v in edge.verts]
+                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] > geotags.GEO_EDGE_LEVEL_LOD0+level]
+        if len(indicesSolid) > 0:
+            solidBatch[2] = batch_for_shader(solidShader, 
+                'LINES',
+                {"pos": coords},
+                indices=indicesSolid)           
             
         # Maybe dotted line
         indicesPainter = [[v.index for v in edge.verts]
@@ -339,38 +356,42 @@ def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
 
     # Collapsed edges need their own vertex buffer because we're creating verts
     if collapseLayer: 
-        verts = []
+        verts = [[], [], []]
         crossSize = 0.05       
         for edge in bm.edges:
             if edge[collapseLayer] == geotags.GEO_EDGE_COLLAPSE_DEFAULT: continue
-            if edge[collapseLayer] <= geotags.GEO_EDGE_COLLAPSE_LOD0+level:
-                centre = (edge.verts[0].co + edge.verts[1].co)*0.5
-                length = (edge.verts[0].co - edge.verts[1].co).length
-                direction = (edge.verts[0].co - edge.verts[1].co).normalized()
-                # TODO: doesn't work nicely on ngons where the resulting vectors are no tangent to the face
-                if len(edge.link_loops) > 0:
-                    tangent = edge.link_loops[0].calc_tangent()
-                    # draw half of the cross
-                    v1 = centre+length*tangent*crossSize
-                    v2 = centre+length*tangent.reflect(direction)*crossSize
-                    verts.append(centre)
-                    verts.append(v1)
-                    verts.append(centre)
-                    verts.append(v2)
-                if len(edge.link_loops) > 1:
-                    tangent = edge.link_loops[1].calc_tangent()
-                    # draw half of the cross
-                    v1 = centre+length*tangent*crossSize
-                    v2 = centre+length*tangent.reflect(direction)*crossSize                    
-                    verts.append(centre)
-                    verts.append(v1)
-                    verts.append(centre)
-                    verts.append(v2)
-        if len(verts)>0:
-            collapseBatch = batch_for_shader(solidShader, 
-                'LINES',
-                {"pos": verts},
-                indices=None)       
+            vbuffer = verts[1]
+            if edge[collapseLayer] < geotags.GEO_EDGE_COLLAPSE_LOD0+level: vbuffer = verts[0]
+            elif edge[collapseLayer] > geotags.GEO_EDGE_COLLAPSE_LOD0+level: vbuffer = verts[2]
+            
+            centre = (edge.verts[0].co + edge.verts[1].co)*0.5
+            length = (edge.verts[0].co - edge.verts[1].co).length
+            direction = (edge.verts[0].co - edge.verts[1].co).normalized()
+            # TODO: doesn't work nicely on ngons where the resulting vectors are no tangent to the face
+            if len(edge.link_loops) > 0:
+                tangent = edge.link_loops[0].calc_tangent()
+                # draw half of the cross
+                v1 = centre+length*tangent*crossSize
+                v2 = centre+length*tangent.reflect(direction)*crossSize
+                vbuffer.append(centre)
+                vbuffer.append(v1)
+                vbuffer.append(centre)
+                vbuffer.append(v2)
+            if len(edge.link_loops) > 1:
+                tangent = edge.link_loops[1].calc_tangent()
+                # draw half of the cross
+                v1 = centre+length*tangent*crossSize
+                v2 = centre+length*tangent.reflect(direction)*crossSize                    
+                vbuffer.append(centre)
+                vbuffer.append(v1)
+                vbuffer.append(centre)
+                vbuffer.append(v2)
+        for i in range(0,3):
+            if len(verts[i])>0:
+                collapseBatch[i] = batch_for_shader(solidShader, 
+                    'LINES',
+                    {"pos": verts[i]},
+                    indices=None)       
         
     return solidBatch, painterBatch, cageBatch, collapseBatch
     
@@ -399,7 +420,9 @@ def drawDetailEdges():
     viewproj = bpy.context.region_data.perspective_matrix    
     mvp = viewproj@model
    
-    if gCachedDetailBatch or gCachedPainterDetailBatch or gCachedCageDetailBatch or gCachedCollapseBatch:
+    hasDetailBatch = gCachedDetailBatch[0] or gCachedDetailBatch[1] or gCachedDetailBatch[2]
+    hasCollapseBatch = gCachedCollapseBatch[0] or gCachedCollapseBatch[1] or gCachedCollapseBatch[2]
+    if hasDetailBatch or gCachedPainterDetailBatch or gCachedCageDetailBatch or hasCollapseBatch:
     
         stg = settings.getSettings()
     
@@ -410,21 +433,27 @@ def drawDetailEdges():
         gpu.state.blend_set('ALPHA')
         gpu.state.depth_mask_set(False)
         gpu.state.face_culling_set('BACK')
-        if gCachedDetailBatch:
-            gWireShader.uniform_float("color", stg.detailEdgeColor)
-            gCachedDetailBatch.draw(gWireShader)
+        
+        colors = [stg.detailEdgeBelowColor, stg.detailEdgeColor, stg.detailEdgeAboveColor]
+        widths = [stg.detailEdgeBelowWidth, stg.detailEdgeWidth, stg.detailEdgeAboveWidth]
+        
+        # Removed detail
+        w = gpu.state.line_width_get()
+        for i in range(0,3):
+            gWireShader.uniform_float("lineWidth", widths[i])
+            gWireShader.uniform_float("color", colors[i])        
+            if gCachedDetailBatch[i]: gCachedDetailBatch[i].draw(gWireShader)
+            if gCachedCollapseBatch[i]: gCachedCollapseBatch[i].draw(gWireShader)
+        gpu.state.line_width_set(w)  
+
+        gWireShader.uniform_float("lineWidth", stg.edgeWidth)
         if gCachedPainterDetailBatch:
             w = gpu.state.line_width_get()
             gpu.state.line_width_set(stg.edgeWidth)
             gWireShader.uniform_float("color", stg.painterEdgeColor)
             gCachedPainterDetailBatch.draw(gWireShader)
             gpu.state.line_width_set(w)
-        if gCachedCollapseBatch:
-            w = gpu.state.line_width_get()
-            gpu.state.line_width_set(stg.edgeWidth)
-            gWireShader.uniform_float("color", stg.detailEdgeColor)
-            gCachedCollapseBatch.draw(gWireShader)
-            gpu.state.line_width_set(w)        
+      
         if gCachedCageDetailBatch:
             w = gpu.state.line_width_get()
             gpu.state.line_width_set(stg.edgeWidth)
