@@ -618,10 +618,7 @@ def generateExport(context):
     
     # CHECK: joining might invalidate the objects stored in gen.generated 
     
-    # Triangulate and apply 
-    # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
-    # But needs special treatment because shared meshes don't like modifiers being applied
-    triangulateObjects(context, gen.generated)
+
     
     if context.scene.gflow.lightmapUvs:
         if stgs.mergeExportMeshes:
@@ -666,6 +663,11 @@ def generateExport(context):
         helpers.setSelected(context, o)
         applyModifiers(context, o, True)
         helpers.setDeselected(o)
+        
+    # Triangulate and apply 
+    # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
+    # But needs special treatment because shared meshes don't like modifiers being applied
+    triangulateObjects(context, collection.all_objects)        
         
     # Merge all possible objects 
     if stgs.mergeExportMeshes:
