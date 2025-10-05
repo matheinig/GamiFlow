@@ -143,7 +143,7 @@ def backupOtherModifiers(obj, modifiersToDiscard):
 def applyModifiers_shapeKeys(context, obj, modifiers):
     # Make a backup copy that will retain all the shape key data until we're done
     duplicate = copyObject(obj, context.collection)
-    modifierNames = [mn.name for mn in modifiers]
+    modifierNames = [mn.name for mn in modifiers if mn is not None]
     
     # Remove all the shape keys on the main object
     obj.shape_key_clear()

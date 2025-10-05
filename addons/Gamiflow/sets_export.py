@@ -30,7 +30,7 @@ def getCollection(context, createIfNeeded=False):
 
 def applyModifiers(context, obj, legacyMode=False):
     if obj.type != 'MESH': return
-    modsToKeep = ['ARMATURE', 'TRIANGULATE']
+    modsToKeep = ['ARMATURE', 'TRIANGULATE', 'WEIGHTED_NORMAL']
     modifiers = [m for m in obj.modifiers if m.type not in modsToKeep]
     if legacyMode: 
         helpers.applyModifiers_legacy(context, obj, modifiers)
@@ -299,10 +299,12 @@ def triangulateObject(context, obj):
     helpers.setSelected(context, obj)
     tri = sets.triangulate(context, obj)
     sets.enforceModifiersOrder(context, obj)
+    weightedNormal = sets.getFirstModifierOfType(obj, 'WEIGHTED_NORMAL')
     if obj.data.shape_keys is None:
+        if weightedNormal: bpy.ops.object.modifier_apply(modifier=weightedNormal.name)
         bpy.ops.object.modifier_apply(modifier=tri.name)
     else:
-        helpers.applyModifiers_shapeKeys(context, obj, [tri])
+        helpers.applyModifiers_shapeKeys(context, obj, [weightedNormal, tri])
     helpers.setDeselected(obj)    
 
 def triangulateObjects(context, objects):
