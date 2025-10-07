@@ -36,8 +36,8 @@ def onCageOffsetChanged(self, context):
         cageModifier.node_group.interface_update(context)
     return
 def onDefaultCageOffsetChanged(self, context):
-    if context.scene.gflow.workingCollection is None: return
-    for o in context.scene.gflow.workingCollection.all_objects:
+    if context.scene.gflow.painterCageCollection is None: return
+    for o in context.scene.gflow.painterCageCollection.all_objects:
         if o.gflow.cageOffset == 0:
             cageModifier = sets_cage.getCageModifier(o)
             if cageModifier: 
