@@ -115,7 +115,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
         colors_type = 'LINEAR',
         # Armatures and animation
         armature_nodetype = 'NULL',
-        use_armature_deform_only = True,
+        use_armature_deform_only = True, add_leaf_bones = False, 
         bake_anim = context.scene.gflow.exportAnimations and allowAnimations,
         bake_anim_use_nla_strips = useStrips, bake_anim_use_all_actions = useAllActions,
         bake_anim_use_all_bones = True, # Maybe not necessary, but probably safer. Will make fbx larger
