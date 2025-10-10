@@ -2,7 +2,7 @@ bl_info = {
     "name"        : "Gamiflow",
     "description" : "Workflow improvements for game assets",
     "author"      : "Mathieu Einig",
-    "version"     : (1, 8),
+    "version"     : (1, 9),
     "blender"     : (3, 6, 0),
     "location"    : "Wherever",
     "warning"     : "",
