@@ -174,6 +174,10 @@ class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
     bl_label       = "Set checkered level"
     bl_description = "Set the edge level for every other edge in the ring"
     bl_options = {"REGISTER", "UNDO"}
+    
+    level : bpy.props.IntProperty(name="Level", default=GEO_EDGE_LEVEL_LOD0, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+
+    
     @classmethod
     def poll(cls, context):
         if context.mode != "EDIT_MESH": return False
@@ -189,7 +193,7 @@ class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
         # Extend the selection to the entire loop
         bpy.ops.mesh.loop_multi_select(ring=False)
         # Mark as high level
-        setObjectSelectedEdgeLevel(context.edit_object)
+        setObjectSelectedEdgeLevel(context.edit_object, self.level)
         return {"FINISHED"}
 class GFLOW_OT_SelectEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.select_edge_level"
@@ -353,6 +357,7 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
     
     selected : bpy.props.IntProperty(name="Selected", default=1, min=0, soft_max=4, description="How many edges in a row will be selected")    
     reverse : bpy.props.BoolProperty(name="Reverse", default=False)
+    level: bpy.props.IntProperty(name="Level", min=-1)
     
     @classmethod
     def poll(cls, context):
@@ -382,10 +387,29 @@ class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
                 id = index-startIndex
                 wrapped = (id) % (self.selected + 1)
                 if wrapped < self.selected:
-                    edge[layer] = GEO_EDGE_COLLAPSE_LOD0
+                    edge[layer] = self.level
                 else:
                     edge[layer] = GEO_EDGE_COLLAPSE_DEFAULT
         
+        return {"FINISHED"}
+class GFLOW_OT_CollapseEdgeRing(bpy.types.Operator):
+    bl_idname      = "gflow.collapse_edge_ring"
+    bl_label       = "Collapse Edge Ring"
+    bl_description = "Collapse an edge ring into a single loop"
+    bl_options = {"REGISTER", "UNDO"}
+    
+    level : bpy.props.IntProperty(name="Level", default=GEO_EDGE_LEVEL_LOD0, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+    
+    @classmethod
+    def poll(cls, context):
+        if context.mode != "EDIT_MESH": return False
+        if not context.tool_settings.mesh_select_mode[1]: 
+            cls.poll_message_set("Must be in edge mode")
+            return False
+        return context.edit_object is not None
+    def execute(self, context):
+        bpy.ops.mesh.loop_multi_select(ring=True)
+        setObjectSelectedEdgeCollapse(context.edit_object, self.level)
         return {"FINISHED"}
 
 class GFLOW_OT_UnmarkEdge(bpy.types.Operator):
@@ -442,7 +466,7 @@ class GFLOW_OT_SetFaceMirror(bpy.types.Operator):
                 if face.select: face[mirrorLayer] = mirrorCode
         return {"FINISHED"}        
     
-def markSelectedFacesAsDetail(context, isDetail):
+def markSelectedFacesAsDetail(context, deleteFromLevel):
     obj = context.edit_object
 
     # Set the UV size to 0 and set the poly flag
@@ -451,20 +475,23 @@ def markSelectedFacesAsDetail(context, isDetail):
         uvScaleLayer = getUvScaleLayer(bm, forceCreation=True)
         faceDetailLayer = getDetailFacesLayer(bm, forceCreation=True)
         
+        rescaleUVs = False
         scaleCode = getUvScaleCode(0.0)
-        detailCode = GEO_FACE_LEVEL_LOD0
+        detailCode = GEO_FACE_LEVEL_LOD0+deleteFromLevel
+        if deleteFromLevel == 0: rescaleUVs=True
         
-        if not isDetail:
+        # Unmark and leave visible at all levels
+        if deleteFromLevel==-1:
+            rescaleUVs = True
             scaleCode = getUvScaleCode(1.0)
             detailCode = GEO_FACE_LEVEL_DEFAULT
-        
         for face in bm.faces:
             if face.select: 
-                face[uvScaleLayer] = scaleCode
+                if rescaleUVs: face[uvScaleLayer] = scaleCode
                 face[faceDetailLayer] = detailCode
                 
     # Select the bounding edges and mark them as seams
-    if isDetail:
+    if deleteFromLevel!=-1 and rescaleUVs:
         bpy.ops.mesh.region_to_loop()
         bpy.ops.mesh.mark_seam(clear=False)
         bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='FACE')
@@ -476,7 +503,7 @@ class GFLOW_OT_SetFaceLevel(bpy.types.Operator):
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
 
-    detail : bpy.props.BoolProperty(name="Detail", default=True)
+    deleteFromLevel : bpy.props.IntProperty(name="Detail", default=-10)
         
     @classmethod
     def poll(cls, context):
@@ -487,7 +514,10 @@ class GFLOW_OT_SetFaceLevel(bpy.types.Operator):
         return context.edit_object is not None
 
     def execute(self, context):
-        markSelectedFacesAsDetail(context, self.detail)
+        lod = self.deleteFromLevel
+        if lod == -10:
+            lod = context.scene.gflow.lod.current
+        markSelectedFacesAsDetail(context, lod)
     
         return {"FINISHED"}    
 
@@ -526,7 +556,7 @@ class GFLOW_OT_SelectFaceLevel(bpy.types.Operator):
     
 classes = [
     GFLOW_OT_SetEdgeLevel, GFLOW_OT_SetCheckeredEdgeLevel, GFLOW_OT_SelectEdgeLevel, 
-    GFLOW_OT_SetEdgeCollapseLevel, GFLOW_OT_SetCheckeredEdgeCollapse,
+    GFLOW_OT_SetEdgeCollapseLevel, GFLOW_OT_SetCheckeredEdgeCollapse, GFLOW_OT_CollapseEdgeRing,
     GFLOW_OT_UnmarkEdge,
     GFLOW_OT_SetFaceLevel, GFLOW_OT_SelectFaceLevel, GFLOW_OT_SetFaceMirror]
 

@@ -210,7 +210,7 @@ def generatePainterHigh(context):
         for newobj in localgen.generated:
             sets.updateModifierDependencies(localgen, newobj)
             helpers.setSelected(context, newobj)
-            sets.applyPainterModifiers(context, newobj)
+            sets.applyPainterModifiers(context, newobj, True)
             helpers.setDeselected(newobj)
         # Now that we have all the objects we can try rebuilding the intended hierarchy
         for newobj in parented:

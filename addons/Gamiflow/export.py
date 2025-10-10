@@ -93,7 +93,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
     # Check if we have any shape keys to be exported
     # In which case we absolutely cannot apply the modifiers for some reason
     applyModifiers = True
-    if exportType is ExportType.FINAL:
+    if exportType is ExportType.FINAL or exportType is ExportType.BAKE_LOW:
         for o in objects:
             if o.type == 'MESH' and o.data.shape_keys and len(o.data.shape_keys.key_blocks) > 0:
                 applyModifiers = False

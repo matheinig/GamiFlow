@@ -19,6 +19,8 @@ def onVisualUdimChange(self, context):
         if u.name == value:
             self.textureSet = i
             return
+def onLodChange(self, context):
+    display.purgeCache()
 def onEdgeOffsetChange(self, context):
     display.purgeCache()
 def onCollectionChanged(self, context):
@@ -52,6 +54,7 @@ def onDefaultCageOffsetChanged(self, context):
     
 class GFlowObject(bpy.types.PropertyGroup):
     registered: bpy.props.BoolProperty(name="Registered (internal)", description="just to track which objects are known", default=False)
+    generated: bpy.props.BoolProperty(name="Generated (internal)", description="just to track which objects were auto-generated", default=False)
 
     # export
     exportable: bpy.props.BoolProperty(name="Export", default=True)
@@ -102,6 +105,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
     exportActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='')
     exportActionShapekeySlotName: bpy.props.StringProperty(name="Pose Slot (Shape key)", default='')
+    maxLod: bpy.props.IntProperty(name="Final LoD", min=0, max=3, default=3, subtype='FACTOR', description="Lod level after which the object stops being included.")
 
 # Per scene
 gUV_PACK_METHODS = [("FAST", "Fast", "", 0), ("REASONABLE", "Reasonable", "", 1), ("ACCURATE", "Accurate", "", 2)]
@@ -116,6 +120,15 @@ class GFlowDisplay(bpy.types.PropertyGroup):
     detailEdges: bpy.props.BoolProperty(name="Details", default=True)  
     edgeOffset: bpy.props.FloatProperty(name="Edge offset", default=0.1, min=0.0, max=1.0, description="Pushes the edges outward to avoid clipping", update=onEdgeOffsetChange)
     
+class GFlowLod(bpy.types.PropertyGroup):
+    decimate: bpy.props.BoolProperty(name="Decimate", default=False)
+    decimateAmount: bpy.props.FloatProperty(name="Decimation ratio", subtype='FACTOR', default=1.0, min=0.0, max=1.0, description="How many vertices to keep")    
+    decimatePreserveSeams: bpy.props.BoolProperty(name="Preserve seams", default=False)
+    
+class GFlowLods(bpy.types.PropertyGroup):
+    current : bpy.props.IntProperty(name="LoD", default=0, subtype='FACTOR', min=0, max=3, update=onLodChange, description="The current LoD")
+    lods: bpy.props.CollectionProperty(type=GFlowLod)
+
 class GFlowScene(bpy.types.PropertyGroup):
     version : bpy.props.IntProperty(name="GamiFlow version", default=0, description="Internal version number")
 
@@ -166,6 +179,8 @@ class GFlowScene(bpy.types.PropertyGroup):
     vertexChannelG: bpy.props.EnumProperty(name="Green", default='ONE', items=enums.gVERTEX_CHANNEL)
     vertexChannelB: bpy.props.EnumProperty(name="Blue", default='ONE', items=enums.gVERTEX_CHANNEL)
 
+    # Lodding
+    lod : bpy.props.PointerProperty(type=GFlowLods, name="LoDs")
     
     # Overlays
     overlays : bpy.props.PointerProperty(type=GFlowDisplay, name="Overlays")
@@ -179,6 +194,8 @@ def register():
     
     bpy.utils.register_class(GFlowUdim)
     bpy.utils.register_class(GFlowDisplay)
+    bpy.utils.register_class(GFlowLod)
+    bpy.utils.register_class(GFlowLods)
     bpy.utils.register_class(GFlowScene)
     bpy.types.Scene.gflow = bpy.props.PointerProperty(type=GFlowScene)
         
@@ -193,7 +210,9 @@ def unregister():
     bpy.utils.unregister_class(GFlowHighPolyItem)
     
     del bpy.types.Scene.gflow
-    bpy.utils.unregister_class(GFlowScene)    
+    bpy.utils.unregister_class(GFlowScene) 
+    bpy.utils.unregister_class(GFlowLods)
+    bpy.utils.unregister_class(GFlowLod)
     bpy.utils.unregister_class(GFlowDisplay)
     bpy.utils.unregister_class(GFlowUdim)
     

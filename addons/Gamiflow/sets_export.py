@@ -7,6 +7,7 @@ from . import geotags
 from . import sets_cage
 import mathutils
 import random
+import bmesh
 
 #BEGINTRIM -------------------------------------------------- 
 try:
@@ -27,21 +28,30 @@ def getCollection(context, createIfNeeded=False):
     if c: c.name = name
     return c
 
+def applyModifiers(context, obj, legacyMode=False):
+    if obj.type != 'MESH': return
+    modsToKeep = ['ARMATURE', 'TRIANGULATE', 'WEIGHTED_NORMAL']
+    modifiers = [m for m in obj.modifiers if m.type not in modsToKeep]
+    if legacyMode: 
+        helpers.applyModifiers_legacy(context, obj, modifiers)
+    else:
+        # for some reason this one causes crashes when applying the decimation at the end of the generation
+        helpers.applyModifiers(context, obj, modifiers)
+    
 # Handle modifiers for a clean export
 def processModifiers(context, generatorData, obj):
     helpers.setSelected(context, obj)
     
     sets.updateModifierDependencies(generatorData, obj)
     sets_cage.removeCageModifier(context, obj)
+    sets.enforceModifiersOrder(context, obj)
     
     # Deal with special cases for special modifiers
     # NOTE: Currently no special cases for the Export Set :)
     
     # Apply all modifiers except armatures which are needed
-    modifiers = [m for m in obj.modifiers if m.type != 'ARMATURE']
-    helpers.applyModifiers(context, obj, modifiers)
-
-    
+    applyModifiers(context, obj)
+ 
     helpers.setDeselected(obj) 
 
 
@@ -250,7 +260,7 @@ class Chunk:
         for oe in oldEmpties: bpy.data.objects.remove(oe)   # TODO: maybe make sure we don't delete the root if empty roots are allowed 
 
         self.objects = None
-        
+
 def mergeObjects(context, objects):
     chunks = []
     # Nothing to merge, ezpz
@@ -282,6 +292,21 @@ def mergeObjects(context, objects):
         result.append(chunk.mergedObject)
     return result
 
+def triangulateObject(context, obj):
+    # there are bmesh and mesh approaches, but none of them preserve normals
+    # and bmesh can't even access loop normals for some obscure reason...
+
+    helpers.setSelected(context, obj)
+    tri = sets.triangulate(context, obj)
+    sets.enforceModifiersOrder(context, obj)
+    weightedNormal = sets.getFirstModifierOfType(obj, 'WEIGHTED_NORMAL')
+    if obj.data.shape_keys is None:
+        if weightedNormal: bpy.ops.object.modifier_apply(modifier=weightedNormal.name)
+        bpy.ops.object.modifier_apply(modifier=tri.name)
+    else:
+        helpers.applyModifiers_shapeKeys(context, obj, [weightedNormal, tri])
+    helpers.setDeselected(obj)    
+
 def triangulateObjects(context, objects):
     todo = list(objects)
     objectsUsingMesh = {}
@@ -289,11 +314,7 @@ def triangulateObjects(context, objects):
         if not helpers.isObjectValidMesh(o): continue
         
         if o.data.users == 1:
-            helpers.setSelected(context, o)
-            tri = sets.triangulate(context, o)
-            if o.data.shape_keys is None:
-                bpy.ops.object.modifier_apply(modifier=tri.name)
-            helpers.setDeselected(o)
+            triangulateObject(context, o)
         elif o.data.users > 1:
             if o.data not in objectsUsingMesh:
                 objectsUsingMesh[o.data] = [o]
@@ -302,17 +323,54 @@ def triangulateObjects(context, objects):
                 
     # Handle shared meshes separately
     for (mesh, objs) in objectsUsingMesh.items():
-        # make the first object unique, add triangulate modifier, and apply it
-        helpers.setSelected(context, objs[0])
-        trimesh = mesh.copy()
-        objs[0].data = trimesh
-        tri = sets.triangulate(context, objs[0])
-        bpy.ops.object.modifier_apply(modifier=tri.name)
-        helpers.setDeselected(objs[0])
-        # remove the modifier on the other objects and swap the mesh
-        for o in objs[1:]:
-            o.data = trimesh
-           
+        triangulateObject(context, objs[0])
+
+def decimate(context, obj, lodSettings, abortOnShapekeys=False):
+    if not lodSettings.decimate: return
+    if obj.type != 'MESH': return
+    
+    # remove all shape keys, otherwise the decimation won't work
+    if obj.data.shape_keys:
+        if abortOnShapekeys: return
+        for shapekey in reversed(obj.data.shape_keys.key_blocks[:]):
+            obj.shape_key_remove(shapekey) 
+    
+    # Add a basic decimator
+    decimate = obj.modifiers.new(type="DECIMATE", name="LoD Decimation (GFlow)")
+    decimate.ratio = lodSettings.decimateAmount  
+
+    # Preserve the seams to avoid the textures getting all messed up
+    if lodSettings.decimatePreserveSeams:
+        selectedVerts = []
+        for v in obj.data.vertices:
+            v.select = False
+        for e in obj.data.edges:
+            if e.use_seam: 
+                for v in e.vertices: selectedVerts.append(v)
+        seamsMapName = "GFLOW_Seams"
+        vxgroup = obj.vertex_groups.new(name=seamsMapName)
+        vxgroup.add(selectedVerts, 1.0, 'REPLACE')
+        decimate.vertex_group = seamsMapName
+        decimate.invert_vertex_group = True
+        
+        
+        
+def generateLod(context, obj, collection, level, originalObjects, lodSettings):
+    lodsuffix = "_lod"+str(level)
+    if level>obj.gflow.maxLod: return None
+    newobj = None
+    if (obj.type == 'MESH' or obj.type == 'EMPTY') and obj in originalObjects:
+        newobj = sets.duplicateObject(obj, collection, suffix=lodsuffix, workingSuffix="", link=False)
+        if obj.type == 'MESH':
+            sets.collapseEdges(context, newobj, level)
+            sets.deleteDetailFaces(context, newobj, level)
+            sets.removeEdgesForLevel(context, newobj, level, keepPainter=False)
+            decimate(context, newobj, lodSettings)
+    for c in obj.children:
+        newchild = generateLod(context, c, collection, level, originalObjects, lodSettings)
+        if not newchild: continue
+        newchild.parent = newobj if newobj else obj
+    return newobj
 
 def generateExport(context):
     # Make sure we don't already have a filled export set
@@ -456,9 +514,8 @@ def generateExport(context):
                     material = sets.getTextureSetMaterial(o.gflow.textureSet, context.scene.gflow.mergeUdims)
                     sets.setMaterial(newobj, material)
                 
-                # Process modifiers, clean up metadata, etc
+                # Process modifiers
                 sets.removeLowModifiers(context, newobj)
-                geotags.removeObjectLayers(newobj)
                 helpers.setDeselected(newobj) 
             elif o.type == 'EMPTY':
                 newobj.instance_type = 'NONE'
@@ -563,15 +620,58 @@ def generateExport(context):
     
     # CHECK: joining might invalidate the objects stored in gen.generated 
     
+
+    
+    if context.scene.gflow.lightmapUvs:
+        if stgs.mergeExportMeshes:
+            print("GamiFlow: Find mergeable meshes")
+            todo = sets.findRoots(collection)
+            bpy.ops.object.select_all(action='DESELECT')
+            chunks = []
+            # Build a list of 'chunks' that can be merged together
+            while(len(todo)>0):
+                # Pick one object in the todo list and decide what to do with its children
+                root = todo[0]
+                todo.remove(root)
+                merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
+                #if len(merge)>0:
+                chunk = Chunk()
+                chunk.objects = merge+[root]
+                chunks.append(chunk)
+         
+            # Now that we know how objects will be grouped, we can uv pack them together
+            groups = [chunk.objects for chunk in chunks]
+            #for chunk in chunks:
+            #    groups.append(chunk.objects)
+            uv.lightmapPack(context, groups)
+        else:
+            groups = [[o] for o in collection.all_objects]
+            uv.lightmapPack(context, groups)
+        
+     
+    # Generate other levels of detail here
+    originalRoots = sets.findRoots(collection)[:]
+    originalObjects = collection.all_objects[:]
+    for level in range(1,len(context.scene.gflow.lod.lods)):
+        for o in originalRoots:
+            generateLod(context, o, collection, level, originalObjects, context.scene.gflow.lod.lods[level]) 
+    
+    # Decimate the first lod if needed too
+    for o in originalObjects:
+        decimate(context, o, context.scene.gflow.lod.lods[0], abortOnShapekeys=True)
+        
+    # Re apply all the new modifiers
+    for o in collection.all_objects:
+        helpers.setSelected(context, o)
+        applyModifiers(context, o, True)
+        helpers.setDeselected(o)
+        
     # Triangulate and apply 
     # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
     # But needs special treatment because shared meshes don't like modifiers being applied
-    triangulateObjects(context, gen.generated)
-
-                
-    
- 
-    # Merge all possible objects
+    triangulateObjects(context, collection.all_objects)        
+        
+    # Merge all possible objects 
     if stgs.mergeExportMeshes:
         print("GamiFlow: Find mergeable meshes")
         todo = sets.findRoots(collection)
@@ -590,17 +690,17 @@ def generateExport(context):
             chunks.append(chunk)
         # Actually do the merge
         print("GamiFlow: Merge into "+str(len(chunks))+" groups")
-                
         for chunk in chunks:
             chunk.merge(context, False)
     
-    # Now that we have our final objects, we can pack their lightmap UVs
-    if context.scene.gflow.lightmapUvs:
-        uv.lightmapPack(context, collection.all_objects)
     
     if context.scene.gflow.exportFormat == "GLTF" and context.scene.gflow.exportTarget == "SKETCHFAB":
         for o in collection.all_objects:
             if o.type == 'MESH': uv.flipUVs(o)
+                
+    # Remove custom gamiflow data
+    for o in collection.all_objects:
+        if o.type=='MESH': geotags.removeObjectLayers(o)                
                 
     # Cleanup the actions that were potentially accidentally duplicated
     newActions = set(bpy.data.actions)

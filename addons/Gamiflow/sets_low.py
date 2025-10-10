@@ -25,7 +25,11 @@ def processModifiers(context, generatorData, obj):
             m.offset_u = 1.0
             m.offset_v = 1.0
     sets.updateModifierDependencies(generatorData, obj)
-            
+def applyModifiers(context, obj):
+    if obj.type != 'MESH': return
+    modsToKeep = []
+    modifiers = [m for m in obj.modifiers if m.type not in modsToKeep]
+    helpers.applyModifiers(context, obj, modifiers)            
 
 def generatePainterLow(context):
     lowCollection = getCollection(context, createIfNeeded=False)
@@ -129,9 +133,12 @@ def generatePainterLow(context):
                 # Process modifiers
                 processModifiers(context, localGen, newobj)
                 sets.removeLowModifiers(context, newobj)
-                sets.removePainterModifiers(context, newobj)
-                sets.applyPainterModifiers(context, newobj)
                 sets.triangulate(context, newobj)
+                sets.enforceModifiersOrder(context, newobj)
+                sets.removePainterModifiers(context, newobj)
+                sets.applyPainterModifiers(context, newobj, False)
+                sets.enforceModifiersOrder(context, newobj)
+                applyModifiers(context, newobj) # needs to be done if we use any shapekeys
                 helpers.setDeselected(newobj)            
   
         # Now that we have all the objects we can try rebuilding the intended hierarchy

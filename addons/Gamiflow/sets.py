@@ -9,12 +9,18 @@ from . import enums
 from . import settings
   
 def backwardCompatibility(scene):
+    # The 'scene' is an evaluated copy of the scene rather than the scene itself so we need to retrieve the original first
+    realScene = bpy.data.scenes[scene.name]
+    
+    # Add at least one LOD
+    if len(realScene.gflow.lod.lods) == 0:
+        realScene.gflow.lod.lods.add()
+
     currentVersion = 2
     if scene.gflow.version == currentVersion: return
     
     print("[GamiFlow] Scene "+scene.name + " was saved in different version ("+str(scene.gflow.version)+")")
-    # The 'scene' is an evaluated copy of the scene rather than the scene itself so we need to retrieve the original first
-    realScene = bpy.data.scenes[scene.name]
+
     if realScene.gflow.version == 0:
         # Add at least one UDIM
         if len(realScene.gflow.udims) == 0:
@@ -200,6 +206,7 @@ def getNewName(sourceObj, prefix, suffix, workingSuffix):
 def duplicateObject(sourceObj, collection, prefix="", suffix="", workingSuffix="", link=False):
     new_obj = helpers.copyObject(sourceObj, collection, link=link)
     new_obj.name = getNewName(sourceObj, prefix, suffix, workingSuffix)
+    new_obj.gflow.generated = True
     return new_obj
     
 def setObjectAction(obj, action, slotName):
@@ -261,10 +268,16 @@ def removeLowModifiers(context, obj):
 def removePainterModifiers(context, obj):
     for m in list(obj.modifiers):
         pass
-def applyPainterModifiers(context, obj):
-    modifiers = [m for m in obj.modifiers if m.type == 'ARMATURE']
+def applyPainterModifiers(context, obj, isHighPoly):
+    toApply = ['ARMATURE'] if isHighPoly else ['ARMATURE']
+    modifiers = [m for m in obj.modifiers if m.type in toApply]
     helpers.applyModifiers(context, obj, modifiers)
-
+def enforceModifiersOrder(context, obj):
+    armature = getFirstModifierOfType(obj, 'ARMATURE')
+    if armature:
+        bpy.ops.object.modifier_move_to_index(
+            modifier=armature.name,
+            index=len(obj.modifiers) - 1)
 
 def getTextureSetName(setNumber, mergeUdims=False):
     if mergeUdims: return bpy.context.scene.gflow.udims[0].name
@@ -297,12 +310,12 @@ def removeEdgesForLevel(context, obj, level, keepPainter=False):
             if e[layer] == geotags.GEO_EDGE_LEVEL_DEFAULT: continue
             relevant = False
             if (not keepPainter) and e[layer] == geotags.GEO_EDGE_LEVEL_PAINTER: relevant = True
-            if e[layer] >= geotags.GEO_EDGE_LEVEL_LOD0+level: relevant = True
+            if e[layer] <= geotags.GEO_EDGE_LEVEL_LOD0+level: relevant = True
             if relevant: relevantEdges.append(e)
-        
         if len(relevantEdges)>0: 
             bmesh.ops.dissolve_edges(bm, edges=relevantEdges, use_verts=True, use_face_split=False)
         return len(relevantEdges)
+
 def removeCageEdges(obj):
     with helpers.objectModeBmesh(obj) as bm:
         layer = geotags.getDetailEdgesLayer(bm, forceCreation=False)
@@ -313,7 +326,7 @@ def removeCageEdges(obj):
         if len(relevantEdges)>0: 
             bmesh.ops.dissolve_edges(bm, edges=relevantEdges, use_verts=True, use_face_split=False)
 
-def collapseEdges(context, obj):
+def collapseEdges(context, obj, level=0):
     with helpers.objectModeBmesh(obj) as bm:
         layer = geotags.getCollapseEdgesLayer(bm, forceCreation=False)
         if not layer: return
@@ -321,17 +334,19 @@ def collapseEdges(context, obj):
         for e in bm.edges:
             if e[layer] == geotags.GEO_EDGE_COLLAPSE_DEFAULT: continue
             relevant = False
-            if e[layer] >= geotags.GEO_EDGE_COLLAPSE_LOD0: relevant = True
+            if e[layer] <= geotags.GEO_EDGE_COLLAPSE_LOD0+level: relevant = True
             if relevant: relevantEdges.append(e)
         
         if len(relevantEdges)>0: 
             bmesh.ops.collapse(bm, edges=relevantEdges, uvs=True)
 
-def deleteDetailFaces(context, obj):
+def deleteDetailFaces(context, obj, level=0):
     with helpers.objectModeBmesh(obj) as bm:
         faceDetailLayer = geotags.getDetailFacesLayer(bm, forceCreation=False)
         if not faceDetailLayer: return
-        faces = [f for f in bm.faces if f[faceDetailLayer]!=geotags.GEO_FACE_LEVEL_DEFAULT] 
+        faces = [f for f in bm.faces 
+            if f[faceDetailLayer]!=geotags.GEO_FACE_LEVEL_DEFAULT 
+            and f[faceDetailLayer]<=geotags.GEO_FACE_LEVEL_LOD0+level] 
         bmesh.ops.delete(bm, geom=faces, context="FACES")  
 
 def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
@@ -572,13 +587,43 @@ class GFLOW_OT_ToggleSetVisibility(bpy.types.Operator):
         return {"FINISHED"}        
         
         
-               
+class GFLOW_OT_AddLod(bpy.types.Operator):
+    bl_idname      = "gflow.add_lod"
+    bl_label       = "Add LOD"
+    bl_description = "Add a new LOD"
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        if len(context.scene.gflow.lod.lods) >= 4:
+            cls.poll_message_set("Can only have up to 4 lods")
+            return False
+        return True
+    def execute(self, context):
+        context.scene.gflow.lod.lods.add()
+        context.scene.gflow.lod.current = len(context.scene.gflow.lod.lods)-1
+        return {"FINISHED"} 
+class GFLOW_OT_RemoveLod(bpy.types.Operator):
+    bl_idname      = "gflow.remove_lod"
+    bl_label       = "Remove LOD"
+    bl_description = "Remove the selected LOD"
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        if len(context.scene.gflow.lod.lods) <= 1:
+            cls.poll_message_set("Need at least one LOD")
+            return False
+        return True
+    def execute(self, context):
+        context.scene.gflow.lod.lods.remove(context.scene.gflow.lod.current)
+        context.scene.gflow.lod.current = min( context.scene.gflow.lod.current, len(context.scene.gflow.lod.lods)-1)
+        return {"FINISHED"}                 
         
         
 classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
     GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly, GFLOW_OT_ProjectToActive,
     GFLOW_OT_MarkHardSeam, GFLOW_OT_MarkSoftSeam, GFLOW_OT_ClearSeam,
-    GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility]
+    GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility,
+    GFLOW_OT_AddLod, GFLOW_OT_RemoveLod]
 
 
 def register():

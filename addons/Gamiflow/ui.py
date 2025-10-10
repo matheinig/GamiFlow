@@ -30,7 +30,9 @@ class GFLOW_PT_Panel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         op = row.operator("gflow.toggle_set_visibility", text="High", depress=sets.getCollectionVisibility(context, context.scene.gflow.painterHighCollection))
         op.collectionId = 2
         op = row.operator("gflow.toggle_set_visibility", text="Final", depress=sets.getCollectionVisibility(context, context.scene.gflow.exportCollection))
-        op.collectionId = 3            
+        op.collectionId = 3
+        
+        layout.prop(context.scene.gflow.lod, "current")
 
 
 class GFLOW_PT_WorkingSet(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
@@ -131,7 +133,38 @@ class GFLOW_UL_udims(bpy.types.UIList):
         #if item.obj: layout.prop(item.obj.gflow, "objType", text="")
         
       
+class GFLOW_PT_LodsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
+    bl_label = "LODs"
+    bl_parent_id = "GFLOW_PT_PANEL"
+    bl_options = {"DEFAULT_CLOSED"} 
+    def draw(self, context):
+        layout = self.layout
 
+        gflow = context.scene.gflow
+
+        row = self.layout.row()
+        row.template_list("GFLOW_UL_lod", "", gflow.lod, "lods", gflow.lod, "current", rows=4)
+        col = row.column(align=True)
+        col.operator("gflow.add_lod", icon='ADD', text="")
+        col.operator("gflow.remove_lod", icon='REMOVE', text="")
+        
+        if gflow.lod.current<len(gflow.lod.lods):
+            lod = gflow.lod.lods[gflow.lod.current]
+            row = self.layout.row()
+            row.prop(lod, "decimate")
+            row.prop(lod, "decimateAmount", text='')
+            self.layout.prop(lod, "decimatePreserveSeams")
+        
+class GFLOW_UL_lod(bpy.types.UIList):
+    def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, index):
+        split = layout.split(factor=0.25, align=True)
+        split.label(text=str(index), icon="MONKEY")
+        row = split.row(align=True)
+        if item.decimate:
+            row.prop(item, "decimate", text="")
+            row.prop(item, "decimateAmount")
+        else:
+            row.prop(item, "decimate")
 
 # Object settings
 class GFLOW_PT_OBJ_PANEL(bpy.types.Panel):
@@ -360,6 +393,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
         self.layout.use_property_decorate = False
         if obj.type == 'MESH':
             self.layout.prop(gflow, "exportable")
+            self.layout.prop(gflow, "maxLod")
+
             self.layout.prop(gflow, "exportAnchor")
             
             if bpy.app.version >= (4,4,0):
@@ -412,6 +447,8 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         #self.layout.use_property_split = True
         self.layout.use_property_decorate = False    
         
+        self.layout.prop(context.scene.gflow.lod, "current")
+        
         self.layout.label(text="UVs")
         # UV Scale
         row = self.layout.row(align=True)
@@ -434,7 +471,7 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         # Detail edges
         row = self.layout.row()
         op = row.operator("gflow.set_edge_level", text="Dissolve", icon='EDGESEL')
-        op.level = geotags.GEO_EDGE_LEVEL_LOD0
+        op.level = geotags.GEO_EDGE_LEVEL_LOD0+context.scene.gflow.lod.current
         op = row.operator("gflow.set_edge_level", text="Clear")
         op.level = geotags.GEO_EDGE_LEVEL_DEFAULT        
         op = row.operator("gflow.select_edge_level", text="Select")
@@ -442,9 +479,8 @@ class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
         # Detail Faces
         row = self.layout.row()
         op = row.operator("gflow.set_face_level", text="Dissolve", icon='FACESEL')
-        op.detail = True
         op = row.operator("gflow.set_face_level", text="Clear")
-        op.detail = False        
+        op.deleteFromLevel = -1       
         op = row.operator("gflow.select_face_level", text="Select detail")
           
 # Context menus (right click in viewport)
@@ -456,14 +492,17 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
         layout = self.layout
         layout.separator()
         
+        lod = context.scene.gflow.lod
+        
         # Edge mode
         if context.tool_settings.mesh_select_mode[1]: 
             layout.label(text="Edge Detail", icon="EDGESEL")
-            layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve")
-            layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse")
+            layout.operator("gflow.set_checkered_ring_edge_level", text="Checkered ring dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
+            layout.operator("gflow.set_checkered_edge_collapse", text="Checkered loop collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
+            layout.operator("gflow.collapse_edge_ring", text="Ring collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
             layout.separator()
-            layout.operator("gflow.set_edge_level", text="Mark for Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0
-            layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0
+            layout.operator("gflow.set_edge_level", text="Mark for Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
+            layout.operator("gflow.set_edge_collapse_level", text="Mark for Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
             layout.operator("gflow.set_edge_level", text="Mark as Cage").level = geotags.GEO_EDGE_LEVEL_CAGE
             layout.operator("gflow.unmark_edge", text="Clear")
             
@@ -478,8 +517,8 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
         # Face mode
         if context.tool_settings.mesh_select_mode[2]: 
             layout.label(text="Face Detail", icon="FACESEL")
-            layout.operator("gflow.set_face_level", text="Mark for Deletion").detail = True
-            layout.operator("gflow.set_face_level", text="Clear").detail = False               
+            layout.operator("gflow.set_face_level", text="Mark for Deletion")
+            layout.operator("gflow.set_face_level", text="Clear").deleteFromLevel = -1               
             layout.separator()
             layout.label(text="Face Mirroring", icon="MOD_MIRROR")
             layout.operator("gflow.set_face_mirror", text="Mirror").mirror = "X"   
@@ -548,6 +587,8 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
         pie = layout.menu_pie()
         # Pie order: west, east, south, north, north-west, north-east, south-west, south-east
         
+        lod = context.scene.gflow.lod
+        
         if context.mode == 'OBJECT':
             pie.operator("gflow.set_smoothing")     # W
             pie.operator("gflow.add_bevel")         # E
@@ -558,11 +599,11 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 # Edge mode
                 pie.operator("gflow.set_edge_level", text="Mark Cage Detail").level = geotags.GEO_EDGE_LEVEL_CAGE # W
                 pie.separator() # Empty E
-                pie.operator("gflow.set_edge_collapse_level", text="Mark Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0
+                pie.operator("gflow.set_edge_collapse_level", text="Mark Collapse").level = geotags.GEO_EDGE_COLLAPSE_LOD0+lod.current
                 pie.operator("gflow.add_soft_seam")
                 pie.operator("gflow.add_hard_seam")
                 pie.operator("gflow.clear_seam")
-                pie.operator("gflow.set_edge_level", text="Mark Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0
+                pie.operator("gflow.set_edge_level", text="Mark Dissolve").level = geotags.GEO_EDGE_LEVEL_LOD0+lod.current
                 pie.operator("gflow.unmark_edge", text="Unmark")
             if bpy.context.tool_settings.mesh_select_mode[2] and not bpy.context.tool_settings.mesh_select_mode[1]:
                 pie.operator("gflow.set_face_mirror", text="Mirror", icon='MOD_MIRROR').mirror = "X"        # W
@@ -571,8 +612,8 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 pie.separator() # Empty N          
                 pie.operator("gflow.uv_gridify", text="Gridify", icon='VIEW_ORTHO')
                 pie.operator("gflow.uv_degridify", text="Ungridify", icon='CANCEL')       
-                pie.operator("gflow.set_face_level", text="Mark for Deletion").detail = True
-                pie.operator("gflow.set_face_level", text="Unmark deletion").detail = False               
+                pie.operator("gflow.set_face_level", text="Mark for Deletion")
+                pie.operator("gflow.set_face_level", text="Unmark deletion").deleteFromLevel = -1               
 
                              
                 
@@ -590,8 +631,8 @@ class VIEW3D_OT_PIE_Obj_call(bpy.types.Operator):
 
 classes = [
     GFLOW_OT_ObjectActionSlotPopup,
-    GFLOW_PT_Panel, GFLOW_PT_WorkingSet, GFLOW_PT_PainterPanel, GFLOW_PT_ExportPanel, GFLOW_PT_UdimsPanel,
-    GFLOW_UL_highpolies, GFLOW_UL_udims,
+    GFLOW_PT_Panel, GFLOW_PT_WorkingSet, GFLOW_PT_PainterPanel, GFLOW_PT_ExportPanel, GFLOW_PT_UdimsPanel, GFLOW_PT_LodsPanel,
+    GFLOW_UL_highpolies, GFLOW_UL_udims, GFLOW_UL_lod,
     GFLOW_PT_OBJ_PANEL, GamiflowObjPanel_UV, GamiflowObjPanel_Bake, GamiflowObjPanel_Export,
     GFLOW_PT_OBJ_EDIT_PANEL,
     GFLOW_PT_Overlays,

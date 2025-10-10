@@ -128,7 +128,7 @@ def applyModifiers(context, obj, modifiers):
         # No Shape keys, easy method
         applyModifiers_simple(context, obj, modifiers)
     elif len(obj.data.shape_keys.key_blocks) == 1:
-        # Only one shape key, we delete it and canapply the modifiers
+        # Only one shape key, we delete it and can apply the modifiers
         obj.shape_key_remove(obj.data.shape_keys.key_blocks[0])
         applyModifiers_simple(context, obj, modifiers)
     else:
@@ -143,7 +143,7 @@ def backupOtherModifiers(obj, modifiersToDiscard):
 def applyModifiers_shapeKeys(context, obj, modifiers):
     # Make a backup copy that will retain all the shape key data until we're done
     duplicate = copyObject(obj, context.collection)
-    modifierNames = [mn.name for mn in modifiers]
+    modifierNames = [mn.name for mn in modifiers if mn is not None]
     
     # Remove all the shape keys on the main object
     obj.shape_key_clear()
@@ -248,6 +248,9 @@ def applyModifiers_simple(context, obj, modifiers):
         m.show_viewport = v
         
     return
+def applyModifiers_legacy(context, obj, modifiers):
+    for m in modifiers[:]:
+        bpy.ops.object.modifier_apply(modifier=m.name)
 
 # Mesh islands code from https://blender.stackexchange.com/a/250139
 class BMRegion:
