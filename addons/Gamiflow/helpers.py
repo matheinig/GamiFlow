@@ -221,11 +221,11 @@ def applyModifiers_simple(context, obj, modifiers):
     # Disable the other modifiers for now
     modifiersToKeep = backupOtherModifiers(obj, modifiers)
     for m, v, in modifiersToKeep:
-        m.show_viewport = False
+        if m: m.show_viewport = False
 
     # Evaluate the mesh with only the selected modifiers
     for m in modifiers:
-        m.show_viewport = True
+        if m: m.show_viewport = True
     depsgraph = context.evaluated_depsgraph_get()
     evaluatedMesh = bpy.data.meshes.new_from_object(
         obj.evaluated_get(depsgraph), 
@@ -234,7 +234,7 @@ def applyModifiers_simple(context, obj, modifiers):
     
     # Delete the applied modifiers from the original object
     for m in modifiers:
-        obj.modifiers.remove(m)
+        if m: obj.modifiers.remove(m)
     
     # Replace the original object mesh with the newly evaluated one
     originalMesh = obj.data
@@ -245,12 +245,12 @@ def applyModifiers_simple(context, obj, modifiers):
         
     # Re-enable the saved modifiers and hope for the best
     for m, v in modifiersToKeep:
-        m.show_viewport = v
+        if m: m.show_viewport = v
         
     return
 def applyModifiers_legacy(context, obj, modifiers):
     for m in modifiers[:]:
-        bpy.ops.object.modifier_apply(modifier=m.name)
+        if m: bpy.ops.object.modifier_apply(modifier=m.name)
 
 # Mesh islands code from https://blender.stackexchange.com/a/250139
 class BMRegion:
