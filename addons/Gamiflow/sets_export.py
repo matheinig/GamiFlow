@@ -356,11 +356,13 @@ def decimate(context, obj, lodSettings, abortOnShapekeys=False):
         
         
 def generateLod(context, obj, collection, level, originalObjects, lodSettings):
-    lodsuffix = "_lod"+str(level)
+    stgs = settings.getSettings()
+    lodsuffix = stgs.lodsuffix+str(level)
     if level>obj.gflow.maxLod: return None
     newobj = None
     if (obj.type == 'MESH' or obj.type == 'EMPTY') and obj in originalObjects:
         newobj = sets.duplicateObject(obj, collection, suffix=lodsuffix, workingSuffix="", link=False)
+        newobj.name = newobj.name.replace(stgs.lodsuffix+"0", "") # hack to remove the original lod0 suffix
         if obj.type == 'MESH':
             sets.collapseEdges(context, newobj, level)
             sets.deleteDetailFaces(context, newobj, level)
@@ -388,6 +390,9 @@ def generateExport(context):
     
     stgs = settings.getSettings()
     exportSuffix = stgs.exportsuffix
+    if len(context.scene.gflow.lod.lods)>1:
+        exportSuffix = stgs.lodsuffix+"0"
+    
     workingSuffix = stgs.workingsuffix
     
     # Get a list of all the actions present now
@@ -706,7 +711,7 @@ def generateExport(context):
     newActions = set(bpy.data.actions)
     toDelete = newActions-actions
     for a in toDelete:
-        print("GamiFlow: Cleaning up action"+a.name+" thatshouldn't have created in the first place")
+        print("GamiFlow: Cleaning up action"+a.name+" that shouldn't have created in the first place")
         bpy.actions.remove(a)
     
     if stgs.renameExportMeshes:

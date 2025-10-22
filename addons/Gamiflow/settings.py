@@ -19,6 +19,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     lpsuffix : bpy.props.StringProperty(name = "Low poly", default = "_low")
     decalsuffix : bpy.props.StringProperty(name = "Decal", default = "_ignorebf")
     exportsuffix : bpy.props.StringProperty(name = "Export", default = "_e", description="Blender does not allow multiple objects to have the same name, so we have to suffix them with something else.")
+    lodsuffix : bpy.props.StringProperty(name = "LoD", default = "_LOD", description="")
     cageprefix : bpy.props.StringProperty(name = "Cage", default = "cage_")
     mergeExportMeshes : bpy.props.BoolProperty(name = "Auto merge", default=True, description="Collapses hierarchies when possible and when allowed")
     renameExportMeshes : bpy.props.BoolProperty(name = "Rename meshes", default=True, description="Renames meshes so that they have the same name as their object")
@@ -91,7 +92,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "lpsuffix")
         layout.prop(self, "hpsuffix")
         layout.prop(self, "decalsuffix")
-        layout.prop(self, "exportsuffix")
+        row = layout.row()
+        row.prop(self, "exportsuffix")
+        row.prop(self, "lodsuffix")
         layout.prop(self, "cageprefix")
         
         layout.label(text="Working set")
