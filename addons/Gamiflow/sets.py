@@ -154,6 +154,7 @@ def getSetName(context):
 
 def setLayerCollectionVisibility(lco, visibility, recursive=True):
     lco.exclude = not visibility
+    lco.collection.hide_viewport = lco.exclude
     if recursive:
         for c in lco.children: setLayerCollectionVisibility(c, visibility, recursive)
 def setCollectionVisibility(context, coll, visibility, recursive=True):
