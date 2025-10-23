@@ -398,6 +398,14 @@ def generateExport(context):
     # Get a list of all the actions present now
     actions = set(bpy.data.actions)
     
+    # Force all the armatures back to their rest position
+    # This prevents unexpected issues when applying data transfer modifiers on skinned objects
+    armatures = []
+    for o in context.scene.gflow.workingCollection.all_objects: # it's using the working set because armatures are instanced and we don't have them in the export set yet
+        if o.type == 'ARMATURE':
+            armatures.append(o.data)
+            o.data.pose_position = 'REST'
+    
 #BEGINTRIM --------------------------------------------------
     # Show the decalmachine layers (necessary)
     if settings.isDecalMachineEnabled(settings.getSettings()):
@@ -702,11 +710,15 @@ def generateExport(context):
     if context.scene.gflow.exportFormat == "GLTF" and context.scene.gflow.exportTarget == "SKETCHFAB":
         for o in collection.all_objects:
             if o.type == 'MESH': uv.flipUVs(o)
-                
+
     # Remove custom gamiflow data
     for o in collection.all_objects:
         if o.type=='MESH': geotags.removeObjectLayers(o)                
-                
+
+    # Reset the armatures back to their useful state
+    for armature in armatures:
+        armature.pose_position = 'POSE'
+
     # Cleanup the actions that were potentially accidentally duplicated
     newActions = set(bpy.data.actions)
     toDelete = newActions-actions
