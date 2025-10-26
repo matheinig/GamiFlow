@@ -328,6 +328,7 @@ def triangulateObjects(context, objects):
 def decimate(context, obj, lodSettings, abortOnShapekeys=False):
     if not lodSettings.decimate: return
     if obj.type != 'MESH': return
+    if not obj.gflow.allowDecimation: return
     
     # remove all shape keys, otherwise the decimation won't work
     if obj.data.shape_keys:

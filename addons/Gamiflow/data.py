@@ -101,6 +101,7 @@ class GFlowObject(bpy.types.PropertyGroup):
     doubleSided: bpy.props.BoolProperty(name="Double-sided", default=False)
     instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)
     mergeWithParent: bpy.props.BoolProperty(name="Merge with parents", default=True)
+    allowDecimation: bpy.props.BoolProperty(name="Allow decimation", default=True)
     exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set")
     exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
     exportActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='')

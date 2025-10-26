@@ -148,7 +148,8 @@ class GFLOW_PT_LodsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         col.operator("gflow.add_lod", icon='ADD', text="")
         col.operator("gflow.remove_lod", icon='REMOVE', text="")
         
-        if gflow.lod.current<len(gflow.lod.lods):
+        DisplayLodMenu = False # currently we can fit everything in the list
+        if gflow.lod.current<len(gflow.lod.lods) and DisplayLodMenu:
             lod = gflow.lod.lods[gflow.lod.current]
             row = self.layout.row()
             row.prop(lod, "decimate")
@@ -157,12 +158,13 @@ class GFLOW_PT_LodsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         
 class GFLOW_UL_lod(bpy.types.UIList):
     def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, index):
-        split = layout.split(factor=0.25, align=True)
-        split.label(text=str(index), icon="MONKEY")
+        split = layout.split(factor=0.1, align=True)
+        split.label(text=str(index))
         row = split.row(align=True)
         if item.decimate:
             row.prop(item, "decimate", text="")
             row.prop(item, "decimateAmount")
+            row.prop(item, "decimatePreserveSeams", text="", icon="STICKY_UVS_VERT")
         else:
             row.prop(item, "decimate")
 
@@ -339,9 +341,9 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
                 self.layout.prop(gflow, "bakeAction")
-                self.layout.operator("gflow.action_slot_popup", text="Set Bake Slot", icon='ACTION_SLOT').mode = 'BAKE'
                 self.layout.prop(gflow, "bakeActionObjectSlotName")
                 self.layout.prop(gflow, "bakeActionShapekeySlotName")
+                self.layout.operator("gflow.action_slot_popup", text="Set Bake Slot", icon='ACTION_SLOT').mode = 'BAKE'
             else:
                 self.layout.prop(gflow, "bakeAction")            
             
@@ -363,8 +365,8 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
                 self.layout.prop(gflow, "bakeAction")
-                self.layout.operator("gflow.action_slot_popup", text="Set Bake Slot", icon='ACTION_SLOT').mode = 'BAKE'
                 self.layout.prop(gflow, "bakeActionObjectSlotName")
+                self.layout.operator("gflow.action_slot_popup", text="Set Bake Slot", icon='ACTION_SLOT').mode = 'BAKE'
             else:
                 self.layout.prop(gflow, "bakeAction")  
         elif obj.type == 'EMPTY':
@@ -393,16 +395,20 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
         self.layout.use_property_decorate = False
         if obj.type == 'MESH':
             self.layout.prop(gflow, "exportable")
+            
+            self.layout.separator()
             self.layout.prop(gflow, "maxLod")
+            self.layout.prop(gflow, "allowDecimation")
+            self.layout.separator()
 
             self.layout.prop(gflow, "exportAnchor")
             
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
                 self.layout.prop(gflow, "exportAction")
-                self.layout.operator("gflow.action_slot_popup", text="Set Export Slot", icon='ACTION_SLOT').mode = 'EXPORT'
                 self.layout.prop(gflow, "exportActionObjectSlotName")
                 self.layout.prop(gflow, "exportActionShapekeySlotName")
+                self.layout.operator("gflow.action_slot_popup", text="Set Export Slot", icon='ACTION_SLOT').mode = 'EXPORT'
             else:
                 self.layout.prop(gflow, "exportAction")
             self.layout.separator()
@@ -411,8 +417,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
         elif obj.type == 'ARMATURE':
             if bpy.app.version >= (4,4,0):
                 self.layout.prop(gflow, "exportAction")
-                self.layout.operator("gflow.action_slot_popup", text="Set Export Slot", icon='ACTION_SLOT').mode = 'EXPORT'
                 self.layout.prop(gflow, "exportActionObjectSlotName")
+                self.layout.operator("gflow.action_slot_popup", text="Set Export Slot", icon='ACTION_SLOT').mode = 'EXPORT'
             else:
                 self.layout.prop(gflow, "exportAction")        
         elif obj.type == 'EMPTY':
