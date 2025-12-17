@@ -2,6 +2,7 @@ import bpy
 from . import geotags
 from . import sets
 from . import settings
+from . import helpers
 from bl_ui import anim
 # Side panel
 class GFLOW_PT_BASE_PANEL(bpy.types.Panel):
@@ -683,5 +684,5 @@ def unregister():
     bpy.types.VIEW3D_MT_object_context_menu.remove(draw_object_menu)
     
     for c in reversed(classes): 
-        bpy.utils.unregister_class(c)
+        helpers.safeUnregisterClass(c)
     pass

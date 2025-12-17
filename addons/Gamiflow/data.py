@@ -3,6 +3,7 @@ from . import uv
 from . import display
 from . import sets_cage
 from . import enums
+from . import helpers
 
 # Per object
 class GFlowHighPolyItem(bpy.types.PropertyGroup):
@@ -186,35 +187,22 @@ class GFlowScene(bpy.types.PropertyGroup):
     # Overlays
     overlays : bpy.props.PointerProperty(type=GFlowDisplay, name="Overlays")
     
-
+classes = [GFlowHighPolyItem, GFlowObject,
+        GFlowUdim, GFlowDisplay, GFlowLod, GFlowLods, GFlowScene,
+]
 
 def register():
-    bpy.utils.register_class(GFlowHighPolyItem)
-    bpy.utils.register_class(GFlowObject)
+    for c in classes: 
+        bpy.utils.register_class(c)
+
     bpy.types.Object.gflow = bpy.props.PointerProperty(type=GFlowObject)
-    
-    bpy.utils.register_class(GFlowUdim)
-    bpy.utils.register_class(GFlowDisplay)
-    bpy.utils.register_class(GFlowLod)
-    bpy.utils.register_class(GFlowLods)
-    bpy.utils.register_class(GFlowScene)
     bpy.types.Scene.gflow = bpy.props.PointerProperty(type=GFlowScene)
         
     
 
 def unregister():
-    #del bpy.types.View3DOverlay.gflow
-    #bpy.utils.unregister_class(GFlowDisplay)
-
     del bpy.types.Object.gflow
-    bpy.utils.unregister_class(GFlowObject)
-    bpy.utils.unregister_class(GFlowHighPolyItem)
-    
     del bpy.types.Scene.gflow
-    bpy.utils.unregister_class(GFlowScene) 
-    bpy.utils.unregister_class(GFlowLods)
-    bpy.utils.unregister_class(GFlowLod)
-    bpy.utils.unregister_class(GFlowDisplay)
-    bpy.utils.unregister_class(GFlowUdim)
     
-    pass
+    for c in reversed(classes): 
+        helpers.safeUnregisterClass(c)

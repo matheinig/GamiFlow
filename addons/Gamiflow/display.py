@@ -551,7 +551,7 @@ def register():
     
 def unregister():
     for c in reversed(classes): 
-        bpy.utils.unregister_class(c)
+        helpers.safeUnregisterClass(c)
         
     for handler in handlers:
         bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')

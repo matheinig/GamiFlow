@@ -305,6 +305,12 @@ def bm_loose_parts(bm):
 
     return loose_parts
 
+def safeUnregisterClass(cl):
+    try:
+        bpy.utils.unregister_class(cl)
+    except:
+        print("GamiFlow could not unregister class "+str(cl))
+
 classes = []
 
 
@@ -314,5 +320,5 @@ def register():
     pass
 def unregister():
     for c in reversed(classes): 
-        bpy.utils.unregister_class(c)
+        safeUnregisterClass(c)
     pass

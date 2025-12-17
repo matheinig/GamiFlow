@@ -240,7 +240,7 @@ def register():
     pass
 def unregister():
     for c in reversed(classes): 
-        bpy.utils.unregister_class(c)
+        helpers.safeUnregisterClass(c)
         
     if msgSubscriber is not None:
         bpy.msgbus.clear_by_owner(msgSubscriber)

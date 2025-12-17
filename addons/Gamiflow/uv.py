@@ -1223,5 +1223,5 @@ def register():
 def unregister():
     bpy.app.handlers.load_post.remove(onLoad)
     for c in reversed(classes): 
-        bpy.utils.unregister_class(c)
+        helpers.safeUnregisterClass(c)
     pass

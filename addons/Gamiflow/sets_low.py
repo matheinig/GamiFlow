@@ -195,5 +195,5 @@ def register():
     pass
 def unregister():
     for c in reversed(classes): 
-        bpy.utils.unregister_class(c)
+        helpers.safeUnregisterClass(c)
     pass

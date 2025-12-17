@@ -638,5 +638,5 @@ def unregister():
     bpy.app.handlers.depsgraph_update_post.remove(checkForNewObjectsAndScenes)
     bpy.app.handlers.load_post.remove(onLoad)
     for c in reversed(classes): 
-        bpy.utils.unregister_class(c)
+        helpers.safeUnregisterClass(c)
     return
