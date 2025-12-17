@@ -984,7 +984,7 @@ def mofUnwrap(context, obj, seamsOnly=False):
     # Run MoF
     mofPath = os.path.join(mofFolder, 'UnWrapConsole3.exe')
     center = " -CENTER "+str(obj.location[0])+" "+str(obj.location[1])+" "+str(obj.location[2]) # Maybe not necessary, mostly for safety
-    command = mofPath + " " + sourceObjPath + " " + resultObjPath + " -NORMALS FALSE -SEPARATE TRUE" + center
+    command = ' "'+mofPath + '" "' + sourceObjPath + '" "' + resultObjPath + '" -NORMALS FALSE -SEPARATE TRUE' + center
     os.popen(command)
 
     # Wait for the output file to exist
