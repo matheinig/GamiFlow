@@ -133,7 +133,12 @@ def updateModifierDependencies(generatorData, obj):
         elif m.type == "ARMATURE":
             if m.object:
                 generated = generatorData.findGenerated(m.object)
-                if generated and len(generated)>0: m.object = generated[0]             
+                if generated and len(generated)>0: m.object = generated[0]       
+        elif m.type == "NODES":
+            for i in m.node_group.interface.items_tree:
+                if i.socket_type == "NodeSocketObject":
+                    generated = generatorData.findGenerated(m[i.identifier])
+                    if generated and len(generated)>0: m[i.identifier] = generated[0]                     
                 
 def _findLayerCollRec(layerCol, targetCol):
     for c in layerCol.children:
