@@ -8,6 +8,8 @@ from . import helpers
 # Per object
 class GFlowHighPolyItem(bpy.types.PropertyGroup):
     obj : bpy.props.PointerProperty(type=bpy.types.Object, name="High-poly")
+class GFlowAnchor(bpy.types.PropertyGroup):
+    obj : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor")
 
 def udimItemGenerator(self,context):
     items = []
@@ -103,7 +105,10 @@ class GFlowObject(bpy.types.PropertyGroup):
     instanceAllowExport: bpy.props.BoolProperty(name="Export Instance", default=True)
     mergeWithParent: bpy.props.BoolProperty(name="Merge with parents", default=True)
     allowDecimation: bpy.props.BoolProperty(name="Allow decimation", default=True)
-    exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set")
+    exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set") # deprecated
+    exportAnchors: bpy.props.CollectionProperty(type=GFlowAnchor)
+    ui_selectedExportAnchor : bpy.props.IntProperty(name="[UI] Anchor Index", default=0, description="Internal")
+    
     exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
     exportActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='')
     exportActionShapekeySlotName: bpy.props.StringProperty(name="Pose Slot (Shape key)", default='')
@@ -187,7 +192,7 @@ class GFlowScene(bpy.types.PropertyGroup):
     # Overlays
     overlays : bpy.props.PointerProperty(type=GFlowDisplay, name="Overlays")
     
-classes = [GFlowHighPolyItem, GFlowObject,
+classes = [GFlowHighPolyItem, GFlowAnchor, GFlowObject,
         GFlowUdim, GFlowDisplay, GFlowLod, GFlowLods, GFlowScene,
 ]
 

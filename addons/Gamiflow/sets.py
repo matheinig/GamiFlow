@@ -16,7 +16,7 @@ def backwardCompatibility(scene):
     if len(realScene.gflow.lod.lods) == 0:
         realScene.gflow.lod.lods.add()
 
-    currentVersion = 2
+    currentVersion = 3
     if scene.gflow.version == currentVersion: return
     
     print("[GamiFlow] Scene "+scene.name + " was saved in different version ("+str(scene.gflow.version)+")")
@@ -29,13 +29,20 @@ def backwardCompatibility(scene):
         # After version 1, we have a flag that says if the object is already known by gflow
         for o in realScene.objects:
             o.gflow.registered = True
-    # In version two, the old DECAL projeciton type has been removed and replaced by PROJECTED + single-faced
+    # In version two, the old DECAL projection type has been removed and replaced by PROJECTED + single-faced
     if realScene.gflow.version < 2:
         for o in realScene.objects:
             if o.gflow.objType == "DECAL":
                 o.gflow.objType = "PROJECTED"
                 o.gflow.singleSided = True
-            
+    # In version 3, the object export anchor was replaced with a list of export anchors
+    if realScene.gflow.version < 3:
+        for o in realScene.objects:
+            if o.gflow.exportAnchor:
+                # turn the export anchors into a 1-sized array
+                if len(o.gflow.exportAnchors)==0: o.gflow.exportAnchors.add()
+                o.gflow.exportAnchors[0].obj = o.gflow.exportAnchor
+        pass
     realScene.gflow.version = currentVersion 
 
 registeredScenesCount = 0
@@ -518,6 +525,30 @@ class GFLOW_OT_SelectHighPoly(bpy.types.Operator):
         #    return {"CANCELLED"}
             
         return {"FINISHED"} 
+        
+        
+class GFLOW_OT_AddExportAnchor(bpy.types.Operator):
+    bl_idname      = "gflow.add_export_anchor"
+    bl_label       = "Add Anchor"
+    bl_description = "Add an export anchor"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        obj = context.object
+        obj.gflow.exportAnchors.add()
+        obj.gflow.ui_selectedExportAnchor = len(obj.gflow.exportAnchors)-1
+        return {"FINISHED"} 
+class GFLOW_OT_RemoveExportAnchor(bpy.types.Operator):
+    bl_idname      = "gflow.remove_export_anchor"
+    bl_label       = "Remove Anchor"
+    bl_description = "Remove the selected export anchor"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        obj = context.object
+        obj.gflow.exportAnchors.remove(obj.gflow.ui_selectedExportAnchor)
+        obj.gflow.ui_selectedExportAnchor = min( obj.gflow.ui_selectedExportAnchor, len(obj.gflow.exportAnchors)-1)
+        return {"FINISHED"}        
 
 def isObjectInHighList(active, potentialObj):
     for hp in active.gflow.highpolys:
@@ -626,7 +657,9 @@ class GFLOW_OT_RemoveLod(bpy.types.Operator):
         
         
 classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
-    GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly, GFLOW_OT_ProjectToActive,
+    GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly, 
+    GFLOW_OT_AddExportAnchor, GFLOW_OT_RemoveExportAnchor,
+    GFLOW_OT_ProjectToActive,
     GFLOW_OT_MarkHardSeam, GFLOW_OT_MarkSoftSeam, GFLOW_OT_ClearSeam,
     GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility,
     GFLOW_OT_AddLod, GFLOW_OT_RemoveLod]

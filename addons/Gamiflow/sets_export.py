@@ -292,11 +292,13 @@ def mergeObjects(context, objects):
         result.append(chunk.mergedObject)
     return result
 
-def triangulateObject(context, obj):
+def triangulateObject(context, obj, dependencies=None):
     # there are bmesh and mesh approaches, but none of them preserve normals
     # and bmesh can't even access loop normals for some obscure reason...
 
     helpers.setSelected(context, obj)
+    if dependencies: # in case of linked duplicates, we have to first unlink one instance and apply the modifiers to it
+        obj.data = obj.data.copy()
     tri = sets.triangulate(context, obj)
     sets.enforceModifiersOrder(context, obj)
     weightedNormal = sets.getFirstModifierOfType(obj, 'WEIGHTED_NORMAL')
@@ -305,7 +307,14 @@ def triangulateObject(context, obj):
         bpy.ops.object.modifier_apply(modifier=tri.name)
     else:
         helpers.applyModifiers_shapeKeys(context, obj, [weightedNormal, tri])
-    helpers.setDeselected(obj)    
+    helpers.setDeselected(obj)
+    
+    if dependencies: # we can now give the triangulated mesh to the other duplicates
+        oldMesh = dependencies[0].data
+        for d in dependencies:
+            d.data = obj.data
+        obj.data.name = oldMesh.name
+        
 
 def triangulateObjects(context, objects):
     todo = list(objects)
@@ -323,7 +332,7 @@ def triangulateObjects(context, objects):
                 
     # Handle shared meshes separately
     for (mesh, objs) in objectsUsingMesh.items():
-        triangulateObject(context, objs[0])
+        triangulateObject(context, objs[0], objs[1:])
 
 def decimate(context, obj, lodSettings, abortOnShapekeys=False):
     if not lodSettings.decimate: return
@@ -586,9 +595,17 @@ def generateExport(context):
             sets.deleteObject(o)
 
     # Deal with the anchors
-    for o in gen.generated:
-        if o.gflow.exportAnchor:
-            o.matrix_world = o.gflow.exportAnchor.matrix_world.copy()
+    for o in list(gen.generated):
+        for anchorId, anchor in enumerate(o.gflow.exportAnchors):
+            if not anchor.obj: continue
+            if anchorId == 0:
+                o.matrix_world = anchor.obj.matrix_world.copy()
+            else:
+                # Make a copy of the object and place it
+                clone = sets.duplicateObject(o, collection, prefix="", suffix=anchor.obj.name, workingSuffix="", link=False)
+                gen.register(clone, gen.findSource(o))
+                clone.matrix_world = anchor.obj.matrix_world.copy()
+            
 
     # Lightmap UVs generation
     if context.scene.gflow.lightmapUvs:

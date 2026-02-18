@@ -402,7 +402,19 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             self.layout.prop(gflow, "allowDecimation")
             self.layout.separator()
 
-            self.layout.prop(gflow, "exportAnchor")
+            # Anchors list
+            self.layout.label(text="Export anchors")
+            row = self.layout.row()
+            row.template_list("GFLOW_UL_exportAnchors", "", gflow, "exportAnchors", gflow, "ui_selectedExportAnchor", rows=1)
+            col = row.column(align=True)
+            col.operator("gflow.add_export_anchor", icon='ADD', text="")
+            col.operator("gflow.remove_export_anchor", icon='REMOVE', text="")
+            row = col.row()
+            row.enabled = len(gflow.exportAnchors)>0
+            op = row.operator("gflow.select_by_name", icon='RESTRICT_SELECT_OFF', text="")
+            if row.enabled and gflow.exportAnchors[gflow.ui_selectedExportAnchor].obj is not None: 
+                op.name = gflow.exportAnchors[gflow.ui_selectedExportAnchor].obj.name            
+            
             
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
@@ -430,7 +442,6 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
        
 
 class GFLOW_UL_highpolies(bpy.types.UIList):
-
     def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, _index):
         split = layout.split(factor=0.70)
         c = split.row()
@@ -439,6 +450,12 @@ class GFLOW_UL_highpolies(bpy.types.UIList):
         if item.obj: 
             c = split.row()
             c.prop(item.obj.gflow, "objType", text="")
+
+class GFLOW_UL_exportAnchors(bpy.types.UIList):
+    def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, _index):
+        c = layout.row()
+        c.label(text="", icon="KEYFRAME")
+        c.prop(item, "obj", text="")
         
 # Edit mesh side panel
 class GFLOW_PT_OBJ_EDIT_PANEL(bpy.types.Panel):
@@ -639,7 +656,7 @@ class VIEW3D_OT_PIE_Obj_call(bpy.types.Operator):
 classes = [
     GFLOW_OT_ObjectActionSlotPopup,
     GFLOW_PT_Panel, GFLOW_PT_WorkingSet, GFLOW_PT_PainterPanel, GFLOW_PT_ExportPanel, GFLOW_PT_UdimsPanel, GFLOW_PT_LodsPanel,
-    GFLOW_UL_highpolies, GFLOW_UL_udims, GFLOW_UL_lod,
+    GFLOW_UL_highpolies, GFLOW_UL_exportAnchors, GFLOW_UL_udims, GFLOW_UL_lod,
     GFLOW_PT_OBJ_PANEL, GamiflowObjPanel_UV, GamiflowObjPanel_Bake, GamiflowObjPanel_Export,
     GFLOW_PT_OBJ_EDIT_PANEL,
     GFLOW_PT_Overlays,
