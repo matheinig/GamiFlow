@@ -129,7 +129,7 @@ def drawUvScale():
     #if obj != gCachedObject:
     #    print("test")
     #    gCachedObject = obj
-    with helpers.editModeObserverBmesh(obj) as bm: 
+    with helpers.editModeBmesh(obj) as bm: 
         gCachedUvScaleBatch = makeUvScaleDrawBuffer(bm, gVertexColorShader)
    
     if gCachedUvScaleBatch is None: return
