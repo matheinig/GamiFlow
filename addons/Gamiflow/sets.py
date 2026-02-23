@@ -282,6 +282,9 @@ def removePainterModifiers(context, obj):
     for m in list(obj.modifiers):
         pass
 def applyPainterModifiers(context, obj, isHighPoly):
+    return # applying the armature on its own here is actually dangerous
+    # for example if we have mirrors coming before, it will not work as expected, 
+    # so for now we'll just ignore it, and let all the modifiers be applied together later
     toApply = ['ARMATURE'] if isHighPoly else ['ARMATURE']
     modifiers = [m for m in obj.modifiers if m.type in toApply]
     helpers.applyModifiers(context, obj, modifiers)

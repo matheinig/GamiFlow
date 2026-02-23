@@ -139,6 +139,9 @@ def generatePainterLow(context):
                 sets.applyPainterModifiers(context, newobj, False)
                 sets.enforceModifiersOrder(context, newobj)
                 applyModifiers(context, newobj) # needs to be done if we use any shapekeys
+                # Apply any shape key there might be (painter doesn't always seem to register them)
+                if newobj.data.shape_keys:
+                    bpy.ops.object.shape_key_remove(all=True, apply_mix=True)                
                 helpers.setDeselected(newobj)            
   
         # Now that we have all the objects we can try rebuilding the intended hierarchy
