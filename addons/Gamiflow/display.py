@@ -88,11 +88,10 @@ def makeUvScaleDrawBuffer(bm, shader):
     baseScale = geotags.getUvScaleCode(1.0)
     pos = []
     color = []
-    for looptris in bm.calc_loop_triangles():
-        scaleCode = looptris[0].face[layer]
+    for face in bm.faces:
+        scaleCode = face[layer]
         if scaleCode != baseScale:
-            scale = geotags.getUvScaleFromCode(scaleCode)
-            
+            scale = geotags.getUvScaleFromCode(scaleCode)    
             # Awful colouring
             minv = 0.25
             maxv = 2.0
@@ -103,11 +102,16 @@ def makeUvScaleDrawBuffer(bm, shader):
                 c = (0.8,1.0,0.7)
             if scale > 1.0:
                 a = 1.0-max(min((maxv-scale) / (maxv-1), 1.0), 0.0)
-                c = (1.0,0.5,0.5)            
+                c = (1.0,0.5,0.5)
+            a *= 0.75
+            for i in range(len(face.verts)-2):
+                pos.append( face.verts[0].co )
+                pos.append( face.verts[i+1].co )
+                pos.append( face.verts[i+2].co )
+                color.append( (c[0], c[1], c[2], a) )
+                color.append( (c[0], c[1], c[2], a) )
+                color.append( (c[0], c[1], c[2], a) )
 
-            for loop in looptris:
-                pos.append( loop.vert.co )
-                color.append( (c[0], c[1], c[2], a*0.75) )
     
     batch = batch_for_shader(shader, 
         'TRIS',
@@ -126,12 +130,9 @@ def drawUvScale():
     
     if not gVertexColorShader: gVertexColorShader = createVertexColorShader() 
     
-    #if obj != gCachedObject:
-    #    print("test")
-    #    gCachedObject = obj
-    with helpers.editModeBmesh(obj) as bm: 
+    with helpers.editModeObserverBmesh(obj) as bm: 
         gCachedUvScaleBatch = makeUvScaleDrawBuffer(bm, gVertexColorShader)
-   
+
     if gCachedUvScaleBatch is None: return
 
     model = obj.matrix_world
@@ -274,8 +275,7 @@ def drawMirrored():
     obj = bpy.context.edit_object
     if bpy.context.mode != 'EDIT_MESH': return
     if obj is None: return
-    if bpy.context.tool_settings.mesh_select_mode[2] == False: return 
-    
+
     global gMirrorShader, gCachedMirrorObject, gCachedMirrorBatch
     
     if not gMirrorShader: gMirrorShader = createMirrorShader() 

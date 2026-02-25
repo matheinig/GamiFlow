@@ -377,6 +377,7 @@ def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
 
     helpers.setSelected(context, obj)
     bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='DESELECT')
     with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:   
         mirrorLayer = geotags.getMirrorLayer(bm)
         # Select all the faces we want to mirror
@@ -401,6 +402,43 @@ def generatePartialSymmetryIfNeeded(context, obj, offsetUvs=False):
                 if not face.select: continue
                 for loop in face.loops:
                     loop[uv_layer].uv = loop[uv_layer].uv + uvOffset 
+    
+    # Mirror the vertex weights on the new faces
+    # First find which groups should be mirrored
+    mirrorGroups = {}
+    for g in obj.vertex_groups:
+        name = g.name.lower()
+        if name.endswith('.l'):
+            otherSideName = g.name[0:-1]+'r'
+            if otherSideName in obj.vertex_groups: mirrorGroups[g.index] = obj.vertex_groups[otherSideName].index
+            otherSideName = g.name[0:-1]+'R'
+            if otherSideName in obj.vertex_groups: mirrorGroups[g.index] = obj.vertex_groups[otherSideName].index
+    if len(mirrorGroups.keys())>0:
+        # Do the actual mirroring
+        with helpers.editModeBmesh(obj) as bm:
+            deformLayer = bm.verts.layers.deform.active 
+            for v in bm.verts:
+                if not v.select: continue
+                # Swap the values from the left and right (doesn't matter which one is which)
+                for groupId1, groupId2 in mirrorGroups.items():
+                    groups = v[deformLayer]
+                    # However, vertices aren't necessarily assigned to vertex groups so we have to check it first
+                    inGroup1 = groupId1 in groups.keys()
+                    inGroup2 = groupId2 in groups.keys()
+                    # If the vert exists i4n both groups we can just swap them
+                    if inGroup1 and inGroup2:
+                        temp = groups[groupId1]
+                        groups[groupId1] = groups[groupId2]
+                        groups[groupId2] = temp
+                    else:
+                        # Otherwise we have to read only from the one that exists
+                        if inGroup2:
+                            groups[groupId1] = groups[groupId2]
+                            groups[groupId2] = 0.0 # ideally we would remove the vertex from the group entirely
+                        elif inGroup2:
+                            groups[groupId2] = groups[groupId1]
+                            groups[groupId1] = 0.0 # ideally we would remove the vertex from the group entirely                            
+
     # Try hding the seam by selecting all the open edges and vertex welding them
     # ISSUE: This could potentially have undesirable effects if the user had non-welded vertices along not just the seam, but any open edge
     bpy.ops.mesh.select_all(action='DESELECT')
