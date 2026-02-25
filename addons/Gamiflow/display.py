@@ -266,8 +266,11 @@ def makeMirrorDrawBuffer(bm, shader):
     # Could probably cache all the vertices if all we do is play with the indices
     coords = [ (v.co+v.normal*0.000002)*mirrorFunction for v in bm.verts]
     norms = [v.normal * mirrorFunction for v in bm.verts]
-    indices = [[loop.vert.index for loop in looptris]
-                for looptris in bm.calc_loop_triangles() if looptris[0].face[mirror] != geotags.GEO_FACE_MIRROR_NONE]
+    indices = []
+    for face in bm.faces:
+        if face[mirror] == geotags.GEO_FACE_MIRROR_NONE: continue
+        for i in range(len(face.verts)-2):
+            indices.append([face.verts[0].index, face.verts[i+1].index,face.verts[i+2].index])    
     batch = batch_for_shader(shader, 
         'TRIS',
         {"pos": coords, "normal": norms},
