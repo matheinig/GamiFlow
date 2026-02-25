@@ -181,8 +181,11 @@ def makeGridifyDrawBuffer(bm, shader):
     
     # Could probably cache all the vertices if all we do is play with the indices
     coords = [v.co+v.normal*0.000002 for v in bm.verts]
-    indices = [[loop.vert.index for loop in looptris]
-                for looptris in bm.calc_loop_triangles() if looptris[0].face[gridify] == geotags.GEO_FACE_GRIDIFY_INCLUDE]
+    indices = []
+    for face in bm.faces:
+        if face[gridify] != geotags.GEO_FACE_GRIDIFY_INCLUDE: continue
+        for i in range(len(face.verts)-2):
+            indices.append([face.verts[0].index, face.verts[i+1].index,face.verts[i+2].index])
     batch = batch_for_shader(shader, 
         'TRIS',
         {"pos": coords},
