@@ -25,11 +25,7 @@ def processModifiers(context, generatorData, obj):
             m.offset_u = 1.0
             m.offset_v = 1.0
     sets.updateModifierDependencies(generatorData, obj)
-def applyModifiers(context, obj):
-    if obj.type != 'MESH': return
-    modsToKeep = []
-    modifiers = [m for m in obj.modifiers if m.type not in modsToKeep]
-    helpers.applyModifiers(context, obj, modifiers)            
+           
 
 def generatePainterLow(context):
     lowCollection = getCollection(context, createIfNeeded=False)
@@ -138,7 +134,7 @@ def generatePainterLow(context):
                 sets.removePainterModifiers(context, newobj)
                 sets.applyPainterModifiers(context, newobj, False)
                 sets.enforceModifiersOrder(context, newobj)
-                applyModifiers(context, newobj) # needs to be done if we use any shapekeys
+                sets.applyModifiers(context, newobj) # needs to be done if we use any shapekeys
                 # Apply any shape key there might be (painter doesn't always seem to register them)
                 if newobj.data.shape_keys:
                     bpy.ops.object.shape_key_remove(all=True, apply_mix=True)                
