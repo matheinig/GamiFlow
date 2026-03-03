@@ -215,7 +215,7 @@ def straightenUv(context, obj):
         if not somethingFound: geotags.removeGridifyLayer(bm)
     return
 
-def _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes):
+def _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes, acceptedTypes=['STANDARD']):
     objects = []
     collections = []
     for o in all_objects:
@@ -225,15 +225,15 @@ def _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes):
             collections.extend( colls )
             if o.instance_collection not in collections: collections.append(o.instance_collection)
             continue
-        if helpers.isObjectValidMesh(o) and o.gflow.objType == 'STANDARD':
+        if helpers.isObjectValidMesh(o) and o.gflow.objType in acceptedTypes:
             if o.data not in knownMeshes:
                 objects.append(o)
                 knownMeshes.append(o.data)
             continue
     return objects, collections
-def filterUnwrappableOrPackableObjects(all_objects):
+def filterUnwrappableOrPackableObjects(all_objects, acceptedTypes=['STANDARD']):
     knownMeshes = []
-    return _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes)
+    return _filterUnwrappableOrPackableObjectsRecurs(all_objects, knownMeshes, acceptedTypes)
 
 def autoUnwrap(context, udimIDs, doUnwrap=True, doPack=True):
     unwrappables, collections = filterUnwrappableOrPackableObjects(context.scene.gflow.workingCollection.all_objects)
@@ -269,14 +269,24 @@ def autoUnwrap(context, udimIDs, doUnwrap=True, doPack=True):
 
 def lightmapUnwrap(context, objects):
     # Sanitise the list  
-    obj, collections = filterUnwrappableOrPackableObjects(objects)
+    obj, collections = filterUnwrappableOrPackableObjects(objects, acceptedTypes=['STANDARD', 'NON_BAKED'])
 
     # Make sure all objects have a new UV layer and that it's active
     for o in obj:
         if 'UVLightMap' not in o.data.uv_layers:
-            uv = o.data.uv_layers.new(name='UVLightMap')
+            lightuv = o.data.uv_layers.new(name='UVLightMap')
+            # in case ofa non-baked mesh we assume the base UVs are sacred and shouldbe used as, so we copy them into the lightmap layer
+            # They will get repacked so overlapping bits are no problem
+            if o.type == 'NON_BAKED':
+                with helpers.editModeBmesh(obj, loop_triangles=False, destructive=False) as bm:
+                    baseuv = bm.loops.layers.uv.active
+                    for face in bm.faces:
+                        for loop in face.loops: 
+                            loop[lightuv] = loop[baseuv]
         o.data.uv_layers['UVLightMap'].active = True
 
+    # We technically only want to unwrap the standard objects. Non-baked ones are assumed to have reasonable UVs that shouldn't be touched
+    obj, collections = filterUnwrappableOrPackableObjects(objects, acceptedTypes=['STANDARD'])
     unwrap(context, obj)
 
 def lightmapPack(context, objectGroups):
@@ -284,7 +294,7 @@ def lightmapPack(context, objectGroups):
     ## Note: Do we even care about all the custom scale and orientation?
     
     for grp in objectGroups:
-        objects, collections = filterUnwrappableOrPackableObjects(grp)
+        objects, collections = filterUnwrappableOrPackableObjects(grp, acceptedTypes=['STANDARD', 'NON_BAKED'])
         for o in objects:
             o.data.uv_layers['UVLightMap'].active = True
         pack(context, objects, context.scene.gflow.uvPackSettings)
