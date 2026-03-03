@@ -303,11 +303,12 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
         obj = context.object
         gflow = obj.gflow
         self.layout.use_property_split = True
-        self.layout.use_property_decorate = False           
+        self.layout.use_property_decorate = False    
+
+        isStandard = gflow.objType == "STANDARD"
+        isTrim = gflow.objType == "NON_BAKED"
+        
         if obj.type == 'MESH':
-            isStandard = gflow.objType == "STANDARD"
-            isTrim = gflow.objType == "NON_BAKED"
-     
             self.layout.prop(gflow, "objType")
             
             row = self.layout.row()
@@ -360,7 +361,11 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
                 row.operator("gflow.add_cage_displacement_map", icon="GROUP_VERTEX", text="Add tightness map")
             else:
                 row.operator("gflow.remove_cage_displacement_map", icon="GROUP_VERTEX", text="Clear")
-
+        elif obj.type == 'FONT':
+            self.layout.prop(gflow, "objType")
+            row = self.layout.row()
+            row.enabled = (gflow.includeSelf and isStandard) or gflow.objType == "PROJECTED"
+            row.prop(gflow, "singleSided")        
         elif obj.type == 'ARMATURE':
             # Bake action
             if bpy.app.version >= (4,4,0):
