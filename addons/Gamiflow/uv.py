@@ -42,6 +42,24 @@ def isMofAvailable(stgs):
 def isMofAvailableAndEnbaled(stgs):
     return stgs.useMofUnwrapper and isMofAvailable(stgs)
 #ENDTRIM -----------------------------------------------------  
+
+def copyUvLayerToEnd(obj, uvLayerName):
+    # blender doesn't have a way to reorder UVs, so the best I could come up with was to duplicate the UV
+    # (which creates it at the end of the list)
+    mesh = obj.data
+    tempName = uvLayerName+'_backup'
+    mesh.uv_layers[uvLayerName].name = tempName
+    mesh.uv_layers.new(name=uvLayerName)
+    # Copy the uvs
+    with helpers.objectModeBmesh(obj) as bm:
+        ouv = bm.loops.layers.uv[tempName]
+        nuv = bm.loops.layers.uv[uvLayerName]
+        for f in bm.faces:
+            for loop in f.loops:
+                loop[nuv].uv = loop[ouv].uv
+    mesh.uv_layers.remove(mesh.uv_layers[tempName])
+
+
 def hardenSeams(context, obj):
     return
 
@@ -268,13 +286,22 @@ def autoUnwrap(context, udimIDs, doUnwrap=True, doPack=True):
         sets.setCollectionVisibility(context, c, originalCollectionVisibility[c])    
 
 def lightmapUnwrap(context, objects):
+    stgs = settings.getSettings()
+    uvname = stgs.lightmapUVName
+    desiredLightmapUVIndex = stgs.lightmapUVIndex
+
     # Sanitise the list  
     obj, collections = filterUnwrappableOrPackableObjects(objects, acceptedTypes=['STANDARD', 'NON_BAKED'])
 
     # Make sure all objects have a new UV layer and that it's active
     for o in obj:
-        if 'UVLightMap' not in o.data.uv_layers:
-            lightuv = o.data.uv_layers.new(name='UVLightMap')
+        lightmapIndex = None
+        if uvname not in o.data.uv_layers:
+        
+            # TODO add empty UV layers if the desired lightmap layer is higher
+        
+            lightuv = o.data.uv_layers.new(name=uvname)
+            lightmapIndex = len(o.data.uv_layers)-1
             # in case ofa non-baked mesh we assume the base UVs are sacred and shouldbe used as, so we copy them into the lightmap layer
             # They will get repacked so overlapping bits are no problem
             if o.type == 'NON_BAKED':
@@ -283,7 +310,20 @@ def lightmapUnwrap(context, objects):
                     for face in bm.faces:
                         for loop in face.loops: 
                             loop[lightuv] = loop[baseuv]
-        o.data.uv_layers['UVLightMap'].active = True
+        else:
+            for i, layer in enumerate(o.data.uv_layers):
+                if layer.name == uvname:
+                    lightmapIndex = i
+                    break
+                    
+        o.data.uv_layers[uvname].active = True
+
+        # Enforce the lightmap order
+        if lightmapIndex>desiredLightmapUVIndex:
+            # in this case, we have to move the layers in [desiredLightmapUVIndex, lightmapIndex[ to the end
+            toReplace = [o.data.uv_layers[i].name for i in range(desiredLightmapUVIndex, lightmapIndex)]
+            for name in toReplace:
+                copyMeshUvLayerToEnd(o, name)
 
     # We technically only want to unwrap the standard objects. Non-baked ones are assumed to have reasonable UVs that shouldn't be touched
     obj, collections = filterUnwrappableOrPackableObjects(objects, acceptedTypes=['STANDARD'])
@@ -292,11 +332,11 @@ def lightmapUnwrap(context, objects):
 def lightmapPack(context, objectGroups):
     # Lightmap UVs are packed per object. This is based on how Unity handles lightmapping
     ## Note: Do we even care about all the custom scale and orientation?
-    
+    stgs = settings.getSettings()
     for grp in objectGroups:
         objects, collections = filterUnwrappableOrPackableObjects(grp, acceptedTypes=['STANDARD', 'NON_BAKED'])
         for o in objects:
-            o.data.uv_layers['UVLightMap'].active = True
+            o.data.uv_layers[stgs.lightmapUVName].active = True
         pack(context, objects, context.scene.gflow.uvPackSettings)
 
 def unwrap(context, objects):

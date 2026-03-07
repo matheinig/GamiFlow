@@ -36,8 +36,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default="EXTERNAL"
         )
         
-    renameUVs: bpy.props.BoolProperty(name = "Rename UVs", default=True, description="Rename the active UV layer")
+    renameUVs: bpy.props.BoolProperty(name = "Rename main UVs", default=True, description="Rename the active UV layer")
     uvName : bpy.props.StringProperty(name = "UV name", default = "UVMap")
+    lightmapUVName : bpy.props.StringProperty(name = "Lightmap UV name", default = "UVLightMap")
+    lightmapUVIndex : bpy.props.IntProperty(name="Lightmap UV Index", default=1, min=0)
         
 #BEGINTRIM --------------------------------------------------
     uvPacker : bpy.props.EnumProperty(
@@ -153,6 +155,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
         sub = row.row()
         sub.active = self.renameUVs
         sub.prop(self, "uvName", text="")
+        
+        row = layout.row(align=True)
+        row.prop(self, "lightmapUVName")
+        sub = row.row()
+        sub.prop(self, "lightmapUVIndex", text="Index")
+        
 #BEGINTRIM --------------------------------------------------  
         row = layout.row()
         row.prop(self, "useDecalMachine")

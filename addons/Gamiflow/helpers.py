@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import contextlib
+from . import uv
 
 def findActive3dView(context):
     for area in context.screen.areas:
@@ -240,8 +241,16 @@ def applyModifiers_simple(context, obj, modifiers):
     originalMesh = obj.data
     originalMeshName = originalMesh.name
     obj.data = evaluatedMesh
-    bpy.data.meshes.remove(originalMesh)
     obj.data.name = originalMeshName
+        
+    # Reorder the UVs because the evaluated meshhasa different order for some reason.
+    # We go through the UVs of the original mesh in order and add them to the evaluated mesh before deleting the evaluated mesh's original uvs
+    if len(evaluatedMesh.uv_layers)>1:
+        for ouv in originalMesh.uv_layers:
+            uv.copyUvLayerToEnd(obj, ouv.name)
+            
+        
+    bpy.data.meshes.remove(originalMesh)
         
     # Re-enable the saved modifiers and hope for the best
     for m, v in modifiersToKeep:
