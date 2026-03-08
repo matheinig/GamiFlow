@@ -267,6 +267,8 @@ def autoUnwrap(context, udimIDs, doUnwrap=True, doPack=True):
     if not context.scene.gflow.mergeUdims:
         # Go through all udims and unwrap them
         for texset in udimIDs: 
+            if context.scene.gflow.udims[texset].locked: continue
+        
             # Gather all objects
             obj = [o for o in unwrappables if o.gflow.textureSet == texset]
 

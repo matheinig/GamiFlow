@@ -131,6 +131,7 @@ class GFLOW_UL_udims(bpy.types.UIList):
     def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, _index):
         layout.label(text="", icon="KEYFRAME")
         layout.prop(item, "name", text="")
+        layout.prop(item, "locked", text="", icon='LOCKED')
         #if item.obj: layout.prop(item.obj.gflow, "objType", text="")
         
       

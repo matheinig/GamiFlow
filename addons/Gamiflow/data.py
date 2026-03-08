@@ -118,6 +118,7 @@ class GFlowObject(bpy.types.PropertyGroup):
 gUV_PACK_METHODS = [("FAST", "Fast", "", 0), ("REASONABLE", "Reasonable", "", 1), ("ACCURATE", "Accurate", "", 2)]
 class GFlowUdim(bpy.types.PropertyGroup):
     name : bpy.props.StringProperty(name="UDIM", default="Main")
+    locked : bpy.props.BoolProperty(name="Lock UDIM", default=False, description="Locked UDIMs do not get recomputed when auto-unwrapping")
     # TODO: custom resolution and margin
     
 class GFlowDisplay(bpy.types.PropertyGroup):
