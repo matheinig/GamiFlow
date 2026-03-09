@@ -325,7 +325,7 @@ def lightmapUnwrap(context, objects):
             # in this case, we have to move the layers in [desiredLightmapUVIndex, lightmapIndex[ to the end
             toReplace = [o.data.uv_layers[i].name for i in range(desiredLightmapUVIndex, lightmapIndex)]
             for name in toReplace:
-                copyMeshUvLayerToEnd(o, name)
+                copyUvLayerToEnd(o, name)
 
     # We technically only want to unwrap the standard objects. Non-baked ones are assumed to have reasonable UVs that shouldn't be touched
     obj, collections = filterUnwrappableOrPackableObjects(objects, acceptedTypes=['STANDARD'])
