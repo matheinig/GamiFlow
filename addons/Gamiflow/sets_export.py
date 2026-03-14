@@ -28,6 +28,21 @@ def getCollection(context, createIfNeeded=False):
     if c: c.name = name
     return c
 
+def autoHideLods(context):
+    if len(context.scene.gflow.lod.lods)<2: return
+    collection = getCollection(context)
+    if not collection: return
+    stgs = settings.getSettings()
+    if stgs.autoHideLods:
+        currentLod = context.scene.gflow.lod.current
+        currentLodSuffix = stgs.lodsuffix+str(currentLod)
+
+        for o in list(collection.all_objects):
+            if not o: continue
+            visible = o.name.endswith(currentLodSuffix)
+            if stgs.autoHideViewport: o.hide_set(not visible)
+            if stgs.autoHideRender: o.hide_render = not visible
+
 def applyModifiers(context, obj, legacyMode=False):
     if obj.type != 'MESH': return
     modsToKeep = ['ARMATURE', 'TRIANGULATE', 'WEIGHTED_NORMAL']

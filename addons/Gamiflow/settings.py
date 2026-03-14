@@ -41,6 +41,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
     lightmapUVName : bpy.props.StringProperty(name = "Lightmap UV name", default = "UVLightMap")
     lightmapUVIndex : bpy.props.IntProperty(name="Lightmap UV Index", default=1, min=0)
         
+    autoHideLods : bpy.props.BoolProperty(name = "Auto hide LODs", default=True, description="Hide irrelevant LODs when switching level")
+    autoHideViewport : bpy.props.BoolProperty(name = "Viewport", default=True, description="Auto-hide will hide in viewport")
+    autoHideRender : bpy.props.BoolProperty(name = "Render", default=True, description="Auto-hide will hide in renders")
+    
+        
 #BEGINTRIM --------------------------------------------------
     uvPacker : bpy.props.EnumProperty(
         name="UV Packer",
@@ -160,6 +165,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.prop(self, "lightmapUVName")
         sub = row.row()
         sub.prop(self, "lightmapUVIndex", text="Index")
+        
+        row = layout.row()
+        row.prop(self, "autoHideLods")
+        row.prop(self, "autoHideViewport", text="", icon='HIDE_OFF')
+        row.prop(self, "autoHideRender", text="", icon='RESTRICT_RENDER_OFF')
         
 #BEGINTRIM --------------------------------------------------  
         row = layout.row()

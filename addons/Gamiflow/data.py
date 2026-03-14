@@ -4,6 +4,7 @@ from . import display
 from . import sets_cage
 from . import enums
 from . import helpers
+from . import sets_export
 
 # Per object
 class GFlowHighPolyItem(bpy.types.PropertyGroup):
@@ -24,6 +25,7 @@ def onVisualUdimChange(self, context):
             return
 def onLodChange(self, context):
     display.purgeCache()
+    sets_export.autoHideLods(context)
 def onEdgeOffsetChange(self, context):
     display.purgeCache()
 def onCollectionChanged(self, context):
