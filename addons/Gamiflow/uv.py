@@ -955,6 +955,7 @@ def pack_uvpacker(context):
       "Rotation": int(packer_props.uvp_rotate),
       "FullRotation": packer_props.uvp_fullRotate,
       "Combine": True,
+      "DynamicTiling" : False,
       "TilesX": 1,
       "TilesY": 1,
       "Selection": False
