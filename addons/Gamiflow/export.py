@@ -128,7 +128,7 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
     return
     
 class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
-    """This appears in the tooltip of the operator and in the generated docs"""
+    """Exports both the low and high-poly for Painter."""
     bl_idname = "gflow.export_painter" 
     bl_label = "Export"
 
@@ -174,6 +174,7 @@ def findRoots(objectsList):
 
 
 class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
+    """Exports the final mesh"""
     bl_idname = "gflow.export_final" 
     bl_label = "Export"
 
