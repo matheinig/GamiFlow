@@ -163,9 +163,11 @@ class GFLOW_OT_ExportPainter(bpy.types.Operator, ExportHelper):
         
         if gflow.painterCageCollection and len(gflow.painterCageCollection.objects)>0:
             sets.setCollectionVisibility(context, gflow.painterCageCollection, True)
-            # Because of the way painter matches the geometry, we have to export one cageper texture set
-            exportTextureSets(context, gflow.painterCageCollection, baseName+"_cage", "FBX", exportType=ExportType.BAKE_CAGE)
-        
+            # Because of the way painter matches the geometry, we have to export one cage per texture set
+            if not gflow.mergeUdims:
+                exportTextureSets(context, gflow.painterCageCollection, baseName+"_cage", "FBX", exportType=ExportType.BAKE_CAGE)
+            else:
+                exportCollection(context, gflow.painterCageCollection, baseName+"_cage", "FBX", exportType=ExportType.BAKE_CAGE)
         return {'FINISHED'}
 
 def findRoots(objectsList):
