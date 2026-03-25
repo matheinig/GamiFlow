@@ -59,6 +59,11 @@ def copyUvLayerToEnd(obj, uvLayerName):
                 loop[nuv].uv = loop[ouv].uv
     mesh.uv_layers.remove(mesh.uv_layers[tempName])
 
+def removeSecondaryUvLayers(obj):
+    if len(obj.data.uv_layers)<=1: return
+    for layer in list(obj.data.uv_layers):
+        if not layer.active: obj.data.uv_layers.remove(layer)
+    
 
 def hardenSeams(context, obj):
     return

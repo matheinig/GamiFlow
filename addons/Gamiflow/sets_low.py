@@ -135,6 +135,7 @@ def generatePainterLow(context):
                 sets.applyPainterModifiers(context, newobj, False)
                 sets.enforceModifiersOrder(context, newobj)
                 sets.applyModifiers(context, newobj) # needs to be done if we use any shapekeys
+                uv.removeSecondaryUvLayers(newobj)
                 # Apply any shape key there might be (painter doesn't always seem to register them)
                 if newobj.data.shape_keys:
                     bpy.ops.object.shape_key_remove(all=True, apply_mix=True)                

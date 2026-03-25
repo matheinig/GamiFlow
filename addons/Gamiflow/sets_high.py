@@ -4,6 +4,7 @@ from . import settings
 from . import helpers
 from . import geotags
 from . import sets_cage
+from . import uv
 
 def getCollection(context, createIfNeeded=False):
     c = context.scene.gflow.painterHighCollection
@@ -78,6 +79,7 @@ def processNewObject(context, o, stgs, isBakeObject=False):
     sets.generatePartialSymmetryIfNeeded(context, o)
     sets.removePainterModifiers(context, o)
     processHighModifiers(o)
+    uv.removeSecondaryUvLayers(o)
     
     # We don't need to do this for bake objects,and it means that we don't always need to modify the mesh
     if (not isBakeObject):
