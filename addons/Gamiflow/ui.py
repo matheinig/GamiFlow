@@ -540,7 +540,10 @@ class GFLOW_MT_MESH_CONTEXT(bpy.types.Menu):
 #BEGINTRIM --------------------------------------------------
             layout.operator("gflow.auto_seam")
             layout.operator("gflow.auto_uv")
-#ENDTRIM ---            
+#ENDTRIM ---
+            layout.operator("gflow.auto_harden_seams")
+            layout.operator("gflow.auto_unharden_nonseams")
+            
             layout.operator("gflow.add_soft_seam")
             layout.operator("gflow.add_hard_seam")
             layout.operator("gflow.clear_seam")
@@ -570,13 +573,16 @@ class GFLOW_MT_OBJECT_CONTEXT(bpy.types.Menu):
         layout.operator("gflow.add_bevel") 
         layout.operator("gflow.set_udim")
         layout.label(text="Baking", icon="MESH_MONKEY")
-        layout.operator("gflow.project_to_active")     
-#BEGINTRIM --------------------------------------------------        
+        layout.operator("gflow.project_to_active")
         layout.label(text="Unwrapping", icon="UV")
         layout.operator("gflow.set_unwrap_method")
+#BEGINTRIM --------------------------------------------------        
+        
         layout.operator("gflow.auto_seam")
         layout.operator("gflow.auto_uv")
-#ENDTRIM ---            
+#ENDTRIM ---
+        layout.operator("gflow.auto_harden_seams")
+        layout.operator("gflow.auto_unharden_nonseams")
 
 
 def draw_object_menu(self, context):

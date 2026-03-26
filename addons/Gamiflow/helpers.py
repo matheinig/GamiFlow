@@ -65,6 +65,24 @@ def setParent(o, parent):
     o.matrix_world = matrix
 
 @contextlib.contextmanager
+def autoModeBmesh(obj, mode, loop_triangles=False, destructive=False):
+    if mode=='EDIT_MESH':
+        bm = bmesh.from_edit_mesh(obj.data)
+        bm.faces.ensure_lookup_table()
+    elif mode=='OBJECT':
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bm.faces.ensure_lookup_table()        
+    
+    yield bm
+    
+    if mode=='EDIT_MESH':
+        bmesh.update_edit_mesh(obj.data, loop_triangles=loop_triangles, destructive=destructive)
+    elif mode=='OBJECT':
+        bm.to_mesh(obj.data) 
+        bm.free()
+        
+@contextlib.contextmanager
 def objectModeBmesh(obj):
     bm = bmesh.new()
     if obj.type != 'MESH':

@@ -65,7 +65,19 @@ def removeSecondaryUvLayers(obj):
         if not layer.active: obj.data.uv_layers.remove(layer)
     
 
-def hardenSeams(context, obj):
+
+def hardenSeams(context, obj, angleInDegrees):
+    angleInRadians = math.radians(angleInDegrees)
+    with helpers.autoModeBmesh(obj, context.mode) as bm:
+        for e in bm.edges:
+            if e.seam and not e.is_boundary:
+                e.smooth = e.calc_face_angle() < angleInRadians 
+    return
+def unhardenNonSeams(context, obj):
+    with helpers.autoModeBmesh(obj, context.mode) as bm:
+        for e in bm.edges:
+            if not e.smooth and not e.seam:
+                e.smooth = True
     return
 
 def flipUVs(obj):
@@ -871,6 +883,37 @@ class GFLOW_OT_ShowUv(bpy.types.Operator):
         
         return {"FINISHED"}         
 
+class GFLOW_OT_AutoHardenSeams(bpy.types.Operator):
+    bl_idname      = "gflow.auto_harden_seams"
+    bl_label       = "Sharpen Seams"
+    bl_description = "Sharpens seams based on the edge angle"
+    bl_options = {"REGISTER", "UNDO"}
+    
+    angle : bpy.props.FloatProperty(name = 'Angle', default=math.radians(60), min=0, soft_max=math.radians(180), subtype='ANGLE')
+    
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT' or context.mode == 'EDIT_MESH'
+    def execute(self, context):
+        for o in context.selected_objects:
+            if o.type=='MESH': hardenSeams(context, o, self.angle)
+        return {"FINISHED"} 
+
+class GFLOW_OT_UnhardenNonSeams(bpy.types.Operator):
+    bl_idname      = "gflow.auto_unharden_nonseams"
+    bl_label       = "Unsharpen non-seams"
+    bl_description = "Unsharpens all edges that are not on seams"
+    bl_options = {"REGISTER", "UNDO"}
+    
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT' or context.mode == 'EDIT_MESH'
+    def execute(self, context):
+        for o in context.selected_objects:
+            if o.type=='MESH': unhardenNonSeams(context, o)
+        return {"FINISHED"} 
+
+
 #BEGINTRIM --------------------------------------------------
 
 # PackerIO backend (almost indentical to UV-Packer)
@@ -1267,7 +1310,8 @@ classes = [
     GFLOW_OT_SetUvOrientationVertical, GFLOW_OT_SetUvOrientationHorizontal, GFLOW_OT_SetUvOrientationNeutral,
     GFLOW_OT_SetUvIslandScale,
     GFLOW_OT_AddUdim, GFLOW_OT_RemoveUdim, GFLOW_OT_SetToCurrentUdim,
-    GFLOW_OT_SetUnwrapMethod]
+    GFLOW_OT_SetUnwrapMethod,
+    GFLOW_OT_AutoHardenSeams, GFLOW_OT_UnhardenNonSeams]
 #BEGINTRIM --------------------------------------------------
 classes += [GFLOW_OT_AutoSeam, GFLOW_OT_AutoUV]
 #ENDTRIM --------------------------------------------------
