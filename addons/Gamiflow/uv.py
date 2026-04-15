@@ -556,7 +556,7 @@ def offsetCoordinates(obj, offset=mathutils.Vector((1.0,1.0))):
 
 class GFLOW_OT_AutoUnwrap(bpy.types.Operator):
     bl_idname      = "gflow.auto_unwrap"
-    bl_label       = "Unwrap"
+    bl_label       = "Compute UVs"
     bl_description = "Automatically unwrap everything.\nCtrl-click to only unwrap the selected UDIM.\nShift-click to only repack."
     bl_options = {"REGISTER", "UNDO"}
     
