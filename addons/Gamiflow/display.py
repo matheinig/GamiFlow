@@ -561,6 +561,7 @@ def unregister():
         
     for handler in handlers:
         bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')
+        handlers.remove(handler)
         
     bpy.app.handlers.depsgraph_update_post.remove(mesh_change_listener)
     
