@@ -111,7 +111,15 @@ class GeneratorData:
         source = self.findSource(generatedObj)
         possibleNewParents = self.findGenerated(source.parent)
         newParent = findBestMatch(possibleNewParents, source.parent)
-        if newParent: helpers.setParent(generatedObj, newParent)    
+        if newParent:
+            if source.parent_type == 'OBJECT':
+                helpers.setParent(generatedObj, newParent)
+            else:
+                matrix = generatedObj.matrix_world.copy()
+                generatedObj.parent = newParent
+                generatedObj.parent_type = 'BONE'
+                generatedObj.parent_bone = source.parent_bone
+                generatedObj.matrix_world = matrix
         
 # A source object can have multiple generated objects, 
 # so when checking for what a generated object's parent should be based on what the original parent was, we potentially have multiple possibilities. We choose by looking at a transform that matches.
