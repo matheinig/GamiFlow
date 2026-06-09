@@ -284,7 +284,10 @@ def removePainterModifiers(context, obj):
 def applyModifiers(context, obj, modifiersTypesToKeep = []):
     if obj.type != 'MESH': return
     modifiers = [m for m in obj.modifiers if m.type not in modifiersTypesToKeep]
-    helpers.applyModifiers(context, obj, modifiers) 
+    shapeKeys = None
+    if obj.bakeAction:
+        pass
+    helpers.applyModifiers(context, obj, modifiers, shapeKeys) 
 def applyPainterModifiers(context, obj, isHighPoly):
     return # applying the armature on its own here is actually dangerous
     # for example if we have mirrors coming before, it will not work as expected, 

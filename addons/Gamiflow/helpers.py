@@ -159,7 +159,7 @@ def backupOtherModifiers(obj, modifiersToDiscard):
     for m in obj.modifiers:
         if m not in modifiersToDiscard: backedUp.append([m, m.show_viewport])
     return backedUp
-def applyModifiers_shapeKeys(context, obj, modifiers):
+def applyModifiers_shapeKeys(context, obj, modifiers, shapeKeyIndices=None):
     # Make a backup copy that will retain all the shape key data until we're done
     duplicate = copyObject(obj, context.collection)
     modifierNames = [mn.name for mn in modifiers if mn is not None]
@@ -171,6 +171,8 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
     applyModifiers_simple(context, obj, modifiers)
     
     baseObjBasisShapeKey = obj.shape_key_add(name=duplicate.data.shape_keys.key_blocks[0].name, from_mix=False)
+    if shapeKeyIndices is None:
+        shapeKeyIndices = range(0, len(duplicate.data.shape_keys.key_blocks)-1)    
     
     if len(obj.data.vertices) == len(duplicate.data.vertices):
         # This should probably be redone completely and just apply one modifier at a time which is awful.
@@ -186,8 +188,10 @@ def applyModifiers_shapeKeys(context, obj, modifiers):
         #   ????
         
         # Re-apply the shape keys
-        for index, sk in enumerate(duplicate.data.shape_keys.key_blocks):
+        for index in shapeKeyIndices:
             if index==0: continue
+        
+            sk = duplicate.data.shape_keys.key_blocks[index]
         
             # Duplicate the backup again, but this time keep only one shape key
             morphedObject = copyObject(duplicate, context.collection)

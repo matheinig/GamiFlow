@@ -134,7 +134,7 @@ def generatePainterLow(context):
                 sets.removePainterModifiers(context, newobj)
                 sets.applyPainterModifiers(context, newobj, False)
                 sets.enforceModifiersOrder(context, newobj)
-                sets.applyModifiers(context, newobj) # needs to be done if we use any shapekeys
+                sets.applyModifiers(context, newobj) # needs to be done if we use any shapekeys, but actually we don't have to copy all the shapekeys back, only the ones that will get used in the bake pose
                 uv.removeSecondaryUvLayers(newobj)
                 # Apply any shape key there might be (painter doesn't always seem to register them)
                 if newobj.data.shape_keys:
