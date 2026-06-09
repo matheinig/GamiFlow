@@ -489,6 +489,10 @@ def generateExport(context):
             
             # Rename its UVs
             if stgs.renameUVs and newobj.type == 'MESH':
+                # Make sure we don't already have an inactive uv layer with the target name
+                for uv in newobj.data.uv_layers:
+                    if not uv.active_render and uv.name == stgs.uvName:
+                        uv.name = uv.name + '_renamed'
                 for uv in newobj.data.uv_layers:
                     if uv.active_render: 
                         uv.name = stgs.uvName

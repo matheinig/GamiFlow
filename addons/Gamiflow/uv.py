@@ -60,9 +60,13 @@ def copyUvLayerToEnd(obj, uvLayerName):
     mesh.uv_layers.remove(mesh.uv_layers[tempName])
 
 def removeSecondaryUvLayers(obj):
-    if len(obj.data.uv_layers)<=1: return
-    for layer in list(obj.data.uv_layers):
-        if not layer.active: obj.data.uv_layers.remove(layer)
+    # need to do it this way because deleting layers seems to invalidate the array
+    while len(obj.data.uv_layers)>1:
+        # Find the first inactive UV
+        for layer in list(obj.data.uv_layers):
+            if not layer.active: 
+                obj.data.uv_layers.remove(layer)
+                break
     
 
 
