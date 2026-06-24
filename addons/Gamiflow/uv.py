@@ -373,6 +373,10 @@ def unwrap(context, objects):
         if not o.gflow.unwrap: continue
         
         if len(o.data.uv_layers) == 0: o.data.uv_layers.new(name='UVMap')
+        for uv in o.data.uv_layers:
+            if uv.active_render: 
+                uv.active = True
+                break
         
         o.select_set(True)
         context.view_layer.objects.active = o
