@@ -95,6 +95,7 @@ def processNewObject(context, o, stgs, isBakeObject=False):
     helpers.setDeselected(o)
 
 def generatePainterHigh(context):
+    context.scene.frame_current = 0
     highCollection = getCollection(context, createIfNeeded=False)
     if highCollection: sets.clearCollection(highCollection)
     highCollection = getCollection(context, createIfNeeded=True)
@@ -163,6 +164,8 @@ def generatePainterHigh(context):
 
                 sets.setObjectAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionObjectSlotName)
                 sets.setShapekeyAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionShapekeySlotName)
+                if stgs.removeUnusedShapekeys:
+                    helpers.removeShapeKeysNotInAction(context, newobj, newobj.gflow.bakeAction, helpers.getShapekeySlot(newobj, newobj.gflow.bakeActionShapekeySlotName))            
             
                 # Convert the 'mesh-adjacent' objects into actual meshes
                 if o.type == 'FONT' or o.type == 'CURVE': 

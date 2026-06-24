@@ -35,6 +35,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ],
         default="EXTERNAL"
         )
+    removeUnusedShapekeys: bpy.props.BoolProperty(name = "Remove unused shapekeys", default=True, description="Remove shapekeys that aren't used in the bake action before processing the objects. Can reduce set generation time when using lots of shapekeys, but might be too aggressive and remove necessary shapekeys controlled by drivers.")
         
     renameUVs: bpy.props.BoolProperty(name = "Rename main UVs", default=True, description="Rename the active UV layer")
     uvName : bpy.props.StringProperty(name = "UV name", default = "UVMap")
@@ -151,6 +152,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.label(text="Baking sets")
         layout.prop(self, "baker")
         layout.prop(self, "idMap")
+        layout.prop(self, "removeUnusedShapekeys")
         
         layout.label(text="Export set")
         layout.prop(self, "mergeExportMeshes")

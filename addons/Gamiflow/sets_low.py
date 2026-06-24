@@ -28,6 +28,7 @@ def processModifiers(context, generatorData, obj):
            
 
 def generatePainterLow(context):
+    context.scene.frame_current = 0
     lowCollection = getCollection(context, createIfNeeded=False)
     if lowCollection: sets.clearCollection(lowCollection)
     
@@ -111,10 +112,13 @@ def generatePainterLow(context):
                         r.matrix_world = o.matrix_world @ r.matrix_world  # we also need to move the instances into world space
         #endfor object duplication
   
-        # Apply bake actions before we apply the armature modifiers
+        # Apply bake actions before we apply the armature modifiers. Also get rid of shapekeys we don't need for performance reason
         for newobj in localGen.generated:
+            if newobj.type != 'MESH': continue
             sets.setObjectAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionObjectSlotName)
             sets.setShapekeyAction(newobj, newobj.gflow.bakeAction, newobj.gflow.bakeActionShapekeySlotName)
+            if stgs.removeUnusedShapekeys:
+                helpers.removeShapeKeysNotInAction(context, newobj, newobj.gflow.bakeAction, helpers.getShapekeySlot(newobj, newobj.gflow.bakeActionShapekeySlotName))
   
         # Now go back through all the objects and deal with their mesh data and modifiers
         # It is crucial to wait until the other objects have been created so that we can e.g. change what object is referenced in mirror or array modifiers
@@ -135,6 +139,7 @@ def generatePainterLow(context):
                 sets.applyPainterModifiers(context, newobj, False)
                 sets.enforceModifiersOrder(context, newobj)
                 sets.applyModifiers(context, newobj) # needs to be done if we use any shapekeys, but actually we don't have to copy all the shapekeys back, only the ones that will get used in the bake pose
+                helpers.setSelected(context, newobj)
                 uv.removeSecondaryUvLayers(newobj)
                 # Apply any shape key there might be (painter doesn't always seem to register them)
                 if newobj.data.shape_keys:

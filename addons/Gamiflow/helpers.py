@@ -2,6 +2,7 @@ import bpy
 import bmesh
 import contextlib
 from . import uv
+from bpy_extras import anim_utils
 
 def findActive3dView(context):
     for area in context.screen.areas:
@@ -172,7 +173,7 @@ def applyModifiers_shapeKeys(context, obj, modifiers, shapeKeyIndices=None):
     
     baseObjBasisShapeKey = obj.shape_key_add(name=duplicate.data.shape_keys.key_blocks[0].name, from_mix=False)
     if shapeKeyIndices is None:
-        shapeKeyIndices = range(0, len(duplicate.data.shape_keys.key_blocks)-1)    
+        shapeKeyIndices = range(0, len(duplicate.data.shape_keys.key_blocks))    
     
     if len(obj.data.vertices) == len(duplicate.data.vertices):
         # This should probably be redone completely and just apply one modifier at a time which is awful.
@@ -335,6 +336,60 @@ def bm_loose_parts(bm):
         loose_parts.append(_bm_grow_tagged(seed_vert))
 
     return loose_parts
+
+def getObjectSlot(obj, slotName):
+    if bpy.app.version >= (4,4,0) and slotName != '': 
+        return obj.animation_data.action.slots[slotName]
+    return None
+def getShapekeySlot(obj, slotName):
+    if bpy.app.version >= (4,4,0) and slotName != '': 
+        return obj.data.shape_keys.animation_data.action.slots[slotName]
+    return None
+
+def getCurves(action, slot):
+    if bpy.app.version >= (5,0,0):
+        if action is None or slot is None: return None
+        channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
+        return channelbag.fcurves
+    else:
+        return action.fcurves
+def getShapeKeyFromCurve(fcurve):
+    # format for shapekey: key_blocks["Key 1"].value
+    # format for regular transform: location 
+    if(fcurve.data_path.startswith('key_blocks')):
+        return fcurve.data_path.split('"')[1::2][0]
+    else: 
+        return None
+
+def removeShapeKeysNotInAction(context, obj, action, slot):
+    print("Cleaning up keys for "+obj.name)
+    # Go through all the curves of agiven action and check which key 
+    shape = obj.data.shape_keys # this is actually the whole shapekeys subsystem, the individual shapekeys are in .key_blocks.
+    foundShapekeys = set()
+    foundShapekeys.add(shape.reference_key) # need to make sure we don't delete the basis key
+    curves = getCurves(action, slot)
+    if curves is not None: 
+        for curve in curves:
+            shapeKeyName = getShapeKeyFromCurve(curve)
+            if shapeKeyName: foundShapekeys.add(shape.key_blocks[shapeKeyName])
+    keys_to_delete = [k for k in shape.key_blocks if k not in foundShapekeys]
+    if len(keys_to_delete)>0:
+        # Find the indices of the given shapekeys (apparently the only way to delete them)
+        indices = []
+        for (index, key) in enumerate(obj.data.shape_keys.key_blocks):
+            if key in keys_to_delete: indices.append(index)
+        indices.sort()
+        indices.reverse() # need to go in descending order to not invalidate the array or the indices
+        
+        # Really awful and unsafe way of delete shapekeys
+        setSelected(context, obj)
+        for i in indices:
+            print(i)
+            obj.active_shape_key_index = i
+            bpy.ops.object.shape_key_remove()
+        print(len(obj.data.shape_keys.key_blocks))
+            
+    return
 
 def safeUnregisterClass(cl):
     try:
