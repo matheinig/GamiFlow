@@ -950,6 +950,7 @@ def pack_packerio(context):
       "Rotation": int(props.uio_rotate),
       "TilesX": 1,
       "TilesY": 1,
+      "DynamicTiling" : False,      
     }
     localOptions = {
       "QuickPack": False,
