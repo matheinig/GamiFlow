@@ -555,14 +555,14 @@ def register():
     
     pass
     
-def unregister():
-    for c in reversed(classes): 
-        helpers.safeUnregisterClass(c)
-        
-    for handler in handlers:
+def unregister():   
+    for handler in list(handlers):
         bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')
         handlers.remove(handler)
         
     bpy.app.handlers.depsgraph_update_post.remove(mesh_change_listener)
+    
+    for c in reversed(classes): 
+        helpers.safeUnregisterClass(c)    
     
     pass
