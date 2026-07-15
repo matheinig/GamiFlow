@@ -67,6 +67,8 @@ def processHighModifiers(obj):
     for m in obj.modifiers:
         if m.type == 'MULTIRES':
             m.levels = m.total_levels
+        if m.type == 'NODES':
+            sets.handleGeoNode(obj, m, 'HIGH')
 
 def processNewObject(context, o, stgs, isBakeObject=False):
     helpers.setSelected(context, o)

@@ -19,11 +19,16 @@ def getCollection(context, createIfNeeded=False):
     return c
 
 def processModifiers(context, generatorData, obj):
-    for m in obj.modifiers:
+    for m in list(obj.modifiers):
         # These modifiers need to offset their UV outside of the [0,1] range to avoid bade bakes in Substance Painter
         if m.type == "MIRROR" or m.type == "ARRAY":
             m.offset_u = 1.0
             m.offset_v = 1.0
+        # TODO: in Blender 5.2, the new node-based array modifier does not have uv offset. Might need to make a custom version. For now it's better to disable it here
+        if m.type == 'NODES' and m.name == 'Array':
+            obj.modifiers.remove(m)
+        if m.type == 'NODES':
+            sets.handleGeoNode(obj, m, 'LOW')
     sets.updateModifierDependencies(generatorData, obj)
            
 

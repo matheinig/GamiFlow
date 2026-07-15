@@ -57,6 +57,9 @@ def applyModifiers(context, obj, legacyMode=False):
 def processModifiers(context, generatorData, obj):
     helpers.setSelected(context, obj)
     
+    for m in obj.modifiers:
+        if m.type == 'NODES': sets.handleGeoNode(obj, m, 'EXPORT')
+    
     sets.updateModifierDependencies(generatorData, obj)
     sets_cage.removeCageModifier(context, obj)
     sets.enforceModifiersOrder(context, obj)

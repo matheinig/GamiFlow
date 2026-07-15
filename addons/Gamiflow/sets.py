@@ -137,6 +137,12 @@ def updateModifierDependencies(generatorData, obj):
             if m.offset_object:
                 generated = generatorData.findGenerated(m.offset_object)
                 if generated and len(generated)>0: m.offset_object = generated[0]
+        elif m.type == "NODES" and m.name == 'Array':
+            # find the transform object
+            transformObjectSocket = m.properties.inputs.Socket_24
+            if transformObjectSocket.value:
+                generated = generatorData.findGenerated(transformObjectSocket)
+                if generated and len(generated)>0: transformObjectSocket = generated[0]
         elif m.type == "DATA_TRANSFER":
             if m.object:
                 generated = generatorData.findGenerated(m.object)
@@ -151,10 +157,11 @@ def updateModifierDependencies(generatorData, obj):
                 if generated and len(generated)>0: m.object = generated[0]       
         elif m.type == "NODES":
             for i in m.node_group.interface.items_tree:
-                if i.socket_type == "NodeSocketObject":
-                    generated = generatorData.findGenerated(m[i.identifier])
-                    if generated and len(generated)>0: m[i.identifier] = generated[0]                     
-                
+                if i is bpy.types.NodeTreeInterfaceSocketGeometry:
+                    if i.socket_type == "NodeSocketObject":
+                        generated = generatorData.findGenerated(m[i.identifier])
+                        if generated and len(generated)>0: m[i.identifier] = generated[0]                     
+                    
 def _findLayerCollRec(layerCol, targetCol):
     for c in layerCol.children:
         if c.collection == targetCol: return c
@@ -306,6 +313,60 @@ def enforceModifiersOrder(context, obj):
         bpy.ops.object.modifier_move_to_index(
             modifier=armature.name,
             index=len(obj.modifiers) - 1)
+
+def getGeoSocketId(modifier, name, socketType='INPUT'):
+    for item in modifier.node_group.interface.items_tree:
+        if item.item_type == 'SOCKET' and item.in_out == socketType and item.name == name:
+            return item.identifier
+    return None
+def setGeoInputIfExists(modifier, name, value):
+    if bpy.app.version >= (5,2,0):
+        socket = getGeoSocketId(modifier, name, socketType='INPUT')
+        if socket:
+            modifier.properties.inputs[socket]['value'] = value
+    else:
+        if name in modifier.node_groups.inputs:
+            modifier.node_group.inputs[name] = value
+def getGeoInput(modifier, name, default):
+    if bpy.app.version >= (5,2,0):
+        socket = getGeoSocketId(modifier, name, socketType='INPUT')
+        if socket:
+            return modifier.properties.inputs[socket]['value']    
+    else:
+        if name in modifier.node_group.inputs:
+            return modifier.node_group.inputs[name]
+    return default;
+        
+def handleGeoNode(obj, modifier, currentSet):
+    # First check if the modifier should even exist for the selected set
+    if (not getGeoInput(modifier, 'gflow_allow_low', True)) and currentSet == 'LOW':
+        modifier.show_viewport = False
+    if (not getGeoInput(modifier, 'gflow_allow_high', True)) and currentSet == 'HIGH':
+        modifier.show_viewport = False
+    if (not getGeoInput(modifier, 'gflow_allow_export', True)) and currentSet == 'EXPORT':
+        modifier.show_viewport = False    
+    
+    # Set its node inputs
+    if currentSet == 'LOW':
+        setGeoInputIfExists(modifier, 'gflow_when_low', True)
+        setGeoInputIfExists(modifier, 'gflow_when_high', False)
+        setGeoInputIfExists(modifier, 'gflow_when_cage', False)
+        setGeoInputIfExists(modifier, 'gflow_when_export', False)
+    elif currentSet == 'HIGH':
+        setGeoInputIfExists(modifier, 'gflow_when_low', False)
+        setGeoInputIfExists(modifier, 'gflow_when_high', True)
+        setGeoInputIfExists(modifier, 'gflow_when_cage', False)
+        setGeoInputIfExists(modifier, 'gflow_when_export', False)
+    elif currentSet == 'CAGE':
+        setGeoInputIfExists(modifier, 'gflow_when_low', False)
+        setGeoInputIfExists(modifier, 'gflow_when_high', False)
+        setGeoInputIfExists(modifier, 'gflow_when_cage', True)
+        setGeoInputIfExists(modifier, 'gflow_when_export', False)    
+    else:
+        setGeoInputIfExists(modifier, 'gflow_when_low', False)
+        setGeoInputIfExists(modifier, 'gflow_when_high', False)
+        setGeoInputIfExists(modifier, 'gflow_when_cage', False)
+        setGeoInputIfExists(modifier, 'gflow_when_export', True) 
 
 def getTextureSetName(setNumber, mergeUdims=False):
     if mergeUdims: return bpy.context.scene.gflow.udims[0].name

@@ -162,6 +162,8 @@ def generatePainterCage(context):
             if m.type == 'TRIANGULATE' or m.type == 'ARMATURE':
                 newobj.modifiers.remove(m)
                 continue
+            if m.type == 'NODES':
+                sets.handleGeoNode(newobj, m, 'CAGE')
             # Apply the rest (particularly important for mirror seams)
             bpy.ops.object.modifier_apply(modifier=m.name)
         
