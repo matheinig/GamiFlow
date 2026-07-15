@@ -58,7 +58,7 @@ def processModifiers(context, generatorData, obj):
     helpers.setSelected(context, obj)
     
     for m in obj.modifiers:
-        if m.type == 'NODES': sets.handleGeoNode(obj, m, 'EXPORT')
+        if m.type == 'NODES': sets.handleGeoNode(context, obj, m, 'EXPORT')
     
     sets.updateModifierDependencies(generatorData, obj)
     sets_cage.removeCageModifier(context, obj)

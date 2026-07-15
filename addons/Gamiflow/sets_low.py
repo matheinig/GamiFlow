@@ -28,7 +28,7 @@ def processModifiers(context, generatorData, obj):
         if m.type == 'NODES' and m.name == 'Array':
             obj.modifiers.remove(m)
         if m.type == 'NODES':
-            sets.handleGeoNode(obj, m, 'LOW')
+            sets.handleGeoNode(context, obj, m, 'LOW')
     sets.updateModifierDependencies(generatorData, obj)
            
 

@@ -163,7 +163,7 @@ def generatePainterCage(context):
                 newobj.modifiers.remove(m)
                 continue
             if m.type == 'NODES':
-                sets.handleGeoNode(newobj, m, 'CAGE')
+                sets.handleGeoNode(context, newobj, m, 'CAGE')
             # Apply the rest (particularly important for mirror seams)
             bpy.ops.object.modifier_apply(modifier=m.name)
         

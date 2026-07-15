@@ -337,7 +337,7 @@ def getGeoInput(modifier, name, default):
             return modifier.node_group.inputs[name]
     return default;
         
-def handleGeoNode(obj, modifier, currentSet):
+def handleGeoNode(context, obj, modifier, currentSet):
     # First check if the modifier should even exist for the selected set
     if (not getGeoInput(modifier, 'gflow_allow_low', True)) and currentSet == 'LOW':
         modifier.show_viewport = False
@@ -348,25 +348,31 @@ def handleGeoNode(obj, modifier, currentSet):
     
     # Set its node inputs
     if currentSet == 'LOW':
+        setGeoInputIfExists(modifier, 'gflow_stage', 1)
         setGeoInputIfExists(modifier, 'gflow_when_low', True)
         setGeoInputIfExists(modifier, 'gflow_when_high', False)
         setGeoInputIfExists(modifier, 'gflow_when_cage', False)
         setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'HIGH':
+        setGeoInputIfExists(modifier, 'gflow_stage', 2)
         setGeoInputIfExists(modifier, 'gflow_when_low', False)
         setGeoInputIfExists(modifier, 'gflow_when_high', True)
         setGeoInputIfExists(modifier, 'gflow_when_cage', False)
         setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'CAGE':
+        setGeoInputIfExists(modifier, 'gflow_stage', 3)
         setGeoInputIfExists(modifier, 'gflow_when_low', False)
         setGeoInputIfExists(modifier, 'gflow_when_high', False)
         setGeoInputIfExists(modifier, 'gflow_when_cage', True)
         setGeoInputIfExists(modifier, 'gflow_when_export', False)    
     else:
+        setGeoInputIfExists(modifier, 'gflow_stage', 4)
         setGeoInputIfExists(modifier, 'gflow_when_low', False)
         setGeoInputIfExists(modifier, 'gflow_when_high', False)
         setGeoInputIfExists(modifier, 'gflow_when_cage', False)
         setGeoInputIfExists(modifier, 'gflow_when_export', True) 
+        
+    modifier.node_group.interface_update(context) 
 
 def getTextureSetName(setNumber, mergeUdims=False):
     if mergeUdims: return bpy.context.scene.gflow.udims[0].name
