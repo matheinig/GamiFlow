@@ -623,6 +623,13 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
         pie = layout.menu_pie()
         # Pie order: west, east, south, north, north-west, north-east, south-west, south-east
         
+        # Geometry Node commands
+        if context.area.ui_type == 'GeometryNodeTree':
+            pie.operator("gflow.add_geonode_stage_switch")
+            pie.operator("gflow.add_geonode_togglers")
+            return
+        
+        # 3D view commands
         lod = context.scene.gflow.lod
         
         if context.mode == 'OBJECT':
@@ -650,7 +657,6 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
                 pie.operator("gflow.uv_degridify", text="Ungridify", icon='CANCEL')       
                 pie.operator("gflow.set_face_level", text="Mark for Deletion")
                 pie.operator("gflow.set_face_level", text="Unmark deletion").deleteFromLevel = -1               
-
                              
                 
                 
@@ -693,6 +699,11 @@ def register():
     addon_keymaps.append((km, kmi))    
     # edit Mode
     km = kc.keymaps.new(name='Mesh', space_type='EMPTY')
+    kmi = km.keymap_items.new(VIEW3D_OT_PIE_Obj_call.bl_idname, 'V', 'PRESS', ctrl=False, shift=True)    
+    addon_keymaps.append((km, kmi))   
+
+    # Nodes
+    km = kc.keymaps.new(name='Node Editor', space_type='NODE_EDITOR')
     kmi = km.keymap_items.new(VIEW3D_OT_PIE_Obj_call.bl_idname, 'V', 'PRESS', ctrl=False, shift=True)    
     addon_keymaps.append((km, kmi))   
 

@@ -338,7 +338,121 @@ def safeUnregisterClass(cl):
     except:
         print("GamiFlow could not unregister class "+str(cl))
 
-classes = []
+
+def getGeoSocketId(modifier, name, socketType='INPUT'):
+    for item in modifier.node_group.interface.items_tree:
+        if item.item_type == 'SOCKET' and item.in_out == socketType and item.name == name:
+            return item.identifier
+    return None
+def setGeoInputIfExists(modifier, name, value):
+    if bpy.app.version >= (5,2,0):
+        socket = getGeoSocketId(modifier, name, socketType='INPUT')
+        if socket:
+            # Super dirty way of setting the inputs
+            if isinstance(value, str):
+                exec("modifier.properties.inputs."+socket+".value = '"+str(value)+"'", {'modifier': modifier})
+            else:
+                eval("modifier.properties.inputs."+socket+".value = "+str(value), {'modifier': modifier})
+            #modifier.properties.inputs[socket]['value'] = value # for some reason this only works with ints
+    else:
+        if name in modifier.node_groups.inputs:
+            modifier.node_group.inputs[name] = value
+
+def getGamiflowPanel(geoNodesMod):
+    for item in geoNodesMod.node_group.interface.items_tree:
+        if item.item_type == 'PANEL' and item.name == 'GamiFlow Inputs':
+            return item
+    # nothing found, we have to create it
+    return geoNodesMod.node_group.interface.new_panel('GamiFlow Inputs')
+    
+def getGamiflowInput(geoNodesMod, name, socketType, parent):
+    for item in geoNodesMod.node_group.interface.items_tree:
+        if item.item_type == 'SOCKET' and item.in_out == 'INPUT' and item.name == name and item.socket_type == socketType:
+            return (item, True)
+    return (geoNodesMod.node_group.interface.new_socket(name, socket_type=socketType, parent=parent), False)
+    
+class GFLOW_OT_AddGeoNodeStageSwitch(bpy.types.Operator):
+    bl_idname      = "gflow.add_geonode_stage_switch"
+    bl_label       = "Add stage switch"
+    bl_description = "Adds a switch menu and a parameter that will represent the current set (low, high, export)"
+    bl_options = {"REGISTER", "UNDO"}
+   
+    @classmethod
+    def poll(cls, context):
+        if bpy.app.version < (5,2,0): return False
+        return True
+    def execute(self, context):
+        obj = context.object
+        modifier = obj.modifiers.active
+        if not (modifier and modifier.type == 'NODES'): return
+        
+        # Add the switch node
+        switchNode = modifier.node_group.nodes.new("GeometryNodeMenuSwitch")
+        switchNode.enum_items.clear()
+        switchNode.enum_items.new('Working')
+        switchNode.enum_items.new('Low')
+        switchNode.enum_items.new('High')
+        switchNode.enum_items.new('Cage')
+        switchNode.enum_items.new('Export')
+        switchNode.inputs[0].default_value = 'Working'
+        # Create the modifier inputs
+        panel = getGamiflowPanel(modifier)
+        (stage, exists) = getGamiflowInput(modifier, 'gflow_stage', 'NodeSocketMenu', panel)
+        if not exists: 
+            stage.menu_expanded = True
+        
+        return {"FINISHED"}
+class GFLOW_OT_AddGeoNodeTogglers(bpy.types.Operator):
+    bl_idname      = "gflow.add_geonode_togglers"
+    bl_label       = "Add stage toggles"
+    bl_description = "Adds a boolean input setting whether the modifier can run for each GamiFlow stage"
+    bl_options = {"REGISTER", "UNDO"}
+   
+    @classmethod
+    def poll(cls, context):
+        if bpy.app.version < (5,2,0): return False
+        return True
+    def execute(self, context):
+        obj = context.object
+        modifier = obj.modifiers.active
+        if not (modifier and modifier.type == 'NODES'): return
+        
+        # Create the modifier inputs
+        panel = getGamiflowPanel(modifier)
+        socket, exists = getGamiflowInput(modifier, 'gflow_allow_low', 'NodeSocketBool', panel)
+        if not exists:
+            socket.default_value = True
+            socket.description = "Whether this modifier should be evaluated in the Low-Poly baking set"
+            setGeoInputIfExists(modifier, socket.name, socket.default_value)
+            
+        socket, exists = getGamiflowInput(modifier, 'gflow_allow_high', 'NodeSocketBool', panel)
+        if not exists:
+            socket.default_value = True
+            socket.description = "Whether this modifier should be evaluated in the High-Poly baking set"
+            setGeoInputIfExists(modifier, socket.name, socket.default_value)
+        
+        socket, exists = getGamiflowInput(modifier, 'gflow_allow_cage', 'NodeSocketBool', panel)
+        if not exists:
+            socket.default_value = True
+            socket.description = "Whether this modifier should be evaluated in the baking cage set"
+            setGeoInputIfExists(modifier, socket.name, socket.default_value)
+
+        socket, exists = getGamiflowInput(modifier, 'gflow_allow_export', 'NodeSocketBool', panel)
+        if not exists:
+            socket.default_value = True
+            socket.description = "Whether this modifier should be evaluated in the export set"
+            setGeoInputIfExists(modifier, socket.name, socket.default_value)
+
+        socket, exists = getGamiflowInput(modifier, 'gflow_keep_live', 'NodeSocketBool', panel)
+        socket.default_value = False
+        socket.description = "When enabled, this modifier will not be applied and will remain live. This will likely cause issues if you have other modifiers in the stack that will get applied"
+
+        return {"FINISHED"}  
+
+
+
+
+classes = [GFLOW_OT_AddGeoNodeStageSwitch, GFLOW_OT_AddGeoNodeTogglers]
 
 
 def register():

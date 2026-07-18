@@ -314,22 +314,10 @@ def enforceModifiersOrder(context, obj):
             modifier=armature.name,
             index=len(obj.modifiers) - 1)
 
-def getGeoSocketId(modifier, name, socketType='INPUT'):
-    for item in modifier.node_group.interface.items_tree:
-        if item.item_type == 'SOCKET' and item.in_out == socketType and item.name == name:
-            return item.identifier
-    return None
-def setGeoInputIfExists(modifier, name, value):
-    if bpy.app.version >= (5,2,0):
-        socket = getGeoSocketId(modifier, name, socketType='INPUT')
-        if socket:
-            modifier.properties.inputs[socket]['value'] = value
-    else:
-        if name in modifier.node_groups.inputs:
-            modifier.node_group.inputs[name] = value
+
 def getGeoInput(modifier, name, default):
     if bpy.app.version >= (5,2,0):
-        socket = getGeoSocketId(modifier, name, socketType='INPUT')
+        socket = helpers.getGeoSocketId(modifier, name, socketType='INPUT')
         if socket:
             return modifier.properties.inputs[socket]['value']    
     else:
@@ -348,29 +336,29 @@ def handleGeoNode(context, obj, modifier, currentSet):
     
     # Set its node inputs
     if currentSet == 'LOW':
-        setGeoInputIfExists(modifier, 'gflow_stage', 1)
-        setGeoInputIfExists(modifier, 'gflow_when_low', True)
-        setGeoInputIfExists(modifier, 'gflow_when_high', False)
-        setGeoInputIfExists(modifier, 'gflow_when_cage', False)
-        setGeoInputIfExists(modifier, 'gflow_when_export', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'Low')
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_low', True)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'HIGH':
-        setGeoInputIfExists(modifier, 'gflow_stage', 2)
-        setGeoInputIfExists(modifier, 'gflow_when_low', False)
-        setGeoInputIfExists(modifier, 'gflow_when_high', True)
-        setGeoInputIfExists(modifier, 'gflow_when_cage', False)
-        setGeoInputIfExists(modifier, 'gflow_when_export', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'High')
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_high', True)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'CAGE':
-        setGeoInputIfExists(modifier, 'gflow_stage', 3)
-        setGeoInputIfExists(modifier, 'gflow_when_low', False)
-        setGeoInputIfExists(modifier, 'gflow_when_high', False)
-        setGeoInputIfExists(modifier, 'gflow_when_cage', True)
-        setGeoInputIfExists(modifier, 'gflow_when_export', False)    
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'Cage')
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', True)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)    
     else:
-        setGeoInputIfExists(modifier, 'gflow_stage', 4)
-        setGeoInputIfExists(modifier, 'gflow_when_low', False)
-        setGeoInputIfExists(modifier, 'gflow_when_high', False)
-        setGeoInputIfExists(modifier, 'gflow_when_cage', False)
-        setGeoInputIfExists(modifier, 'gflow_when_export', True) 
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'Export')
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', False)
+        helpers.setGeoInputIfExists(modifier, 'gflow_when_export', True) 
         
     modifier.node_group.interface_update(context) 
 
