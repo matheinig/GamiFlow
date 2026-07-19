@@ -143,16 +143,23 @@ def applyModifiersByName(context, obj, modifierNames):
     return
 def applyModifiers(context, obj, modifiers):
     if modifiers is None or len(modifiers) == 0: return
+    
+    # Filter out the modifiers that we actually need to keep
+    filteredMods = []
+    for m in modifiers:
+        if m.type == 'NODES' and getGeoInput(m, 'gflow_keep_live', False): continue
+        filteredMods.append(m)
+    
     if obj.data.shape_keys is None:
         # No Shape keys, easy method
-        applyModifiers_simple(context, obj, modifiers)
+        applyModifiers_simple(context, obj, filteredMods)
     elif len(obj.data.shape_keys.key_blocks) == 1:
         # Only one shape key, we delete it and can apply the modifiers
         obj.shape_key_remove(obj.data.shape_keys.key_blocks[0])
-        applyModifiers_simple(context, obj, modifiers)
+        applyModifiers_simple(context, obj, filteredMods)
     else:
         # Multiple shape keys, needs the hacky method
-        applyModifiers_shapeKeys(context, obj, modifiers)
+        applyModifiers_shapeKeys(context, obj, filteredMods)
     return
 def backupOtherModifiers(obj, modifiersToDiscard):
     backedUp = []
@@ -357,6 +364,15 @@ def setGeoInputIfExists(modifier, name, value):
     else:
         if name in modifier.node_groups.inputs:
             modifier.node_group.inputs[name] = value
+def getGeoInput(modifier, name, default):
+    if bpy.app.version >= (5,2,0):
+        socket = getGeoSocketId(modifier, name, socketType='INPUT')
+        if socket:
+            return modifier.properties.inputs[socket]['value']    
+    else:
+        if name in modifier.node_group.inputs:
+            return modifier.node_group.inputs[name]
+    return default;
 
 def getGamiflowPanel(geoNodesMod):
     for item in geoNodesMod.node_group.interface.items_tree:

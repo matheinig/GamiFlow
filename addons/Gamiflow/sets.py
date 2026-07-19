@@ -296,6 +296,12 @@ def removeLowModifiers(context, obj):
 def removePainterModifiers(context, obj):
     for m in list(obj.modifiers):
         pass
+def getModifiersToKeep(obj):
+    keep = []
+    for m in obj.modifiers:
+        if m.type == 'NODES' and getGeoInput(m, 'gflow_keep_alive', False):
+            keep.append[m]
+    return keep
 def applyModifiers(context, obj, modifiersTypesToKeep = []):
     if obj.type != 'MESH': return
     modifiers = [m for m in obj.modifiers if m.type not in modifiersTypesToKeep]
@@ -315,23 +321,15 @@ def enforceModifiersOrder(context, obj):
             index=len(obj.modifiers) - 1)
 
 
-def getGeoInput(modifier, name, default):
-    if bpy.app.version >= (5,2,0):
-        socket = helpers.getGeoSocketId(modifier, name, socketType='INPUT')
-        if socket:
-            return modifier.properties.inputs[socket]['value']    
-    else:
-        if name in modifier.node_group.inputs:
-            return modifier.node_group.inputs[name]
-    return default;
+
         
 def handleGeoNode(context, obj, modifier, currentSet):
     # First check if the modifier should even exist for the selected set
-    if (not getGeoInput(modifier, 'gflow_allow_low', True)) and currentSet == 'LOW':
+    if (not helpers.getGeoInput(modifier, 'gflow_allow_low', True)) and currentSet == 'LOW':
         modifier.show_viewport = False
-    if (not getGeoInput(modifier, 'gflow_allow_high', True)) and currentSet == 'HIGH':
+    if (not helpers.getGeoInput(modifier, 'gflow_allow_high', True)) and currentSet == 'HIGH':
         modifier.show_viewport = False
-    if (not getGeoInput(modifier, 'gflow_allow_export', True)) and currentSet == 'EXPORT':
+    if (not helpers.getGeoInput(modifier, 'gflow_allow_export', True)) and currentSet == 'EXPORT':
         modifier.show_viewport = False    
     
     # Set its node inputs
