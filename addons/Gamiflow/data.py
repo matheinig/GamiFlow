@@ -38,9 +38,8 @@ def onCageOffsetChanged(self, context):
     if cageModifier:
         value = self.cageOffset
         if value == 0.0: value = context.scene.gflow.cageOffset
-        id = cageModifier.node_group.interface.items_tree["Offset"].identifier
-        cageModifier[id] = value
-        cageModifier.node_group.interface_update(context)
+        found = helpers.setGeoInputIfExists(cageModifier, "Offset", value)
+        if found: cageModifier.node_group.interface_update(context)
     return
 def onDefaultCageOffsetChanged(self, context):
     if context.scene.gflow.painterCageCollection is None: return
@@ -48,10 +47,8 @@ def onDefaultCageOffsetChanged(self, context):
         if o.gflow.cageOffset == 0:
             cageModifier = sets_cage.getCageModifier(o)
             if cageModifier: 
-                id = cageModifier.node_group.interface.items_tree["Offset"].identifier
-                if cageModifier[id] != self.cageOffset:
-                    cageModifier[id] = self.cageOffset
-                    cageModifier.node_group.interface_update(context)
+                found = helpers.setGeoInputIfExists(cageModifier, "Offset", self.cageOffset)
+                if found: cageModifier.node_group.interface_update(context)
                 
         
     

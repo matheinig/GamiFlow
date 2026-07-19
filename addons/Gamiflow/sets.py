@@ -334,25 +334,33 @@ def handleGeoNode(context, obj, modifier, currentSet):
     
     # Set its node inputs
     if currentSet == 'LOW':
-        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'Low')
+        modStage = 'Low'
+        if bpy.app.version <= (5,2,0):  modStage=3
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', True)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'HIGH':
-        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'High')
+        modStage = 'High'
+        if bpy.app.version <= (5,2,0):  modStage=4    
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', True)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'CAGE':
-        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'Cage')
+        modStage = 'Cage'
+        if bpy.app.version <= (5,2,0):  modStage=5  
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', True)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)    
     else:
-        helpers.setGeoInputIfExists(modifier, 'gflow_stage', 'Export')
+        modStage = 'Export'
+        if bpy.app.version <= (5,2,0):  modStage=6      
+        helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_cage', False)

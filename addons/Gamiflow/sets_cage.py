@@ -114,8 +114,8 @@ def addCageModifier(context, obj):
     modifier.use_pin_to_last = True
     modifier.node_group = bpy.data.node_groups[CAGE_NODE_NAME]
     offset = getObjectCageOffset(context, obj)
-    id = modifier.node_group.interface.items_tree["Offset"].identifier
-    modifier[id] = offset    
+    found = helpers.setGeoInputIfExists(modifier, "Offset", offset)
+    if found: modifier.node_group.interface_update(context)   
     return modifier
 def removeCageModifier(context, obj):
     modifier = getCageModifier(obj)
@@ -156,22 +156,18 @@ def generatePainterCage(context):
         newobj.display_type = 'WIRE'
         helpers.setSelected(context, newobj)
 
-        # Apply modifiers? (unless it's armature?)
-        for m in list(newobj.modifiers):
-            # remove some unwanted modifiers
-            if m.type == 'TRIANGULATE' or m.type == 'ARMATURE':
-                newobj.modifiers.remove(m)
-                continue
+
+        for m in newobj.modifiers:
             if m.type == 'NODES':
                 sets.handleGeoNode(context, newobj, m, 'CAGE')
-            # Apply the rest (particularly important for mirror seams)
-            bpy.ops.object.modifier_apply(modifier=m.name)
+        sets.applyModifiers(context, newobj)
         
         # Add the cage modifier if there wasn't one already
         cage = addCageModifier(context, newobj)
         # Make sure the cage is set to final mode
-        id = cage.node_group.interface.items_tree["Mode"].identifier
-        cage[id] = 1 
+        mode = 1
+        if bpy.app.version >= (5,2,0):  mode='Final'
+        helpers.setGeoInputIfExists(cage, "Mode", mode)
         
 
         pass

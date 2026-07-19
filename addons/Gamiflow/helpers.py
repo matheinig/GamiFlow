@@ -352,26 +352,24 @@ def getGeoSocketId(modifier, name, socketType='INPUT'):
             return item.identifier
     return None
 def setGeoInputIfExists(modifier, name, value):
+    socket = getGeoSocketId(modifier, name, socketType='INPUT')
+    if not socket: return False
     if bpy.app.version >= (5,2,0):
-        socket = getGeoSocketId(modifier, name, socketType='INPUT')
-        if socket:
-            # Super dirty way of setting the inputs
-            if isinstance(value, str):
-                exec("modifier.properties.inputs."+socket+".value = '"+str(value)+"'", {'modifier': modifier})
-            else:
-                eval("modifier.properties.inputs."+socket+".value = "+str(value), {'modifier': modifier})
-            #modifier.properties.inputs[socket]['value'] = value # for some reason this only works with ints
+        # Super dirty way of setting the inputs
+        if isinstance(value, str):
+            exec("modifier.properties.inputs."+socket+".value = '"+str(value)+"'", {'modifier': modifier})
+        else:
+            exec("modifier.properties.inputs."+socket+".value = "+str(value), {'modifier': modifier})
+        #modifier.properties.inputs[socket]['value'] = value # for some reason this only works with ints
     else:
-        if name in modifier.node_groups.inputs:
-            modifier.node_group.inputs[name] = value
+        modifier[socket] = value
+    return True
 def getGeoInput(modifier, name, default):
+    socket = getGeoSocketId(modifier, name, socketType='INPUT')
     if bpy.app.version >= (5,2,0):
-        socket = getGeoSocketId(modifier, name, socketType='INPUT')
-        if socket:
-            return modifier.properties.inputs[socket]['value']    
+        if socket: return modifier.properties.inputs[socket]['value']    
     else:
-        if name in modifier.node_group.inputs:
-            return modifier.node_group.inputs[name]
+        if socket: return modifier[socket]
     return default;
 
 def getGamiflowPanel(geoNodesMod):
@@ -395,7 +393,7 @@ class GFLOW_OT_AddGeoNodeStageSwitch(bpy.types.Operator):
    
     @classmethod
     def poll(cls, context):
-        if bpy.app.version < (5,2,0): return False
+        #if bpy.app.version < (5,2,0): return False
         return True
     def execute(self, context):
         obj = context.object
@@ -426,7 +424,7 @@ class GFLOW_OT_AddGeoNodeTogglers(bpy.types.Operator):
    
     @classmethod
     def poll(cls, context):
-        if bpy.app.version < (5,2,0): return False
+        #if bpy.app.version < (5,2,0): return False
         return True
     def execute(self, context):
         obj = context.object
