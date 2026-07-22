@@ -61,6 +61,7 @@ def register():
     print("-------Registering gflow-------")
     for m in modules:
         m.register()
+    print("-------gflow registered--------")
     pass
     
 def unregister():

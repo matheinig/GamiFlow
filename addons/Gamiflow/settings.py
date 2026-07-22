@@ -6,7 +6,10 @@ import addon_utils
 
 #BEGINTRIM -------------------------------------------------- 
 def isDecalMachineAvailable():
-    (default, current) = addon_utils.check("DECALmachine")
+    try:
+        (default, current) = addon_utils.check("DECALmachine")
+    except:
+        return (False, False)
     return current    
 def isDecalMachineEnabled(stgs):
     return stgs.useDecalMachine and isDecalMachineAvailable()
