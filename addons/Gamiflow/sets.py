@@ -335,7 +335,7 @@ def handleGeoNode(context, obj, modifier, currentSet):
     # Set its node inputs
     if currentSet == 'LOW':
         modStage = 'Low'
-        if bpy.app.version <= (5,2,0):  modStage=3
+        if bpy.app.version < (5,2,0):  modStage=3
         helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', True)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
@@ -343,7 +343,7 @@ def handleGeoNode(context, obj, modifier, currentSet):
         helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'HIGH':
         modStage = 'High'
-        if bpy.app.version <= (5,2,0):  modStage=4    
+        if bpy.app.version < (5,2,0):  modStage=4    
         helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', True)
@@ -351,7 +351,7 @@ def handleGeoNode(context, obj, modifier, currentSet):
         helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)
     elif currentSet == 'CAGE':
         modStage = 'Cage'
-        if bpy.app.version <= (5,2,0):  modStage=5  
+        if bpy.app.version < (5,2,0):  modStage=5  
         helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
@@ -359,7 +359,7 @@ def handleGeoNode(context, obj, modifier, currentSet):
         helpers.setGeoInputIfExists(modifier, 'gflow_when_export', False)    
     else:
         modStage = 'Export'
-        if bpy.app.version <= (5,2,0):  modStage=6      
+        if bpy.app.version < (5,2,0):  modStage=6      
         helpers.setGeoInputIfExists(modifier, 'gflow_stage', modStage)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_low', False)
         helpers.setGeoInputIfExists(modifier, 'gflow_when_high', False)
