@@ -98,14 +98,16 @@ class GFLOW_PT_ExportPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
         layout.operator("gflow.make_export")
         layout.separator()
         row = layout.row()
-        
-        col = row.column()
-        col.active = context.scene.gflow.exportFormat == 'FBX'
-        col.prop(context.scene.gflow, "exportFlip")
-        row.prop(context.scene.gflow, "exportAnimations")
-        row = layout.row()
-        row.prop(context.scene.gflow, "exportMethod", text="")
-        row.operator("gflow.export_final")
+        if context.scene.gflow.exportFormat != 'CUSTOM':
+            col = row.column()
+            col.active = context.scene.gflow.exportFormat == 'FBX'
+            col.prop(context.scene.gflow, "exportFlip")
+            row.prop(context.scene.gflow, "exportAnimations")
+            row = layout.row()
+            row.prop(context.scene.gflow, "exportMethod", text="")
+            row.operator("gflow.export_final")
+        else:
+            layout.operator("gflow.custom_export_final")
         
    
         

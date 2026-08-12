@@ -854,7 +854,7 @@ def findUvWorkspace():
 
 class GFLOW_OT_ShowUv(bpy.types.Operator):
     bl_idname      = "gflow.show_uv"
-    bl_label       = "Show UV"
+    bl_label       = "Show UVs"
     bl_description = "Show the UVs for a given texture set"
     bl_options = {"REGISTER", "UNDO"}
     

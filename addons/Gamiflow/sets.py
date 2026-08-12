@@ -194,6 +194,9 @@ def getCollectionVisibility(context, coll):
 def toggleCollectionVisibility(context, coll):
     layer = findLayerCollection(context, coll)
     if layer: setLayerCollectionVisibility(layer, layer.exclude, recursive=True)
+def setCollectionActive(context, coll):
+    layer = findLayerCollection(context, coll)
+    if layer: context.view_layer.active_layer_collection = layer
     
 def deleteObject(o):
     helpers.deleteObject(o)

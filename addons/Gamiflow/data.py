@@ -166,6 +166,7 @@ class GFlowScene(bpy.types.PropertyGroup):
     exportFormat: bpy.props.EnumProperty(name="Format", default='FBX', items=[
         ("FBX", "FBX", "", 0),
         ("GLTF", "GLTF", "", 1),
+        ("CUSTOM", "Custom", "Use the Export set collection exporter", 2)
     ])
     exportTarget: bpy.props.EnumProperty(name="Target", default='UNITY', items=[
         ("UNITY", "Unity", "", 0),
@@ -176,15 +177,15 @@ class GFlowScene(bpy.types.PropertyGroup):
     ])
     exportFlip: bpy.props.BoolProperty(name="Reversed", default=False, description="Reverse the front and back directions") 
     exportAnimations: bpy.props.BoolProperty(name="Animation", default=True) 
-    lightmapUvs: bpy.props.BoolProperty(name="Lightmap", default=False, description="Generate lightmap UVs for the export meshes") 
+    lightmapUvs: bpy.props.BoolProperty(name="Lightmap UVs", default=False, description="Generate lightmap UVs for the export meshes") 
     exportMethod: bpy.props.EnumProperty(name="Method", default='SINGLE', items=[
         ("SINGLE", "Single file", "One file is exported", 0),
         ("KIT", "Kit", "One file is exported for each root in the export set", 1),
     ])  
-    exportVertexColors: bpy.props.BoolProperty(name="Vertex Colors", default=False, description="Create vertex colors") 
-    vertexChannelR: bpy.props.EnumProperty(name="Red", default='ONE', items=enums.gVERTEX_CHANNEL)
-    vertexChannelG: bpy.props.EnumProperty(name="Green", default='ONE', items=enums.gVERTEX_CHANNEL)
-    vertexChannelB: bpy.props.EnumProperty(name="Blue", default='ONE', items=enums.gVERTEX_CHANNEL)
+    exportVertexColors: bpy.props.BoolProperty(name="Generate vertex Colors", default=False, description="Create vertex colors") 
+    vertexChannelR: bpy.props.EnumProperty(name="Red", default='CURRENT', items=enums.gVERTEX_CHANNEL)
+    vertexChannelG: bpy.props.EnumProperty(name="Green", default='CURRENT', items=enums.gVERTEX_CHANNEL)
+    vertexChannelB: bpy.props.EnumProperty(name="Blue", default='CURRENT', items=enums.gVERTEX_CHANNEL)
 
     # Lodding
     lod : bpy.props.PointerProperty(type=GFlowLods, name="LoDs")

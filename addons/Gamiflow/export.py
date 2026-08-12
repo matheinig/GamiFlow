@@ -174,6 +174,30 @@ def findRoots(objectsList):
     roots = [o for o in objectsList if o.parent is None]
     return roots
 
+class GFLOW_OT_CustomExportFinal(bpy.types.Operator):
+    """Exports the final mesh"""
+    bl_idname = "gflow.custom_export_final" 
+    bl_label = "Export"
+
+    @classmethod
+    def poll(cls, context):
+        if not context.scene.gflow.exportCollection: 
+            cls.poll_message_set("Need to generate the Export set first")
+            return False
+        if context.scene.gflow.exportFormat != 'CUSTOM':
+            cls.poll_message_set("Internal error. Wrong export operator.")
+            return False
+        if len(context.scene.gflow.exportCollection.exporters) == 0:
+            cls.poll_message_set("The Export collection must have an exporter assigned")
+            return False
+        return True
+        
+    def execute(self, context):
+        gflow = context.scene.gflow
+        collection = gflow.exportCollection
+        sets.setCollectionActive(context, collection)
+        bpy.ops.collection.exporter_export(index=collection.active_exporter_index)
+        return {'FINISHED'}
 
 class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
     """Exports the final mesh"""
@@ -193,7 +217,9 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
         if not context.scene.gflow.exportCollection: 
             cls.poll_message_set("Need to generate the Export set first")
             return False
-         
+        if context.scene.gflow.exportFormat == 'CUSTOM':
+            cls.poll_message_set("Internal error. Wrong export operator.")
+            return False
         return True
     def execute(self, context):
         name = sets.getSetName(context)
@@ -203,8 +229,13 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
         gflow = context.scene.gflow
 
         collection = gflow.exportCollection
-        sets.setCollectionVisibility(context, collection, True)
         
+        
+        if gflow.exportFormat == 'CUSTOM':
+            sets.setCollectionActive(context, collection)
+            bpy.ops.collection.exporter_export(index=collection.active_exporter_index)
+            return {'FINISHED'}
+            
         # Simple export
         if gflow.exportMethod == 'SINGLE':
             baseName = os.path.join(folder,name)
@@ -223,7 +254,7 @@ class GFLOW_OT_ExportFinal(bpy.types.Operator, ExportHelper):
 
         return {'FINISHED'}
   
-classes = [GFLOW_OT_ExportPainter, GFLOW_OT_ExportFinal,
+classes = [GFLOW_OT_ExportPainter, GFLOW_OT_ExportFinal, GFLOW_OT_CustomExportFinal,
 ]
 
 
