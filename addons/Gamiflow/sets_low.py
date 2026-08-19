@@ -49,16 +49,26 @@ def generatePainterLow(context):
     stgs = settings.getSettings()
     lpsuffix = stgs.lpsuffix
 
+    # A collection instance template has already been completely processed and modifiers applied
+    # and is ready to be instanciated again
+    collectionInstanceTemplate = {}
+
     # Go through all the objects of the working set
     knownMeshes = []
     knownObjectsWithMeshInUvSquare = {}
-    gen = sets.GeneratorData()
+    
+    def prepareCollectionInstance(collection):
+        if collection in collectionInstanceTemplate: 
+            return collectionInstanceTemplate[collection]
+        print("GamiFlow: Preparing collection "+collection.name + " for instancing")
+        generatedInstance = populateLowList(collection.all_objects, collection.name+"_",)
+        collectionInstanceTemplate[collection] = generatedInstance
+        return generatedInstance        
     
     def populateLowList(objectsToDuplicate, namePrefix="", allowUvOffset=True):
         localGen = sets.GeneratorData()
         roots = []
         parented = []
-        instanceRootsTransforms = {}
         for o in objectsToDuplicate:
             if not (o.type == 'MESH' or o.type=='EMPTY' or o.type=='ARMATURE'): continue
             if o.gflow.objType != 'STANDARD': continue
@@ -66,7 +76,6 @@ def generatePainterLow(context):
             # Make a copy the object
             newobj = sets.duplicateObject(o, lowCollection, suffix=lpsuffix)
             newobj.name = namePrefix+newobj.name
-            gen.register(newobj, o)
             localGen.register(newobj, o)
 
             if o.type=='MESH':
@@ -109,11 +118,13 @@ def generatePainterLow(context):
             # Realise the instance
             if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
                 if o.gflow.instanceBake == "LOW" or o.gflow.instanceBake == "LOW_HIGH":
-                    instanced = o.instance_collection.all_objects
-                    instanceRoots = populateLowList(instanced, namePrefix = o.name+"_", allowUvOffset = not o.gflow.instancePriority) 
-                    for r in instanceRoots: 
-                        helpers.setParent(r, newobj) # we can parent everything to the new empty
-                        r.matrix_world = o.matrix_world @ r.matrix_world  # we also need to move the instances into world space
+                    instanced = prepareCollectionInstance(o.instance_collection)
+                    # Copy the objects again but rename them
+                    for iSource in instanced.generated:
+                        inst = sets.duplicateObject(iSource, lowCollection, suffix="")
+                        inst.name = o.name+"_"+newobj.name
+                        helpers.setParent(inst, newobj) # we can parent everything to the new empty
+                        inst.matrix_world = o.matrix_world @ inst.matrix_world  # we also need to move the instances into world space                        
         #endfor object duplication
   
         # Apply bake actions before we apply the armature modifiers
@@ -150,11 +161,16 @@ def generatePainterLow(context):
         for newobj in parented:
             localGen.reparent(newobj)
                 
-        return roots
-                
+        return localGen
+    
     bpy.ops.object.select_all(action='DESELECT')  
-    populateLowList(list(context.scene.gflow.workingCollection.all_objects))
-     
+    gen = populateLowList(list(context.scene.gflow.workingCollection.all_objects))
+
+    # Clean up the instanced collections
+    for it in collectionInstanceTemplate.values():
+        for o in it.generated:
+            sets.deleteObject(o)
+            
     # Deal with anchors
     for o in gen.generated:
         if o.gflow.bakeAnchor:
