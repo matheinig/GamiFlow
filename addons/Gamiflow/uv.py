@@ -320,7 +320,6 @@ def lightmapUnwrap(context, objects):
     for o in obj:
         lightmapIndex = None
         if uvname not in o.data.uv_layers:
-        
             # TODO add empty UV layers if the desired lightmap layer is higher
         
             lightuv = o.data.uv_layers.new(name=uvname)
@@ -340,6 +339,7 @@ def lightmapUnwrap(context, objects):
                     break
                     
         o.data.uv_layers[uvname].active = True
+        o.data.uv_layers[uvname].active_render = True
 
         # Enforce the lightmap order
         if lightmapIndex>desiredLightmapUVIndex:
