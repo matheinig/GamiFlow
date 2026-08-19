@@ -317,18 +317,13 @@ def mergeObjects(context, objects):
 def triangulateObject(context, obj, dependencies=None):
     # there are bmesh and mesh approaches, but none of them preserve normals
     # and bmesh can't even access loop normals for some obscure reason...
-
     helpers.setSelected(context, obj)
     if dependencies: # in case of linked duplicates, we have to first unlink one instance and apply the modifiers to it
         obj.data = obj.data.copy()
     tri = sets.triangulate(context, obj)
     sets.enforceModifiersOrder(context, obj)
     weightedNormal = sets.getFirstModifierOfType(obj, 'WEIGHTED_NORMAL')
-    if obj.data.shape_keys is None:
-        if weightedNormal: bpy.ops.object.modifier_apply(modifier=weightedNormal.name)
-        bpy.ops.object.modifier_apply(modifier=tri.name)
-    else:
-        helpers.applyModifiers_shapeKeys(context, obj, [weightedNormal, tri])
+    helpers.applyModifiers(context, obj, [weightedNormal, tri])
     helpers.setDeselected(obj)
     
     if dependencies: # we can now give the triangulated mesh to the other duplicates
@@ -726,6 +721,7 @@ def generateExport(context):
     # Triangulate and apply 
     # Done after the rest because the DataTransfer modifier gets confused if the source object is triangulated but the current object is not
     # But needs special treatment because shared meshes don't like modifiers being applied
+    print("GamiFlow: Triangulate objects")
     triangulateObjects(context, collection.all_objects)        
         
     # Merge all possible objects 

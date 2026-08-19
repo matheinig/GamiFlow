@@ -147,6 +147,7 @@ def applyModifiers(context, obj, modifiers):
     # Filter out the modifiers that we actually need to keep
     filteredMods = []
     for m in modifiers:
+        if not m: continue
         if m.type == 'NODES' and getGeoInput(m, 'gflow_keep_live', False): continue
         filteredMods.append(m)
     
@@ -268,14 +269,14 @@ def applyModifiers_simple(context, obj, modifiers):
     obj.data = evaluatedMesh
     obj.data.name = originalMeshName
         
-    # Reorder the UVs because the evaluated meshhasa different order for some reason.
+    # Reorder the UVs because the evaluated mesh has a different order for some reason.
     # We go through the UVs of the original mesh in order and add them to the evaluated mesh before deleting the evaluated mesh's original uvs
     if len(evaluatedMesh.uv_layers)>1:
         for ouv in originalMesh.uv_layers:
             uv.copyUvLayerToEnd(obj, ouv.name)
             
-        
-    bpy.data.meshes.remove(originalMesh)
+    if originalMesh.users==1:
+        bpy.data.meshes.remove(originalMesh)
         
     # Re-enable the saved modifiers and hope for the best
     for m, v in modifiersToKeep:
