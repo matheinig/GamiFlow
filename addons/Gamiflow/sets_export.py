@@ -218,10 +218,15 @@ class Chunk:
             if obj.data.users>1: obj.data = obj.data.copy() # Make sure that the mesh is unique to avoid side effects
             offsetMatrix = (gizmo.matrix_world.inverted() @ obj.matrix_world)
             obj.data.transform(offsetMatrix)             
-            obj.matrix_world = gizmo.matrix_world
+        
         # Reparent
         if gizmo.parent:
+            obj.matrix_world = gizmo.matrix_world.copy()
             helpers.setParent(obj, gizmo.parent)
+        else:
+            obj.parent = None
+            obj.matrix_world = gizmo.matrix_world.copy()
+            
         # Temporary swap the names until the root gets deleted
         originalName = gizmo.name
         gizmo.name = obj.name
@@ -276,7 +281,6 @@ class Chunk:
         
         # Cleanup
         for oe in oldEmpties: bpy.data.objects.remove(oe)   # TODO: maybe make sure we don't delete the root if empty roots are allowed 
-
         self.objects = None
 
 def mergeObjects(context, objects):
@@ -453,6 +457,8 @@ def generateExport(context):
         
         # Generate all the objects as normal
         generatedInstance = populateExportList(collection.all_objects, collection.name+"_",)
+        
+        # WRONG: if we merge here, then we can't do the lods. Unless we do the lods now?
         # Finalise and merge everything
         mergedObjects = mergeObjects(context, generatedInstance.generated)
         processedInstance = sets.GeneratorData()
@@ -567,7 +573,7 @@ def generateExport(context):
                 # Realise the instance
                 if helpers.isObjectCollectionInstancer(o) and o.instance_collection:
                     if o.gflow.instanceAllowExport:
-                        # If the instanced collection is unknwon, wemake a template from it
+                        # If the instanced collection is unknwon, we make a template from it
                         if o.instance_collection not in collectionInstanceTemplate:
                             prepareCollectionInstance(o.instance_collection)
                    
@@ -694,14 +700,11 @@ def generateExport(context):
          
             # Now that we know how objects will be grouped, we can uv pack them together
             groups = [chunk.objects for chunk in chunks]
-            #for chunk in chunks:
-            #    groups.append(chunk.objects)
             uv.lightmapPack(context, groups)
         else:
             groups = [[o] for o in collection.all_objects]
             uv.lightmapPack(context, groups)
         
-     
     # Generate other levels of detail here
     originalRoots = sets.findRoots(collection)[:]
     originalObjects = collection.all_objects[:]
@@ -714,9 +717,10 @@ def generateExport(context):
         decimate(context, o, context.scene.gflow.lod.lods[0], abortOnShapekeys=True)
         
     # Re apply all the new modifiers
+    print("GamiFlow: Applying modifiers")
     for o in collection.all_objects:
         helpers.setSelected(context, o)
-        applyModifiers(context, o, True)
+        applyModifiers(context, o, False)
         helpers.setDeselected(o)
         
     # Triangulate and apply 
