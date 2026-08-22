@@ -168,6 +168,16 @@ class GFLOW_OT_SetEdgeLevel(bpy.types.Operator):
     def execute(self, context):
         setObjectSelectedEdgeLevel(context.edit_object, self.level)
         return {"FINISHED"}
+
+# Replacement for Blender's old operator
+def loop_multi_select(ring=True):
+    if bpy.app.version >= (5,0,0):
+        if ring:
+            bpy.ops.mesh.select_edge_ring_multi()
+        else:
+            bpy.ops.mesh.select_edge_loop_multi()
+    else:
+        bpy.ops.mesh.loop_multi_select(ring=ring)  
         
 class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.set_checkered_ring_edge_level"
@@ -187,11 +197,11 @@ class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
         return context.edit_object is not None
     def execute(self, context):
         # Select the entire ring
-        bpy.ops.mesh.loop_multi_select(ring=True)
+        loop_multi_select()
         # Remove one in two edges
         bpy.ops.mesh.select_nth(offset=1) # TODO: add support for num selected/unselected (must figure out offset first)
         # Extend the selection to the entire loop
-        bpy.ops.mesh.loop_multi_select(ring=False)
+        loop_multi_select(ring=False)
         # Mark as high level
         setObjectSelectedEdgeLevel(context.edit_object, self.level)
         return {"FINISHED"}
@@ -408,10 +418,7 @@ class GFLOW_OT_CollapseEdgeRing(bpy.types.Operator):
             return False
         return context.edit_object is not None
     def execute(self, context):
-        if bpy.app.version >= (5,0,0):
-            bpy.ops.mesh.select_edge_ring_multi()
-        else:
-            bpy.ops.mesh.loop_multi_select(ring=True)
+        loop_multi_select(ring=True)
         setObjectSelectedEdgeCollapse(context.edit_object, self.level)
         return {"FINISHED"}
 
