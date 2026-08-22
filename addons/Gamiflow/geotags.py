@@ -408,7 +408,10 @@ class GFLOW_OT_CollapseEdgeRing(bpy.types.Operator):
             return False
         return context.edit_object is not None
     def execute(self, context):
-        bpy.ops.mesh.loop_multi_select(ring=True)
+        if bpy.app.version >= (5,0,0):
+            bpy.ops.mesh.select_edge_ring_multi()
+        else:
+            bpy.ops.mesh.loop_multi_select(ring=True)
         setObjectSelectedEdgeCollapse(context.edit_object, self.level)
         return {"FINISHED"}
 
