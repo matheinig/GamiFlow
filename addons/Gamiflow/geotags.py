@@ -142,12 +142,14 @@ def removeDetailEdgeLayer(bm):
         bm.edges.layers.int.remove(bm.edges.layers.int[GEO_EDGE_LEVEL_NAME])
     except:
         pass   
-def setObjectSelectedEdgeLevel(obj, level=GEO_EDGE_LEVEL_LOD0):
+def setObjectSelectedEdgeLevel(obj, level=GEO_EDGE_LEVEL_LOD0, preserveSeams=False, mode='SET'):
     with helpers.editModeBmesh(obj) as bm:
         layer = getDetailEdgesLayer(bm, forceCreation=True)
         for edge in bm.edges:
-            if edge.select: 
-                edge[layer] = level
+            if edge.select:
+                if (not preserveSeams) or (preserveSeams and not edge.seam):
+                    if mode == 'SET': edge[layer] = level
+                    elif mode == 'PRESERVE' and edge[layer]==GEO_EDGE_LEVEL_DEFAULT: edge[layer] = level
         
 class GFLOW_OT_SetEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.set_edge_level"
@@ -186,8 +188,21 @@ class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
     
     level : bpy.props.IntProperty(name="Level", default=GEO_EDGE_LEVEL_LOD0, min=-1, soft_max=4, description="Edge level", options={'HIDDEN'})
+    nbAffected : bpy.props.IntProperty(name="Affected", default=1, min=1, soft_max=4, description="How many edges in a row will be affected")
+    nbSkipped : bpy.props.IntProperty(name="Skipped", default=1, min=0, soft_max=4, description="How many edges in a row will be skipped")      
+    offset : bpy.props.IntProperty(name="Offset", default=0, soft_min=0, soft_max=4, description="Start offset")
 
-    
+    seamsBehaviour: bpy.props.EnumProperty(name="Seam Behaviour", default='IGNORE', items=[
+        ("DONTCARE", "Don't care", "Whether an edge has a seam or not will not matter", 0),
+        ("SKIP", "Skip edge", "If an edge has a seam, it will be skipped. The internal edge counter will not update.", 1),
+        ("IGNORE", "Ignore edge", "If an edge has a seam, it will be ignored. The internal counter is still incrementend.", 2),  
+    ]) 
+    lodBehaviour: bpy.props.EnumProperty(name="Lod behaviour", default='SKIP', items=[
+        ("DONTCARE", "Overwrite", "Writes the lod level no matter the existing dissolve tag", 0),
+        ("SKIP", "Skip egde", "If an edge already has a dissolve tag, it will be skipped. The internal edge counter will not update.", 1),
+        ("IGNORE", "Ignore edge", "If an edge already has a dissolve tag, it will be ignored. The internal counter is still incrementend.", 2),  
+    ]) 
+
     @classmethod
     def poll(cls, context):
         if context.mode != "EDIT_MESH": return False
@@ -196,15 +211,46 @@ class GFLOW_OT_SetCheckeredEdgeLevel(bpy.types.Operator):
             return False
         return context.edit_object is not None
     def execute(self, context):
-        # Select the entire ring
-        loop_multi_select()
-        # Remove one in two edges
-        bpy.ops.mesh.select_nth(offset=1) # TODO: add support for num selected/unselected (must figure out offset first)
+        with helpers.editModeBmesh(context.edit_object) as bm:
+            # Check that we have an edge
+            startEdge = bm.select_history.active
+            if not startEdge: return {"CANCELLED"}
+            
+            layer = getDetailEdgesLayer(bm, forceCreation=True) # Layer must be created first to avoid it invalidating the edges list
+            startEdge = bm.select_history.active
+            
+            # Get a full edge ring
+            edgesOnRing = getEdgeRing(bm, startEdge)
+            # Filter the edge ring
+            index = self.offset
+            for edge in edgesOnRing:
+                skip = False
+                ignore = False
+
+                if edge.seam:
+                    if self.seamsBehaviour == "SKIP": 
+                        skip = True
+                        ignore = True
+                    elif self.seamsBehaviour == "IGNORE":
+                        ignore = True
+                if edge[layer] != GEO_EDGE_LEVEL_DEFAULT:
+                    if self.lodBehaviour == "SKIP":
+                        skip = True
+                        ignore = True
+                    elif self.lodBehaviour == "IGNORE":
+                        ignore = True
+                
+                # If we care about this specific edge loop, we select it
+                if (not ignore) and index < self.nbAffected: edge.select = True
+                # Move to the next index if we didn't skip this edge
+                if not skip: index = (index + 1) % (self.nbAffected+self.nbSkipped)
+                  
         # Extend the selection to the entire loop
         loop_multi_select(ring=False)
         # Mark as high level
-        setObjectSelectedEdgeLevel(context.edit_object, self.level)
+        setObjectSelectedEdgeLevel(context.edit_object, self.level, preserveSeams=False, mode='SET')
         return {"FINISHED"}
+        
 class GFLOW_OT_SelectEdgeLevel(bpy.types.Operator):
     bl_idname      = "gflow.select_edge_level"
     bl_label       = "Select level"
@@ -346,6 +392,7 @@ def walkEdgeLoop(bm, startEdge, reverse=False):
             pcv = oth_vert
             pov = cur_vert  
     return edges, blocked
+    
 def getEdgeLoop(bm, startEdge, reverse=False):
     edges = [startEdge]
     forwardEdges, blocked = walkEdgeLoop(bm, startEdge, reverse=reverse)
@@ -359,6 +406,23 @@ def getEdgeLoop(bm, startEdge, reverse=False):
         else:
             edges += reversed(backwardEdges)
     return edges
+    
+def getEdgeRing(bm, startEdge, max_loops=1000):
+    loop = startEdge.link_loops[0]
+    first_loop=loop
+    i=0
+    edges = [startEdge]
+    while i<max_loops: 
+        # Jump to adjacent face and walk two edges forward
+        loop = loop.link_loop_radial_next.link_loop_next.link_loop_next
+        edges.append(loop.edge)
+        i += 1
+        # If radial loop links back here, we're boundary, thus done        
+        if loop == first_loop:
+            break
+    return edges
+    
+    
 class GFLOW_OT_SetCheckeredEdgeCollapse(bpy.types.Operator):
     bl_idname      = "gflow.set_checkered_edge_collapse"
     bl_label       = "Mark checkered collapse"
