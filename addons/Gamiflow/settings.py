@@ -26,6 +26,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     lodsuffix : bpy.props.StringProperty(name = "LoD", default = "_LOD", description="")
     cageprefix : bpy.props.StringProperty(name = "Cage", default = "cage_")
     mergeExportMeshes : bpy.props.BoolProperty(name = "Auto merge", default=True, description="Collapses hierarchies when possible and when allowed")
+    allowMeshMergingUdims: bpy.props.BoolProperty(name="Merge with other UDIMs", default=False, description="When enabled, meshes will be merged regardless of their UDIMs and the resulting meshes will have multiple materials")
     renameExportMeshes : bpy.props.BoolProperty(name = "Rename meshes", default=True, description="Renames meshes so that they have the same name as their object")
     
     baker : bpy.props.EnumProperty(
@@ -157,6 +158,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         
         layout.label(text="Export set")
         layout.prop(self, "mergeExportMeshes")
+        layout.prop(self, "allowMeshMergingUdims")
         layout.prop(self, "renameExportMeshes")
         row = layout.row(align=True)
         row.prop(self, "renameUVs")

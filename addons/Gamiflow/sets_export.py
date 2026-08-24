@@ -74,26 +74,27 @@ def processModifiers(context, generatorData, obj):
 
 
 # Hierarchy optimiser
-def areMergeCompatible(p, c, mergeUdims=False):
+def areMergeCompatible(p, c, mergeUdims=False, ignoreUdims=False):
     if not c.gflow.mergeWithParent: return False
     
-    needToCheckUdims = (not mergeUdims)
+    needToCheckUdims = (not mergeUdims) and (not ignoreUdims)
     if (p.type=='EMPTY' or c.type=='EMPTY'): needToCheckUdims = False
     if (p.type == 'ARMATURE'): return False
     if needToCheckUdims and (p.gflow.textureSet != c.gflow.textureSet): return False
     
     #if c.gflow.objType == 'NON_BAKED' and p.gflow.objType != 'NON_BAKED': return False
     # TODO: there are more conditions that should probably be met such as smoothing method
+    
     return True
-def mergeHierarchy(obj, mergeList, todoList, mergeUdims, depth=0):
+def mergeHierarchy(obj, mergeList, todoList, mergeUdims, ignoreUdims=False, depth=0):
     for c in obj.children:
-        if areMergeCompatible(obj, c, mergeUdims):
+        if areMergeCompatible(obj, c, mergeUdims, ignoreUdims):
             mergeList.append(c)
-            mergeList, todoList = mergeHierarchy(c, mergeList, todoList, mergeUdims, depth=depth+1)
+            mergeList, todoList = mergeHierarchy(c, mergeList, todoList, mergeUdims, ignoreUdims, depth=depth+1)
         else:
             todoList.append(c) 
     return mergeList, todoList
-def findFirstNonCollapsedParent(obj, mergeUdims):
+def findFirstNonCollapsedParent(obj, mergeUdims, ignoreUdims=False):
     if obj.parent is None: return obj
     parent = obj.parent
     if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent, mergeUdims)
@@ -213,6 +214,7 @@ class Chunk:
     @staticmethod
     def removeGizmoRoot(gizmo, obj):
         # Match the pivot point if the object wasn't centred
+        # This step is important but unfortunately also seems to break the normals a bit
         localPosition = obj.matrix_local.col[3].xyz
         if abs(localPosition.dot(localPosition))>0.0001:
             if obj.data.users>1: obj.data = obj.data.copy() # Make sure that the mesh is unique to avoid side effects
@@ -296,12 +298,14 @@ def mergeObjects(context, objects):
     bpy.ops.object.select_all(action='DESELECT')
     todo = [o for o in objects if o.parent is None]
         
+    ignoreUdims = stgs = settings.getSettings().allowMeshMergingUdims
+        
     # Build a list of 'chunks' that can be merged together
     while(len(todo)>0):
         # Pick one object in the todo list and decide what to do with its children
         root = todo[0]
         todo.remove(root)
-        merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
+        merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims, ignoreUdims)
         #if len(merge)>0:
         chunk = Chunk()
         chunk.objects = merge+[root]
@@ -581,7 +585,7 @@ def generateExport(context):
                         for i in instgen.parented:
                             instgen.reparent(i)
                         for root in instgen.roots: 
-                            safeParent = findFirstNonCollapsedParent(newobj, context.scene.gflow.mergeUdims)
+                            safeParent = findFirstNonCollapsedParent(newobj, context.scene.gflow.mergeUdims, stgs.allowMeshMergingUdims)
                             helpers.setParent(root, safeParent) 
                             root.matrix_world = newobj.matrix_world @ root.matrix_world  # we also need to move the instances into world space
                         localgen.add(instgen)
@@ -687,7 +691,7 @@ def generateExport(context):
                 # Pick one object in the todo list and decide what to do with its children
                 root = todo[0]
                 todo.remove(root)
-                merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
+                merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims, stgs.allowMeshMergingUdims)
                 #if len(merge)>0:
                 chunk = Chunk()
                 chunk.objects = merge+[root]
@@ -736,8 +740,7 @@ def generateExport(context):
             # Pick one object in the todo list and decide what to do with its children
             root = todo[0]
             todo.remove(root)
-            merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims)
-            #if len(merge)>0:
+            merge, todo = mergeHierarchy(root, [], todo, context.scene.gflow.mergeUdims, stgs.allowMeshMergingUdims)
             chunk = Chunk()
             chunk.objects = merge+[root]
             chunks.append(chunk)
