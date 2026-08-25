@@ -97,7 +97,7 @@ def mergeHierarchy(obj, mergeList, todoList, mergeUdims, ignoreUdims=False, dept
 def findFirstNonCollapsedParent(obj, mergeUdims, ignoreUdims=False):
     if obj.parent is None: return obj
     parent = obj.parent
-    if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent, mergeUdims)
+    if areMergeCompatible(parent, obj): return findFirstNonCollapsedParent(parent, mergeUdims, ignoreUdims)
     return obj
 
 class InstancedCollection:
@@ -607,9 +607,11 @@ def generateExport(context):
 
             
         # Do another pass to check that we are not parenting to something that will end up getting merged
-        for newobj in parented: 
-            safeParent = findFirstNonCollapsedParent(newobj.parent, context.scene.gflow.mergeUdims)
-            if safeParent != newobj.parent: helpers.setParent(newobj, safeParent)        
+        #for newobj in parented: 
+        #    safeParent = findFirstNonCollapsedParent(newobj.parent, context.scene.gflow.mergeUdims)
+        #    if safeParent != newobj.parent: 
+        #        print("Safer parent "+safeParent.name + " for "+newobj.name)
+        #        helpers.setParent(newobj, safeParent)        
         
         return localgen
     
@@ -710,10 +712,24 @@ def generateExport(context):
     for level in range(1,len(context.scene.gflow.lod.lods)):
         for o in originalRoots:
             generateLod(context, o, collection, level, originalObjects, context.scene.gflow.lod.lods[level]) 
-    
+
     # Decimate the first lod if needed too
     for o in originalObjects:
         decimate(context, o, context.scene.gflow.lod.lods[0], abortOnShapekeys=True)
+        
+    # We will soon merge objects together and it will most definitely break parenting
+    # So for each parented object, we have to find the first parent that will not disappear and use it instead
+    isolatedEmpties = set()
+    for o in collection.all_objects: 
+        if o.parent == None: continue
+        safeParent = findFirstNonCollapsedParent(o.parent, context.scene.gflow.mergeUdims, stgs.allowMeshMergingUdims)
+        if safeParent != o.parent: 
+            if o.parent.type == 'EMPTY': isolatedEmpties.add(o.parent)
+            helpers.setParent(o, safeParent)         
+    # Any empties left over should be deleted
+    for o in isolatedEmpties:
+        collection.objects.unlink(o)
+        bpy.data.objects.remove(o)
         
     # Re apply all the new modifiers
     print("GamiFlow: Applying modifiers")

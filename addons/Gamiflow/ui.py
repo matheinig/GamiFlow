@@ -443,6 +443,7 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             else:
                 self.layout.prop(gflow, "exportAction")        
         elif obj.type == 'EMPTY':
+            self.layout.prop(gflow, "maxLod")
             row = self.layout.row()
             self.layout.prop(gflow, "mergeWithParent")
             row.enabled = (obj.instance_type == 'COLLECTION' and (obj.instance_collection is not None))
