@@ -131,6 +131,7 @@ class GFlowLod(bpy.types.PropertyGroup):
     decimate: bpy.props.BoolProperty(name="Decimate", default=False)
     decimateAmount: bpy.props.FloatProperty(name="Decimation ratio", subtype='FACTOR', default=1.0, min=0.0, max=1.0, description="How many vertices to keep")    
     decimatePreserveSeams: bpy.props.BoolProperty(name="Preserve seams", default=False)
+    decimatePreserveBoundaries: bpy.props.BoolProperty(name="Preserve boundaries", default=False)
     
 class GFlowLods(bpy.types.PropertyGroup):
     current : bpy.props.IntProperty(name="LoD", default=0, subtype='FACTOR', min=0, max=3, update=onLodChange, description="The current LoD")

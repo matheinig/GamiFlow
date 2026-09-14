@@ -371,13 +371,27 @@ def decimate(context, obj, lodSettings, abortOnShapekeys=False):
     decimate.ratio = lodSettings.decimateAmount  
 
     # Preserve the seams to avoid the textures getting all messed up
-    if lodSettings.decimatePreserveSeams:
+    if lodSettings.decimatePreserveSeams or lodSettings.decimatePreserveBoundaries:
         selectedVerts = []
-        for v in obj.data.vertices:
-            v.select = False
-        for e in obj.data.edges:
-            if e.use_seam: 
-                for v in e.vertices: selectedVerts.append(v)
+        
+        if lodSettings.decimatePreserveBoundaries:
+            helpers.setSelected(context, obj)
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
+            bpy.ops.mesh.select_all(action='DESELECT')
+            # Select only boundary edges
+            bpy.ops.mesh.select_non_manifold(extend=False, use_wire=False, use_multi_face=False, use_non_contiguous=False, use_verts=False)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            # Add the resulting edges to the list
+            for e in obj.data.edges:
+                if e.select: 
+                    for v in e.vertices: selectedVerts.append(v)
+            
+        if lodSettings.decimatePreserveSeams:
+            # Add all the seams to the list (probably doesn't matter that we can have duplicates)
+            for e in obj.data.edges:
+                if e.use_seam: 
+                    for v in e.vertices: selectedVerts.append(v)
         seamsMapName = "GFLOW_Seams"
         vxgroup = obj.vertex_groups.new(name=seamsMapName)
         vxgroup.add(selectedVerts, 1.0, 'REPLACE')

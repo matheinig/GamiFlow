@@ -159,6 +159,7 @@ class GFLOW_PT_LodsPanel(GFLOW_PT_BASE_PANEL, bpy.types.Panel):
             row.prop(lod, "decimate")
             row.prop(lod, "decimateAmount", text='')
             self.layout.prop(lod, "decimatePreserveSeams")
+            self.layout.prop(lod, "decimatePreserveBoundaries")
         
 class GFLOW_UL_lod(bpy.types.UIList):
     def draw_item(self, _context, layout, _data, item, icon, _active_data, _active_propname, index):
@@ -168,7 +169,8 @@ class GFLOW_UL_lod(bpy.types.UIList):
         if item.decimate:
             row.prop(item, "decimate", text="")
             row.prop(item, "decimateAmount")
-            row.prop(item, "decimatePreserveSeams", text="", icon="STICKY_UVS_VERT")
+            row.prop(item, "decimatePreserveSeams", text="", icon="EDGE_SEAM")
+            row.prop(item, "decimatePreserveBoundaries", text="", icon="META_PLANE")
         else:
             row.prop(item, "decimate")
 
