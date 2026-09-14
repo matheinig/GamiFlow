@@ -849,6 +849,7 @@ def findUvWorkspace():
                 if ar.type == 'IMAGE_EDITOR':
                     # image editor isn't necessarily a uv editor so we need to keep checking
                     for sp in ar.spaces: 
+                        if sp.type is not 'Space Image Editor': continue
                         if sp.mode == 'UV': return ws
     return ws
 
