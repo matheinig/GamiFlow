@@ -100,6 +100,10 @@ def exportselectedFbx(context, objects, filename, exportTarget = "UNITY", flip=F
                 smoothingType = 'FACE'
                 print("GamiFlow: Cannot export with applied modifiers because of shape keys")
                 break
+                
+    # Make sure everything is visible
+    for o in objects:
+        o.hide_set(False)
     
     # Export
     bpy.ops.export_scene.fbx(

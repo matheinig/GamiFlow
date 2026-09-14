@@ -318,6 +318,8 @@ def lightmapUnwrap(context, objects):
 
     # Make sure all objects have a new UV layer and that it's active
     for o in obj:
+        o.hide_set(False)
+    
         lightmapIndex = None
         if uvname not in o.data.uv_layers:
             # TODO add empty UV layers if the desired lightmap layer is higher
@@ -377,7 +379,8 @@ def unwrap(context, objects):
             if uv.active_render: 
                 uv.active = True
                 break
-        
+
+        o.hide_set(False)
         o.select_set(True)
         context.view_layer.objects.active = o
         
