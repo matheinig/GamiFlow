@@ -86,7 +86,7 @@ def processNewObject(context, o, stgs, isBakeObject=False):
     # We don't need to do this for bake objects,and it means that we don't always need to modify the mesh
     if (not isBakeObject):
         if o.gflow.removeHardEdges: sets.removeSharpEdges(o)
-        triangulate: sets.triangulate(context, o)
+        sets.triangulate(context, o) # Should we really triangulate highpolys?
         geotags.removeObjectLayers(o)
     
     # When using the blender baker we actually *need* the hp-only modifiers to have their visibility set back to render mode
