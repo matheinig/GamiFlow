@@ -90,7 +90,7 @@ def makeUvScaleDrawBuffer(bm, shader):
     color = []
     for face in bm.faces:
         scaleCode = face[layer]
-        if scaleCode != baseScale:
+        if scaleCode != baseScale and not face.hide:
             scale = geotags.getUvScaleFromCode(scaleCode)    
             # Awful colouring
             minv = 0.25
@@ -184,6 +184,7 @@ def makeGridifyDrawBuffer(bm, shader):
     indices = []
     for face in bm.faces:
         if face[gridify] != geotags.GEO_FACE_GRIDIFY_INCLUDE: continue
+        if face.hide: continue
         for i in range(len(face.verts)-2):
             indices.append([face.verts[0].index, face.verts[i+1].index,face.verts[i+2].index])
     batch = batch_for_shader(shader, 
@@ -317,9 +318,11 @@ def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
     if layer:
         coords = [v.co+v.normal*offset for v in bm.verts]
     
+        basicEdges = [edge for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and not edge.hide]
+    
         # Removed at lower levels
         indicesSolid = [[v.index for v in edge.verts]
-                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] < geotags.GEO_EDGE_LEVEL_LOD0+level]
+                    for edge in basicEdges if edge[layer] < geotags.GEO_EDGE_LEVEL_LOD0+level]
         if len(indicesSolid) > 0:
             solidBatch[0] = batch_for_shader(solidShader, 
                 'LINES',
@@ -327,7 +330,7 @@ def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
                 indices=indicesSolid)           
         # Removed at current level
         indicesSolid = [[v.index for v in edge.verts]
-                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] == geotags.GEO_EDGE_LEVEL_LOD0+level]
+                    for edge in basicEdges if edge[layer] == geotags.GEO_EDGE_LEVEL_LOD0+level]
         if len(indicesSolid) > 0:
             solidBatch[1] = batch_for_shader(solidShader, 
                 'LINES',
@@ -335,7 +338,7 @@ def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
                 indices=indicesSolid)   
         # Removed at higher levels
         indicesSolid = [[v.index for v in edge.verts]
-                    for edge in bm.edges if edge[layer]!=geotags.GEO_EDGE_LEVEL_DEFAULT and edge[layer] > geotags.GEO_EDGE_LEVEL_LOD0+level]
+                    for edge in basicEdges if edge[layer] > geotags.GEO_EDGE_LEVEL_LOD0+level]
         if len(indicesSolid) > 0:
             solidBatch[2] = batch_for_shader(solidShader, 
                 'LINES',
@@ -365,6 +368,7 @@ def makeEdgeDetailDrawBuffer(bm, solidShader, offset=0.0001, level=0):
         verts = [[], [], []]
         crossSize = 0.05       
         for edge in bm.edges:
+            if edge.hide: continue
             if edge[collapseLayer] == geotags.GEO_EDGE_COLLAPSE_DEFAULT: continue
             vbuffer = verts[1]
             if edge[collapseLayer] < geotags.GEO_EDGE_COLLAPSE_LOD0+level: vbuffer = verts[0]
