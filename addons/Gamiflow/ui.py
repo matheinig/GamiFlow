@@ -247,16 +247,26 @@ class GFLOW_OT_ObjectActionSlotPopup(bpy.types.Operator):
     def execute(self, context):
         obj = context.object
         gflow = obj.gflow
+        
+        if obj.animation_data:
+            if self.mode=='BAKE':
+                gflow.bakeAction = obj.animation_data.action
+            else:
+                gflow.exportAction = obj.animation_data.action
+        
         if obj.animation_data and obj.animation_data.action_slot:
+            identifier = obj.animation_data.action_slot.identifier
             if self.mode=='BAKE':
-                gflow.bakeActionObjectSlotName = obj.animation_data.action_slot.identifier
+                gflow.bakeActionObjectSlotName = identifier
             else:
-                gflow.exportActionObjectSlotName = obj.animation_data.action_slot.identifier
+                gflow.exportActionObjectSlotName = identifier
+        
         if obj.type == 'MESH' and obj.data.shape_keys and obj.data.shape_keys.animation_data and obj.data.shape_keys.animation_data.action_slot:
+            identifier = obj.data.shape_keys.animation_data.action_slot.identifier
             if self.mode=='BAKE':
-                gflow.bakeActionShapekeySlotName = obj.data.shape_keys.animation_data.action_slot.identifier
+                gflow.bakeActionShapekeySlotName = identifier
             else:
-                gflow.exportActionShapekeySlotName = obj.data.shape_keys.animation_data.action_slot.identifier
+                gflow.exportActionShapekeySlotName = identifier
         context.area.tag_redraw()
         return {'FINISHED'}
 
@@ -270,29 +280,29 @@ class GFLOW_OT_ObjectActionSlotPopup(bpy.types.Operator):
         self.layout.template_action(obj, new="action.new", unlink="action.unlink")
     
         # Object action slot
-        target = obj
-        adt = target.animation_data
-        if adt.action.is_action_layered:
+        animated_id = obj 
+        adt = animated_id and animated_id.animation_data
+        if animated_id.animation_data.action and animated_id.animation_data.action.is_action_layered:
             # pointer is maybe just for new/delete
-            #self.layout.context_pointer_set("animated_id", target)
+            self.layout.context_pointer_set("animated_id", animated_id)
             self.layout.template_search(
                 adt, "action_slot",
                 adt, "action_suitable_slots",
-                #new="anim.slot_new_for_id",
-                #unlink="anim.slot_unassign_from_id",
+                new="anim.slot_new_for_id",
+                unlink="anim.slot_unassign_from_id",
                 text="Object"
             )
         # Shapekey action slot
         if obj.type == 'MESH' and obj.data.shape_keys:
-            target = obj.data.shape_keys
-            adt = target.animation_data
-            if adt.action.is_action_layered:
-                #self.layout.context_pointer_set("animated_id", target)
+            animated_id = getattr(obj.data, "shape_keys", None)
+            adt = animated_id and animated_id.animation_data
+            if adt and adt.action and adt.action.is_action_layered:
+                self.layout.context_pointer_set("animated_id", animated_id)
                 self.layout.template_search(
                     adt, "action_slot",
                     adt, "action_suitable_slots",
-                    #new="anim.slot_new_for_id",
-                    #unlink="anim.slot_unassign_from_id",
+                    new="anim.slot_new_for_id",
+                    unlink="anim.slot_unassign_from_id",
                     text="Shape key"
                 )
 
