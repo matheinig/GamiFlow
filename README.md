@@ -45,10 +45,10 @@ Download the source code as a zip. Inside the zip, navigate into _GamiFlow-main/
 ## Sets
 Gamiflow works with multiple *sets* (which really just means "collection") which all have a specific use:
 - Working set: what you will be interacting with. this is where you will model and unwrap your objects.
-- Bake sets: geometry generated automatically from the Working Set.
+- [Bake sets](doc/BakingSets.md): geometry generated automatically from the Working Set.
   - Low: what is used as base mesh in Substance Painter
   - High: what is used to bake normals, AO, and id masks.
-- Export set: the final optimised geometry, also auto-generated.
+- [Export set](doc/ExportSets.md): the final optimised geometry, also auto-generated.
 You technically only ever need to look at the Bake and Export sets to check that everything is correct.
 
 Before you can begin working with Gamiflow, you need to set your **Working Set** in the side panel.
