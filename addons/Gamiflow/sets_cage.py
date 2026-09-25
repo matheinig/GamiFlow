@@ -6,7 +6,6 @@ from . import geotags
 from . import sets_low
 from bpy.app.handlers import persistent
 import mathutils
-import os
 
 
 CAGE_NODE_NAME = "Cage (GFlow)"
@@ -101,18 +100,9 @@ def addCageModifier(context, obj):
     modifier = getCageModifier(obj)
     if modifier is not None: return modifier
 
-    # Load the cage modifier if it's not already found
-    if CAGE_NODE_NAME not in bpy.data.node_groups.keys():
-        folder = os.path.dirname(os.path.abspath(__file__))
-        assetsFolder = os.path.join(folder, "assets")
-        modifiersPath = str(os.path.join(assetsFolder, 'modifiers.blend'))
-        with bpy.data.libraries.load(modifiersPath, link=True, relative=False) as (data_src, data_dst):
-            data_dst.node_groups.append(CAGE_NODE_NAME)
-            
     # Add the modifier to the object
-    modifier = obj.modifiers.new(CAGE_NODE_NAME, "NODES")
+    modifier = helpers.addGeoNodesToObject(obj, CAGE_NODE_NAME)
     modifier.use_pin_to_last = True
-    modifier.node_group = bpy.data.node_groups[CAGE_NODE_NAME]
     offset = getObjectCageOffset(context, obj)
     found = helpers.setGeoInputIfExists(modifier, "Offset", offset)
     if found: modifier.node_group.interface_update(context)   

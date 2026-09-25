@@ -652,6 +652,8 @@ class GFLOW_MT_PIE_Object(bpy.types.Menu):
             pie.operator("gflow.add_bevel")         # E
             pie.operator("gflow.set_udim")          # S
             pie.operator("gflow.project_to_active") # N
+            pie.separator()                         # NW
+            pie.operator("gflow.add_slice")         # NE
         elif context.mode == "EDIT_MESH":
             if bpy.context.tool_settings.mesh_select_mode[1]:
                 # Edge mode

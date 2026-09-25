@@ -8,6 +8,8 @@ from . import data
 from . import enums
 from . import settings
   
+SLICE_NODE_MODIFIER = "BoolSlice (GFlow)"
+  
 def backwardCompatibility(scene):
     # The 'scene' is an evaluated copy of the scene rather than the scene itself so we need to retrieve the original first
     realScene = bpy.data.scenes[scene.name]
@@ -556,7 +558,34 @@ class GFLOW_OT_AddBevel(bpy.types.Operator):
             if wnIndex is not None:
                 bpy.ops.object.modifier_move_to_index(modifier=bevel.name, index=wnIndex)
             
-        return {"FINISHED"}        
+        return {"FINISHED"}   
+class GFLOW_OT_AddSlice(bpy.types.Operator):
+    bl_idname      = "gflow.add_slice"
+    bl_label       = "Quick Slice"
+    bl_description = "Slice the active object using the selected object."
+    bl_options = {"REGISTER", "UNDO"}
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects)==2
+    def execute(self, context):
+        obj = context.active_object
+        slicer = context.selected_objects[0]
+        if slicer == obj: slicer = context.selected_objects[1]
+        
+        modifier = helpers.addGeoNodesToObject(obj, SLICE_NODE_MODIFIER)
+        helpers.setGeoInputIfExists(modifier, "Cutter", slicer)
+        modifier.node_group.interface_update(context)  
+
+        # Try to position it before any weighted normal and the first bevel
+        wnIndex = getFirstModifierIndex(obj, "WEIGHTED_NORMAL")
+        bvIndex = getFirstModifierIndex(obj, "BEVEL")
+        index = wnIndex
+        if index == None: index = bvIndex
+        if (wnIndex is not None) and (bvIndex is not None): 
+            index = min(wnIndex, bvIndex)
+        if index is not None: bpy.ops.object.modifier_move_to_index(modifier=modifier.name, index=index)
+
+        return {"FINISHED"}  
 
 class GFLOW_OT_SetUDIM(bpy.types.Operator):
     bl_idname      = "gflow.set_udim"
@@ -776,7 +805,7 @@ class GFLOW_OT_RemoveLod(bpy.types.Operator):
 classes = [GFLOW_OT_SetSmoothing, GFLOW_OT_AddBevel, GFLOW_OT_SetUDIM,
     GFLOW_OT_AddHighPoly, GFLOW_OT_RemoveHighPoly, GFLOW_OT_SelectHighPoly, 
     GFLOW_OT_AddExportAnchor, GFLOW_OT_RemoveExportAnchor,
-    GFLOW_OT_ProjectToActive,
+    GFLOW_OT_ProjectToActive, GFLOW_OT_AddSlice,
     GFLOW_OT_MarkHardSeam, GFLOW_OT_MarkSoftSeam, GFLOW_OT_ClearSeam,
     GFLOW_OT_ClearGeneratedSets, GFLOW_OT_ToggleSetVisibility,
     GFLOW_OT_AddLod, GFLOW_OT_RemoveLod]

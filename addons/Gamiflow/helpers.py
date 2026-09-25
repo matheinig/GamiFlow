@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import contextlib
+import os
 from . import uv
 
 def findActive3dView(context):
@@ -346,6 +347,21 @@ def safeUnregisterClass(cl):
     except:
         print("GamiFlow could not unregister class "+str(cl))
 
+def ensureGeoNodesLoaded(geoNodeName):
+    # Load the cage modifier if it's not already found
+    if geoNodeName not in bpy.data.node_groups.keys():
+        folder = os.path.dirname(os.path.abspath(__file__))
+        assetsFolder = os.path.join(folder, "assets")
+        modifiersPath = str(os.path.join(assetsFolder, 'modifiers.blend'))
+        print("GamiFlow: Loading geometry nodes "+geoNodeName+ " from "+modifiersPath)
+        with bpy.data.libraries.load(modifiersPath, link=True, relative=False) as (data_src, data_dst):
+            data_dst.node_groups.append(geoNodeName)
+def addGeoNodesToObject(obj, geoNodeName):
+    ensureGeoNodesLoaded(geoNodeName)
+    modifier = obj.modifiers.new(geoNodeName, "NODES")
+    modifier.node_group = bpy.data.node_groups[geoNodeName]
+    setGeoInputIfExists(modifier, "gflow_stage", "Working")    
+    return modifier
 
 def getGeoSocketId(modifier, name, socketType='INPUT'):
     for item in modifier.node_group.interface.items_tree:
@@ -356,12 +372,11 @@ def setGeoInputIfExists(modifier, name, value):
     socket = getGeoSocketId(modifier, name, socketType='INPUT')
     if not socket: return False
     if bpy.app.version >= (5,2,0):
-        # Super dirty way of setting the inputs
         if isinstance(value, str):
+            # Super dirty way of setting the inputs when dealing with enums, which didn't necessarily update in 5.2
             exec("modifier.properties.inputs."+socket+".value = '"+str(value)+"'", {'modifier': modifier})
-        else:
-            exec("modifier.properties.inputs."+socket+".value = "+str(value), {'modifier': modifier})
-        #modifier.properties.inputs[socket]['value'] = value # for some reason this only works with ints
+        else: 
+            modifier.properties.inputs[socket]['value'] = value
     else:
         modifier[socket] = value
     return True
