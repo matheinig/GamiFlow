@@ -572,6 +572,10 @@ class GFLOW_OT_AddSlice(bpy.types.Operator):
         slicer = context.selected_objects[0]
         if slicer == obj: slicer = context.selected_objects[1]
         
+        # Set the cutter display to wireframe if it's in default
+        if slicer.display_type == 'TEXTURED': slicer.display_type = 'WIRE'
+        
+        # Add the geonodes slicer modifier 
         modifier = helpers.addGeoNodesToObject(obj, SLICE_NODE_MODIFIER)
         helpers.setGeoInputIfExists(modifier, "Cutter", slicer)
         modifier.node_group.interface_update(context)  
