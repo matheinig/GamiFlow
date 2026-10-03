@@ -424,6 +424,13 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
 
             # Anchors list
             self.layout.label(text="Export anchors")
+            row = self.layout.row(align=True)
+            row = row.split(factor=0.5, align=True)
+            row.label(text="Apply transforms")
+            
+            row.prop(gflow, "exportAnchor_applyTranslation", icon='OBJECT_ORIGIN', text="")
+            row.prop(gflow, "exportAnchor_applyRotation", icon='ORIENTATION_GIMBAL', text="")
+            row.prop(gflow, "exportAnchor_applyScale", icon='FULLSCREEN_ENTER', text="")
             row = self.layout.row()
             row.template_list("GFLOW_UL_exportAnchors", "", gflow, "exportAnchors", gflow, "ui_selectedExportAnchor", rows=1)
             col = row.column(align=True)

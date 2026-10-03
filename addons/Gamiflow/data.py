@@ -107,6 +107,9 @@ class GFlowObject(bpy.types.PropertyGroup):
     exportAnchor : bpy.props.PointerProperty(type=bpy.types.Object, name="Anchor", description="Transform used for the final object in the export set") # deprecated
     exportAnchors: bpy.props.CollectionProperty(type=GFlowAnchor)
     ui_selectedExportAnchor : bpy.props.IntProperty(name="[UI] Anchor Index", default=0, description="Internal")
+    exportAnchor_applyTranslation: bpy.props.BoolProperty(name="Apply translation", default=False)
+    exportAnchor_applyRotation: bpy.props.BoolProperty(name="Apply rotation", default=False)
+    exportAnchor_applyScale: bpy.props.BoolProperty(name="Apply scale", default=False)
     
     exportAction: bpy.props.PointerProperty(type=bpy.types.Action, name="Export Pose")
     exportActionObjectSlotName: bpy.props.StringProperty(name="Pose Slot (object)", default='')
