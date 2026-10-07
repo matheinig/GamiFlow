@@ -418,6 +418,18 @@ def generateLod(context, obj, collection, level, originalObjects, lodSettings):
         if not newchild: continue
         newchild.parent = newobj if newobj else obj
     return newobj
+    
+def applyExportAnchor(context, obj, anchor):
+    obj.matrix_world = anchor.obj.matrix_world.copy()
+    if obj.gflow.exportAnchor_applyTranslation or obj.gflow.exportAnchor_applyRotation or obj.gflow.exportAnchor_applyScale:
+        helpers.setSelected(context, obj)
+        bpy.ops.object.transform_apply(
+            location = obj.gflow.exportAnchor_applyTranslation, 
+            rotation = obj.gflow.exportAnchor_applyRotation, 
+            scale = obj.gflow.exportAnchor_applyScale, 
+            isolate_users=True)
+        helpers.setDeselected(obj)
+
 
 def generateExport(context):
     state = sets.DataState()
@@ -642,12 +654,12 @@ def generateExport(context):
         for anchorId, anchor in enumerate(o.gflow.exportAnchors):
             if not anchor.obj: continue
             if anchorId == 0:
-                o.matrix_world = anchor.obj.matrix_world.copy()
+                applyExportAnchor(context, o, anchor)
             else:
                 # Make a copy of the object and place it
                 clone = sets.duplicateObject(o, collection, prefix="", suffix=anchor.obj.name, workingSuffix="", link=False)
                 gen.register(clone, gen.findSource(o))
-                clone.matrix_world = anchor.obj.matrix_world.copy()
+                applyExportAnchor(context, clone, anchor)
             
 
     # Lightmap UVs generation
