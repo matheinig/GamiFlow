@@ -128,6 +128,10 @@ def getCollection(context, createIfNeeded=False):
 def generatePainterCage(context):
     lowCollection = sets_low.getCollection(context, createIfNeeded=False)
     if not lowCollection: return
+    
+    state = sets.DataState()
+    state.record()
+    
     # Create a clean collection for the cages
     cageCollection = getCollection(context, createIfNeeded=False)
     if cageCollection: sets.clearCollection(cageCollection)
@@ -162,6 +166,7 @@ def generatePainterCage(context):
 
         pass
  
+    state.cleanup()
     return
 
 

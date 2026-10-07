@@ -133,6 +133,10 @@ def deleteObject(obj):
         if obj.data.users == 1: 
             bpy.data.meshes.remove(obj.data)
             mustDeleteObject = False
+    elif obj.type == 'ARMATURE': 
+        if obj.data.users == 1: 
+            bpy.data.armatures.remove(obj.data)
+            mustDeleteObject = False            
     if mustDeleteObject:
         bpy.data.objects.remove(obj, do_unlink=True)
 

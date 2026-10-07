@@ -70,6 +70,25 @@ def onNewObject(o, scene):
     o.gflow.textureSetEnum = scene.gflow.udims[scene.gflow.ui_selectedUdim].name
     return
 
+class DataState:
+    def __init__(self):
+        self.meshes = None
+        self.actions = None
+        
+    def record(self):
+        self.meshes = set(bpy.data.meshes)
+        self.actions = set(bpy.data.actions)
+        
+    def cleanup(self):
+        for m in set(bpy.data.meshes) - self.meshes:
+            try: 
+                if m.users == 0: bpy.data.meshes.remove(m)
+            except: pass
+        for a in set(bpy.data.actions) - self.actions: 
+            try: bpy.data.actions.remove(a)
+            except: pass
+        
+
 class GeneratorData:
     def __init__(self):
         self.generated = []

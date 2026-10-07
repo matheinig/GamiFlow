@@ -420,6 +420,9 @@ def generateLod(context, obj, collection, level, originalObjects, lodSettings):
     return newobj
 
 def generateExport(context):
+    state = sets.DataState()
+    state.record()
+    
     # Make sure we don't already have a filled export set
     collection = getCollection(context, createIfNeeded=False)
     if collection: sets.clearCollection(collection)
@@ -437,12 +440,9 @@ def generateExport(context):
     exportSuffix = stgs.exportsuffix
     if len(context.scene.gflow.lod.lods)>1:
         exportSuffix = stgs.lodsuffix+"0"
-    
+
     workingSuffix = stgs.workingsuffix
-    
-    # Get a list of all the actions present now
-    actions = set(bpy.data.actions)
-    
+
     # Force all the armatures back to their rest position
     # This prevents unexpected issues when applying data transfer modifiers on skinned objects
     armatures = []
@@ -791,13 +791,6 @@ def generateExport(context):
     # Reset the armatures back to their useful state
     for armature in armatures:
         armature.pose_position = 'POSE'
-
-    # Cleanup the actions that were potentially accidentally duplicated
-    newActions = set(bpy.data.actions)
-    toDelete = newActions-actions
-    for a in toDelete:
-        print("GamiFlow: Cleaning up action"+a.name+" that shouldn't have created in the first place")
-        bpy.actions.remove(a)
     
     if stgs.renameExportMeshes:
         print("GamiFlow: Rename export meshes")
@@ -813,6 +806,7 @@ def generateExport(context):
             if c.DM.isdecaltypecol: sets.setCollectionVisibility(context, c, False, recursive=True)
 #ENDTRIM -----------------------------------------------------                   
     
+    state.cleanup()
     
 
 class GFLOW_OT_MakeExport(bpy.types.Operator):

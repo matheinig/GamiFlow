@@ -33,6 +33,9 @@ def processModifiers(context, generatorData, obj):
            
 
 def generatePainterLow(context):
+    state = sets.DataState()
+    state.record()
+
     lowCollection = getCollection(context, createIfNeeded=False)
     if lowCollection: sets.clearCollection(lowCollection)
     
@@ -186,6 +189,8 @@ def generatePainterLow(context):
             sets.removeCageEdges(o)
             geotags.removeObjectLayers(o)
             sets_cage.removeCageModifier(context, o)
+        
+    state.cleanup()
         
     return
 

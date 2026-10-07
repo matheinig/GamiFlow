@@ -97,6 +97,9 @@ def processNewObject(context, o, stgs, isBakeObject=False):
     helpers.setDeselected(o)
 
 def generatePainterHigh(context):
+    state = sets.DataState()
+    state.record()
+
     highCollection = getCollection(context, createIfNeeded=False)
     if highCollection: sets.clearCollection(highCollection)
     highCollection = getCollection(context, createIfNeeded=True)
@@ -240,6 +243,8 @@ def generatePainterHigh(context):
     # Remove cage modifiers in case the user played with them
     for o in gen.generated:
         sets_cage.removeCageModifier(context, o)
+           
+    state.cleanup()
            
     return
 
