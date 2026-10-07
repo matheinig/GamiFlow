@@ -400,7 +400,27 @@ class GamiflowObjPanel_Bake(bpy.types.Panel):
             row.enabled = validInstancer and (gflow.instanceBake=='LOW' or gflow.instanceBake=='LOW_HIGH')
             row.prop(gflow, "instancePriority")
         
-        
+def drawExportAnchorUi(layout, gflow):
+    # Anchors list
+    layout.label(text="Export anchors")
+    row = layout.row(align=True)
+    row = row.split(factor=0.5, align=True)
+    row.label(text="Apply transforms")
+    
+    row.prop(gflow, "exportAnchor_applyTranslation", icon='OBJECT_ORIGIN', text="")
+    row.prop(gflow, "exportAnchor_applyRotation", icon='ORIENTATION_GIMBAL', text="")
+    row.prop(gflow, "exportAnchor_applyScale", icon='FULLSCREEN_ENTER', text="")
+    row = layout.row()
+    row.template_list("GFLOW_UL_exportAnchors", "", gflow, "exportAnchors", gflow, "ui_selectedExportAnchor", rows=1)
+    col = row.column(align=True)
+    col.operator("gflow.add_export_anchor", icon='ADD', text="")
+    col.operator("gflow.remove_export_anchor", icon='REMOVE', text="")
+    row = col.row()
+    row.enabled = len(gflow.exportAnchors)>0
+    op = row.operator("gflow.select_by_name", icon='RESTRICT_SELECT_OFF', text="")
+    if row.enabled and gflow.exportAnchors[gflow.ui_selectedExportAnchor].obj is not None: 
+        op.name = gflow.exportAnchors[gflow.ui_selectedExportAnchor].obj.name  
+                
 class GamiflowObjPanel_Export(bpy.types.Panel):
     bl_label = "Export"
     bl_space_type = 'PROPERTIES'
@@ -422,27 +442,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
             self.layout.prop(gflow, "allowDecimation")
             self.layout.separator()
 
-            # Anchors list
-            self.layout.label(text="Export anchors")
-            row = self.layout.row(align=True)
-            row = row.split(factor=0.5, align=True)
-            row.label(text="Apply transforms")
-            
-            row.prop(gflow, "exportAnchor_applyTranslation", icon='OBJECT_ORIGIN', text="")
-            row.prop(gflow, "exportAnchor_applyRotation", icon='ORIENTATION_GIMBAL', text="")
-            row.prop(gflow, "exportAnchor_applyScale", icon='FULLSCREEN_ENTER', text="")
-            row = self.layout.row()
-            row.template_list("GFLOW_UL_exportAnchors", "", gflow, "exportAnchors", gflow, "ui_selectedExportAnchor", rows=1)
-            col = row.column(align=True)
-            col.operator("gflow.add_export_anchor", icon='ADD', text="")
-            col.operator("gflow.remove_export_anchor", icon='REMOVE', text="")
-            row = col.row()
-            row.enabled = len(gflow.exportAnchors)>0
-            op = row.operator("gflow.select_by_name", icon='RESTRICT_SELECT_OFF', text="")
-            if row.enabled and gflow.exportAnchors[gflow.ui_selectedExportAnchor].obj is not None: 
-                op.name = gflow.exportAnchors[gflow.ui_selectedExportAnchor].obj.name            
-            
-            
+            drawExportAnchorUi(self.layout, gflow)
+
             if bpy.app.version >= (4,4,0):
                 self.layout.separator()
                 self.layout.prop(gflow, "exportAction")
@@ -460,7 +461,8 @@ class GamiflowObjPanel_Export(bpy.types.Panel):
                 self.layout.prop(gflow, "exportActionObjectSlotName")
                 self.layout.operator("gflow.action_slot_popup", text="Set Export Slot", icon='ACTION_SLOT').mode = 'EXPORT'
             else:
-                self.layout.prop(gflow, "exportAction")        
+                self.layout.prop(gflow, "exportAction")
+            drawExportAnchorUi(self.layout, gflow)
         elif obj.type == 'EMPTY':
             self.layout.prop(gflow, "maxLod")
             row = self.layout.row()
